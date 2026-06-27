@@ -850,9 +850,64 @@ export type OpsUser = {
   lastSeenAt?: string | null;
 };
 
-export type CurrentUser = {
-  user: OpsUser;
+export type AuthRole = "CUSTOMER" | "RESTAURANT" | "DELIVERY" | "DRIVER" | "SUPPORT" | "FINANCE" | "ADMIN" | "SUPER_ADMIN";
+export type OtpLoginRole = Extract<AuthRole, "CUSTOMER" | "RESTAURANT" | "DELIVERY" | "DRIVER">;
+export type StaffLoginRole = Extract<AuthRole, "SUPPORT" | "FINANCE" | "ADMIN" | "SUPER_ADMIN">;
+
+export type AuthUser = {
+  id: string;
+  role: AuthRole;
+  adminType?: string | null;
+  phoneE164?: string | null;
+  email?: string | null;
+  name?: string | null;
+  avatarUrl?: string | null;
+  walletBalanceCached?: string;
+  isBanned?: boolean;
+  isOnline?: boolean;
+  partnerApproval?: string;
+  rejectionReason?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
+
+export type AuthUserResponse = {
+  user: AuthUser;
+};
+
+export type OtpRequestResponse = {
+  message: string;
+  devCode?: string;
+};
+
+export function requestOtpLogin(input: { phone: string; role: OtpLoginRole }) {
+  return fetchApi<OtpRequestResponse>("/auth/otp/request", { method: "POST", body: JSON.stringify(input), skipRefresh: true });
+}
+
+export function verifyOtpLogin(input: { phone: string; role: OtpLoginRole; code: string }) {
+  return fetchApi<AuthUserResponse>("/auth/otp/verify", { method: "POST", body: JSON.stringify(input), skipRefresh: true });
+}
+
+export function adminLogin(input: { email: string; password: string; mfaCode?: string }) {
+  return fetchApi<AuthUserResponse>("/auth/admin/login", { method: "POST", body: JSON.stringify(input), skipRefresh: true });
+}
+
+export function logout() {
+  return fetchApi<{ message: string }>("/auth/logout", { method: "POST", skipRefresh: true });
+}
+
+export function routeForRole(role: AuthRole | string) {
+  if (role === "CUSTOMER") {
+    return "/customer";
+  }
+
+  if (["RESTAURANT", "DELIVERY", "DRIVER"].includes(role)) {
+    return "/partner";
+  }
+
+  return "/ops";
+}
+export type CurrentUser = AuthUserResponse;
 
 export function currentUser() {
   return fetchApi<CurrentUser>("/auth/me");
