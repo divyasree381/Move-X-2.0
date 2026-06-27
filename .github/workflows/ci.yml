@@ -55,7 +55,7 @@ jobs:
           version: 9.15.4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.11
+          node-version: 22.17.0
           cache: pnpm
       - name: Install
         env:
@@ -85,7 +85,7 @@ jobs:
           version: 9.15.4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.11
+          node-version: 22.17.0
           cache: pnpm
       - run: pnpm install --no-frozen-lockfile
       - run: docker build -f backend/infra/Dockerfile.api -t movex-api:${{ github.sha }} .
@@ -109,7 +109,7 @@ jobs:
           version: 9.15.4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.11
+          node-version: 22.17.0
           cache: pnpm
       - run: pnpm install --no-frozen-lockfile
       - run: docker build -f backend/infra/Dockerfile.api -t movex-api:${{ github.sha }} .
