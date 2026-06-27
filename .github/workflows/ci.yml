@@ -67,8 +67,6 @@ jobs:
         run: pnpm lint
       - name: Typecheck
         run: pnpm typecheck
-      - name: Generate OpenAPI client
-        run: pnpm openapi:generate
       - name: Build
         run: pnpm build
 
