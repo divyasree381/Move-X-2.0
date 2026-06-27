@@ -1,0 +1,30 @@
+{
+    "name":  "@movex/workers",
+    "version":  "0.1.0",
+    "private":  true,
+    "type":  "module",
+    "scripts":  {
+                    "build":  "tsc -p tsconfig.json",
+                    "dev":  "tsx watch src/index.ts",
+                    "search:rebuild":  "tsx src/index.ts --rebuild-search",
+                    "lint":  "eslint . --max-warnings=0",
+                    "typecheck":  "tsc -p tsconfig.json --noEmit",
+                    "test":  "node -e \"process.exit(0)\""
+                },
+    "dependencies":  {
+                         "@movex/shared":  "workspace:*",
+                         "@opentelemetry/auto-instrumentations-node":  "^0.67.0",
+                         "@opentelemetry/exporter-trace-otlp-http":  "^0.208.0",
+                         "@opentelemetry/resources":  "^2.2.0",
+                         "@opentelemetry/sdk-node":  "^0.208.0",
+                         "@opentelemetry/semantic-conventions":  "^1.38.0",
+                         "@prisma/adapter-pg":  "^7.8.0",
+                         "@prisma/client":  "^7.8.0",
+                         "@sentry/node":  "^10.32.0",
+                         "ioredis":  "^5.11.1",
+                         "tsx":  "^4.22.4"
+                     },
+    "devDependencies":  {
+                            "typescript":  "^5.8.3"
+                        }
+}
