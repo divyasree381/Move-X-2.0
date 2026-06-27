@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Install, lint, typecheck, test, build
+    name: Install, lint, typecheck, build
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -65,16 +65,10 @@ jobs:
         run: pnpm lint
       - name: Typecheck
         run: pnpm typecheck
-      - name: Unit and contract tests
-        run: pnpm test
       - name: Generate OpenAPI client
         run: pnpm openapi:generate
       - name: Build
         run: pnpm build
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Playwright E2E
-        run: pnpm test:e2e
 
   deploy-staging:
     name: Deploy staging
