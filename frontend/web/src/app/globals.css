@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Aptos", "Segoe UI", system-ui, sans-serif;
+  --color-brand: #ff6b00;
+  --color-brand-foreground: #fff7ed;
+  --color-delivery: #12a36b;
+  --color-ride: #2563eb;
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --spacing: 0.25rem;
+}
+
+:root {
+  color-scheme: light;
+  --surface: #ffffff;
+  --surface-muted: #f6f7f9;
+  --surface-raised: #ffffff;
+  --foreground: #111827;
+  --muted-foreground: #5b6472;
+  --border: #d9dee7;
+  --ring: #ff8a33;
+  --destructive: #dc2626;
+  --warning: #a16207;
+  --success: #15803d;
+  --shadow-shell: 0 1px 2px rgb(17 24 39 / 0.08), 0 18px 48px rgb(17 24 39 / 0.08);
+}
+
+.dark {
+  color-scheme: dark;
+  --surface: #0f141b;
+  --surface-muted: #151b24;
+  --surface-raised: #1b222d;
+  --foreground: #f5f7fb;
+  --muted-foreground: #a9b2c1;
+  --border: #303947;
+  --ring: #ff9b4d;
+  --destructive: #f87171;
+  --warning: #facc15;
+  --success: #4ade80;
+  --shadow-shell: 0 1px 2px rgb(0 0 0 / 0.3), 0 18px 48px rgb(0 0 0 / 0.36);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--surface-muted);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--surface-muted);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  text-rendering: geometricPrecision;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, #ff6b00 22%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes content-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

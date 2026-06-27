@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Install, lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4-alpine
+        env:
+          POSTGRES_DB: movex
+          POSTGRES_USER: movex
+          POSTGRES_PASSWORD: movex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U movex -d movex"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://movex:movex@localhost:5432/movex?schema=public
+      REDIS_URL: redis://localhost:6379
+      CORS_ORIGIN: http://127.0.0.1:3000,http://localhost:3000
+      AUTH_HASH_SECRET: ci-auth-hash-secret
+      CONFIG_SECRET_KEY: ci-config-secret
+      MFA_SECRET_KEY: ci-mfa-secret
+      SESSION_COOKIE_NAME: __Host-movex_session
+      PAYMENT_PROVIDER: mock
+      SMS_PROVIDER: mock
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:3001/api/v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.11
+          cache: pnpm
+      - name: Install
+        run: pnpm install --no-frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm --filter @movex/api db:generate
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Unit and contract tests
+        run: pnpm test
+      - name: Generate OpenAPI client
+        run: pnpm openapi:generate
+      - name: Build
+        run: pnpm build
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Playwright E2E
+        run: pnpm test:e2e
+
+  deploy-staging:
+    name: Deploy staging
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.11
+          cache: pnpm
+      - run: pnpm install --no-frozen-lockfile
+      - run: docker build -f backend/infra/Dockerfile.api -t movex-api:${{ github.sha }} .
+      - run: docker build -f backend/infra/Dockerfile.workers -t movex-workers:${{ github.sha }} .
+      - name: Deploy web to Vercel staging
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        if: env.VERCEL_TOKEN != ''
+        run: pnpm dlx vercel deploy frontend/web --token=$VERCEL_TOKEN --yes
+
+  deploy-production:
+    name: Deploy production
+    needs: verify
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.11
+          cache: pnpm
+      - run: pnpm install --no-frozen-lockfile
+      - run: docker build -f backend/infra/Dockerfile.api -t movex-api:${{ github.sha }} .
+      - run: docker build -f backend/infra/Dockerfile.workers -t movex-workers:${{ github.sha }} .
+      - name: Deploy web to Vercel production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        if: env.VERCEL_TOKEN != ''
+        run: pnpm dlx vercel deploy frontend/web --prod --token=$VERCEL_TOKEN --yes
+
