@@ -1,5 +1,7 @@
-import { Controller, ForbiddenException, Inject, MessageEvent, Query, Req, Sse } from "@nestjs/common";
-import { from, interval, map, merge, Observable, of, switchMap, throwError } from "rxjs";
+import type { MessageEvent} from "@nestjs/common";
+import { Controller, ForbiddenException, Inject, Query, Req, Sse } from "@nestjs/common";
+import type { Observable} from "rxjs";
+import { from, interval, map, merge, of, switchMap, throwError } from "rxjs";
 
 import type { RequestWithUser } from "../../common/types/authenticated-request";
 import { REALTIME_PROVIDER, type RealtimeProvider } from "./realtime-provider";
@@ -8,7 +10,7 @@ import { RealtimeSubscriptionService } from "./realtime-subscription.service";
 @Controller({ path: "realtime", version: "1" })
 export class RealtimeController {
   constructor(
-    private readonly subscriptionService: RealtimeSubscriptionService,
+    @Inject(RealtimeSubscriptionService) private readonly subscriptionService: RealtimeSubscriptionService,
     @Inject(REALTIME_PROVIDER) private readonly realtimeProvider: RealtimeProvider,
   ) {}
 

@@ -37,6 +37,7 @@ export class IdentityService {
     @Inject(IdentityRateLimiterService) private readonly rateLimiter: IdentityRateLimiterService,
     @Inject(SessionService) private readonly sessionService: SessionService,
     @Inject(PasswordService) private readonly passwordService: PasswordService,
+    @Inject(MfaService) private readonly mfaService: MfaService,
     @Inject(SMS_PROVIDER) private readonly smsProvider: SmsProvider,
   ) {}
 

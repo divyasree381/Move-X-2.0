@@ -4,7 +4,7 @@ import type { StoreType as PrismaStoreType } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import type { AuthenticatedUser } from "../../common/types/authenticated-request";
-import {
+import type {
   MenuItemDto,
   StoreListQueryDto,
   StoreOpenDto,
@@ -25,7 +25,7 @@ type StockLine = {
 @Injectable()
 export class MarketplaceService {
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(SEARCH_ADAPTER) private readonly searchAdapter: SearchAdapter,
   ) {}
 
@@ -98,8 +98,8 @@ export class MarketplaceService {
         lng: new Prisma.Decimal(body.lng),
         approval: PartnerApproval.PENDING,
         isOpen: false,
-        bankAccount: body.bankAccount ?? Prisma.JsonNull,
-        openingHours: body.openingHours ?? {},
+        bankAccount: (body.bankAccount ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+        openingHours: (body.openingHours ?? {}) as Prisma.InputJsonValue,
       },
     });
 
@@ -123,8 +123,8 @@ export class MarketplaceService {
         deliveryRadiusKm: new Prisma.Decimal(body.deliveryRadiusKm),
         lat: new Prisma.Decimal(body.lat),
         lng: new Prisma.Decimal(body.lng),
-        bankAccount: body.bankAccount ?? Prisma.JsonNull,
-        openingHours: body.openingHours ?? {},
+        bankAccount: (body.bankAccount ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+        openingHours: (body.openingHours ?? {}) as Prisma.InputJsonValue,
         approval: store.approval === PartnerApproval.REJECTED ? PartnerApproval.PENDING : store.approval,
         rejectionReason: null,
       },
@@ -314,7 +314,7 @@ export class MarketplaceService {
       tags: body.tags ?? [],
       available: body.available ?? true,
       stock: body.stock,
-      customizations: body.customizations ?? {},
+      customizations: (body.customizations ?? {}) as Prisma.InputJsonValue,
     };
   }
 
@@ -328,7 +328,7 @@ export class MarketplaceService {
       tags: body.tags,
       available: body.available,
       stock: body.stock,
-      customizations: body.customizations,
+      customizations: body.customizations as Prisma.InputJsonValue | undefined,
     };
   }
 

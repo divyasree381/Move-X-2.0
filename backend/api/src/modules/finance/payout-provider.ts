@@ -1,4 +1,4 @@
-import { PayoutStatus } from "@prisma/client";
+import type { PayoutStatus } from "@prisma/client";
 
 export const PAYOUT_PROVIDER = Symbol("PAYOUT_PROVIDER");
 
@@ -13,7 +13,7 @@ export type PayoutTransferInput = {
 
 export type PayoutTransferResult = {
   reference: string;
-  status: PayoutStatus.PROCESSING | PayoutStatus.PAID | PayoutStatus.FAILED;
+  status: Extract<PayoutStatus, "PROCESSING" | "PAID" | "FAILED">;
   message?: string;
 };
 

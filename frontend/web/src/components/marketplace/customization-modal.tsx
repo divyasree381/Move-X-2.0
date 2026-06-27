@@ -134,7 +134,7 @@ function parseCustomizationGroups(customizations: unknown): Group[] {
   }
 
   return rawGroups
-    .map((group) => {
+    .map((group): Group | null => {
       if (!group || typeof group !== "object") {
         return null;
       }
@@ -145,7 +145,7 @@ function parseCustomizationGroups(customizations: unknown): Group[] {
       }
 
       const options = record.options
-        .map((option) => {
+        .map((option): Option | null => {
           if (!option || typeof option !== "object") {
             return null;
           }

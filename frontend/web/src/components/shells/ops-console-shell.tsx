@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import { PermissionAction, UserRole, hasPermission } from "@movex/shared";
+import { UserRole, hasPermission } from "@movex/shared";
+import type { PermissionAction } from "@movex/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Shield, TerminalSquare } from "lucide-react";
 
@@ -44,7 +45,7 @@ export function OpsConsoleShell({ children, role: fallbackRole }: { children?: R
       <div className="min-h-screen bg-surface-muted text-foreground">
         <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-border bg-surface p-4 lg:block">
           <div className="flex items-center gap-2">
-            <TerminalSquare className="size-5 text-brand" aria-hidden="true" />
+            <TerminalSquare className="size-5 text-brand" aria-hidden={true} />
             <div>
               <p className="text-sm font-semibold">MoveX Ops</p>
               <p className="text-xs text-muted-foreground">{role ?? (me.isLoading ? "Loading" : "No ops role")}</p>
@@ -53,7 +54,7 @@ export function OpsConsoleShell({ children, role: fallbackRole }: { children?: R
           <nav className="mt-6 space-y-1" aria-label="Operations navigation">
             {nav.map((item) => (
               <a key={item.href} href={item.href} className="flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
-                <item.icon className="size-4" aria-hidden="true" />
+                <item.icon className="size-4" aria-hidden={true} />
                 {item.label}
               </a>
             ))}
@@ -77,7 +78,7 @@ export function OpsConsoleShell({ children, role: fallbackRole }: { children?: R
               </div>
               <div className="rounded-md border border-border bg-surface p-4">
                 <p className="text-xs font-medium text-muted-foreground">Role</p>
-                <p className="mt-1 flex items-center gap-2 text-sm font-semibold"><Shield className="size-4 text-brand" aria-hidden="true" /> {role ?? "Resolving"}</p>
+                <p className="mt-1 flex items-center gap-2 text-sm font-semibold"><Shield className="size-4 text-brand" aria-hidden={true} /> {role ?? "Resolving"}</p>
               </div>
               <div className="rounded-md border border-border bg-surface p-4">
                 <p className="text-xs font-medium text-muted-foreground">Queue</p>

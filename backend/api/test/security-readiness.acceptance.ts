@@ -116,7 +116,7 @@ async function main(): Promise<void> {
     const secret = mfa.generateSecret();
     const encrypted = mfa.encryptSecret(secret);
     assert(!JSON.stringify(encrypted).includes(secret), "MFA secret must be encrypted at rest");
-    assert.equal(mfa.decryptSecret(encrypted), secret);
+    assert.equal(mfa.decryptSecret(encrypted as unknown as Parameters<MfaService["decryptSecret"]>[0]), secret);
     assert.match(mfa.provisioningUri({ issuer: "MoveX", account: "ops@example.com", secret }), /^otpauth:\/\/totp\//);
   });
 

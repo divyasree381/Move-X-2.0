@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from "@nestjs/common";
+import { Inject, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from "@nestjs/common";
 import { ApiExtraModels, ApiTags } from "@nestjs/swagger";
 import { PermissionAction } from "@movex/shared";
 
@@ -20,7 +20,7 @@ import { MarketplaceService } from "./marketplace.service";
 @ApiExtraModels(StoreListQueryDto, StoreSearchQueryDto, UpsertStoreDto, StoreOpenDto, StoreReviewDto, MenuItemDto, UpdateMenuItemDto)
 @Controller({ path: "stores", version: "1" })
 export class MarketplaceController {
-  constructor(private readonly marketplaceService: MarketplaceService) {}
+  constructor(@Inject(MarketplaceService) private readonly marketplaceService: MarketplaceService) {}
 
   @Public()
   @Get()

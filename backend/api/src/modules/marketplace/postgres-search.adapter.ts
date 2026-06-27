@@ -1,7 +1,7 @@
-import { Injectable } from "@nestjs/common";
-import { PartnerApproval, Prisma } from "@prisma/client";
+import { Inject, Injectable } from "@nestjs/common";
+import { PartnerApproval } from "@prisma/client";
 import type { StoreType } from "@movex/shared";
-import type { StoreType as PrismaStoreType } from "@prisma/client";
+import type { StoreType as PrismaStoreType , Prisma } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import type { SearchAdapter, StoreListItem, StoreSearchInput, StoreSearchResult } from "./search-adapter";
@@ -24,7 +24,7 @@ type SearchStoreRow = {
 
 @Injectable()
 export class PostgresSearchAdapter implements SearchAdapter {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   listStores(input: StoreSearchInput): Promise<StoreSearchResult> {
     return this.findStores(input);

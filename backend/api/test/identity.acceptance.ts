@@ -9,7 +9,7 @@ import { IdentityRepository } from "../src/modules/identity/identity.repository"
 import type { CreateSessionInput, IdentityUser, SessionRecord } from "../src/modules/identity/identity.types";
 import type { OtpLoginRole, UserRoleValue } from "../src/modules/identity/constants";
 import { RedisStoreService } from "../src/infrastructure/redis/redis-store.service";
-import { SMS_PROVIDER, type SendOtpInput, type SmsProvider } from "../src/infrastructure/sms/sms-provider";
+import { SMS_PROVIDER, type SendOtpInput, type SendSmsInput, type SmsProvider } from "../src/infrastructure/sms/sms-provider";
 import { PasswordService } from "../src/modules/identity/security/password.service";
 import { setupApp } from "../src/setup-app";
 
@@ -104,6 +104,11 @@ class TestSmsProvider implements SmsProvider {
 
   async sendOtp(input: SendOtpInput): Promise<void> {
     this.sentMessages.push(input);
+  }
+
+  async sendSms(input: SendSmsInput): Promise<void> {
+    void input;
+    // Not used by identity OTP tests.
   }
 }
 

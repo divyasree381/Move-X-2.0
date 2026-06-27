@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req } from "@nestjs/common";
+import { Inject, Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req } from "@nestjs/common";
 import { ApiExtraModels, ApiTags } from "@nestjs/swagger";
 import { PermissionAction } from "@movex/shared";
 
@@ -23,7 +23,7 @@ import { OpsService } from "./ops.service";
 @ApiExtraModels(CouponQueryDto, UpsertCouponDto, ConfigQueryDto, UpsertConfigDto, TicketQueryDto, CreateTicketDto, UpdateTicketDto, TicketMessageDto, DisputeQueryDto, DisputeActionDto, AuditQueryDto)
 @Controller({ path: "ops", version: "1" })
 export class OpsController {
-  constructor(private readonly opsService: OpsService) {}
+  constructor(@Inject(OpsService) private readonly opsService: OpsService) {}
 
   @Get("coupons")
   @RequirePermission(PermissionAction.CouponsManage)

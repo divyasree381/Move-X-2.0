@@ -57,7 +57,7 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
           <div className="flex flex-wrap items-center gap-2">
             <StatusPill label={isOnline ? "Online" : "Offline"} tone={isOnline ? "success" : "warning"} />
             <Button type="button" variant={isOnline ? "secondary" : "primary"} disabled={onlineMutation.isPending} onClick={() => onlineMutation.mutate(!isOnline)}>
-              <Power className="size-4" aria-hidden="true" />
+              <Power className="size-4" aria-hidden={true} />
               {isOnline ? "Go offline" : "Go online"}
             </Button>
           </div>
@@ -67,7 +67,7 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
         <nav className="rounded-md border border-border bg-surface p-2" aria-label="Partner navigation">
           {nav.map((item) => (
             <a key={item.href} href={item.href} className="flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
-              <item.icon className="size-4" aria-hidden="true" />
+              <item.icon className="size-4" aria-hidden={true} />
               {item.label}
             </a>
           ))}
@@ -80,7 +80,7 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground">Heartbeat</p>
-              <p className="mt-1 flex items-center gap-2 text-sm font-semibold"><RadioTower className="size-4 text-delivery" aria-hidden="true" /> {isOnline ? "Active" : "Paused"}</p>
+              <p className="mt-1 flex items-center gap-2 text-sm font-semibold"><RadioTower className="size-4 text-delivery" aria-hidden={true} /> {isOnline ? "Active" : "Paused"}</p>
             </div>
             {role === UserRole.DRIVER ? (
               <div>
@@ -96,7 +96,7 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
             ) : null}
             <div>
               <p className="text-xs font-medium text-muted-foreground">Live Location</p>
-              <p className="mt-1 flex items-center gap-2 text-sm font-semibold"><LocateFixed className="size-4 text-delivery" aria-hidden="true" /> {coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : locationError ?? "Waiting"}</p>
+              <p className="mt-1 flex items-center gap-2 text-sm font-semibold"><LocateFixed className="size-4 text-delivery" aria-hidden={true} /> {coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : locationError ?? "Waiting"}</p>
             </div>
           </section>
           <PartnerOpsPanel isOnline={isOnline} />

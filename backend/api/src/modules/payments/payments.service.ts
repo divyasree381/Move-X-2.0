@@ -4,7 +4,8 @@ import { PaymentStatus } from "@prisma/client";
 
 import { RedisStoreService } from "../../infrastructure/redis/redis-store.service";
 import type { SessionRecord } from "../identity/identity.types";
-import { CreatePaymentOrderDto, CreateRefundDto, type PaymentReferenceType } from "./dto/payments.dto";
+import type { CreatePaymentOrderDto, CreateRefundDto} from "./dto/payments.dto";
+import { type PaymentReferenceType } from "./dto/payments.dto";
 import { FinanceService } from "./finance.service";
 import { PAYMENT_PROVIDER, type PaymentProvider, type PaymentProviderOrder } from "./payment-provider";
 
@@ -49,8 +50,8 @@ const WEBHOOK_LOCK_TTL_MS = Number(process.env.PAYMENT_WEBHOOK_LOCK_TTL_MS ?? 30
 @Injectable()
 export class PaymentsService {
   constructor(
-    private readonly financeService: FinanceService,
-    private readonly redisStore: RedisStoreService,
+    @Inject(FinanceService) private readonly financeService: FinanceService,
+    @Inject(RedisStoreService) private readonly redisStore: RedisStoreService,
     @Inject(PAYMENT_PROVIDER) private readonly paymentProvider: PaymentProvider,
   ) {}
 

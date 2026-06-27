@@ -4,7 +4,8 @@ import type { SettlementProvider, SettlementProviderRow, SettlementQuery } from 
 
 @Injectable()
 export class MockRazorpaySettlementProvider implements SettlementProvider {
-  async listSettlements(_query: SettlementQuery): Promise<SettlementProviderRow[]> {
+  async listSettlements(query: SettlementQuery): Promise<SettlementProviderRow[]> {
+    void query;
     const raw = process.env.MOCK_RAZORPAY_SETTLEMENT_ROWS;
     if (!raw) {
       return [];

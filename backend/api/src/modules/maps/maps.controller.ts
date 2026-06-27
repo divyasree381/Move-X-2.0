@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common";
+import { Inject, Body, Controller, Get, Post, Query } from "@nestjs/common";
 import { ApiExtraModels, ApiTags } from "@nestjs/swagger";
 
 import { Public } from "../../common/decorators/public.decorator";
@@ -17,7 +17,7 @@ import { MapsService } from "./maps.service";
 @Public()
 @Controller({ path: "maps", version: "1" })
 export class MapsController {
-  constructor(private readonly mapsService: MapsService) {}
+  constructor(@Inject(MapsService) private readonly mapsService: MapsService) {}
 
   @Get("autocomplete")
   autocomplete(@Query() query: AutocompleteQueryDto) {

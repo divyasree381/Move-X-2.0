@@ -1,15 +1,16 @@
-import { Body, Controller, Get, Param, Post, Query, Req } from "@nestjs/common";
+import { Inject, Body, Controller, Get, Param, Post, Query, Req } from "@nestjs/common";
 import { ApiExtraModels, ApiTags } from "@nestjs/swagger";
 
 import type { AuthenticatedUser, RequestWithUser } from "../../common/types/authenticated-request";
-import { CreateCourierDto, CreateHomeServiceDto, CreateRideDto, CourierEstimateDto, HomeServiceCatalogQueryDto, HomeServiceEstimateDto, RideCancelDto, RideEstimateDto, RideOtpDto, RideRatingDto, RidesQueryDto } from "./dto/rides.dto";
+import type { HomeServiceCatalogQueryDto} from "./dto/rides.dto";
+import { CreateCourierDto, CreateHomeServiceDto, CreateRideDto, CourierEstimateDto, HomeServiceEstimateDto, RideCancelDto, RideEstimateDto, RideOtpDto, RideRatingDto, RidesQueryDto } from "./dto/rides.dto";
 import { RidesService } from "./rides.service";
 
 @ApiTags("Rides")
 @ApiExtraModels(CreateRideDto, CreateCourierDto, CreateHomeServiceDto, CourierEstimateDto, HomeServiceEstimateDto, RideCancelDto, RideEstimateDto, RideOtpDto, RideRatingDto, RidesQueryDto)
 @Controller({ version: "1" })
 export class RidesController {
-  constructor(private readonly ridesService: RidesService) {}
+  constructor(@Inject(RidesService) private readonly ridesService: RidesService) {}
 
   @Post("rides/estimate")
   estimate(@Body() body: RideEstimateDto) {

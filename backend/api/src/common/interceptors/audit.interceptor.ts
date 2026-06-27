@@ -1,5 +1,5 @@
-import { Injectable, type CallHandler, type ExecutionContext, type NestInterceptor } from "@nestjs/common";
-import { UserRole } from "@prisma/client";
+import { Inject, Injectable, type CallHandler, type ExecutionContext, type NestInterceptor } from "@nestjs/common";
+import { UserRole, type Prisma } from "@prisma/client";
 import { tap } from "rxjs";
 import type { Observable } from "rxjs";
 
@@ -13,7 +13,7 @@ const SENSITIVE_KEY_PATTERN = /(password|token|secret|otp|code|hash|signature|au
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
@@ -47,7 +47,7 @@ export class AuditInterceptor implements NestInterceptor {
                 params: this.redact(params ?? {}),
                 query: this.redact(request.query ?? {}),
                 body: this.redact(request.body ?? {}),
-              },
+              } as Prisma.InputJsonValue,
             },
           }).catch(() => undefined);
         },

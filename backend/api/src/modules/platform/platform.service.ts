@@ -1,9 +1,9 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { Inject, BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma, ServiceType } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import type { AuthenticatedUser } from "../../common/types/authenticated-request";
-import { AnalyticsQueryDto, FeatureFlagQueryDto, RefreshAnalyticsDto, SearchRebuildDto, UpsertFeatureFlagDto } from "./dto/platform.dto";
+import type { AnalyticsQueryDto, FeatureFlagQueryDto, RefreshAnalyticsDto, SearchRebuildDto, UpsertFeatureFlagDto } from "./dto/platform.dto";
 
 type ProjectionAccumulator = {
   ordersCount: number;
@@ -18,7 +18,7 @@ const ALL_SCOPE = "ALL";
 
 @Injectable()
 export class PlatformService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async analytics(query: AnalyticsQueryDto) {
     const range = this.resolveDateRange(query.from, query.to);
@@ -140,14 +140,14 @@ export class PlatformService {
       update: {
         description: body.description,
         enabled: body.enabled,
-        rollout: body.rollout ?? {},
+        rollout: (body.rollout ?? {}) as Prisma.InputJsonValue,
         updatedById: actor.userId,
       },
       create: {
         key: normalizedKey,
         description: body.description,
         enabled: body.enabled,
-        rollout: body.rollout ?? {},
+        rollout: (body.rollout ?? {}) as Prisma.InputJsonValue,
         updatedById: actor.userId,
       },
     });

@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Post, Req } from "@nestjs/common";
+import { Inject, Body, Controller, Headers, Post, Req } from "@nestjs/common";
 import { ApiExtraModels, ApiTags } from "@nestjs/swagger";
 import { PermissionAction } from "@movex/shared";
 import type { Request } from "express";
@@ -15,7 +15,7 @@ type RawBodyRequest = Request & { rawBody?: Buffer };
 @ApiExtraModels(CreatePaymentOrderDto, CreateRefundDto, MockCaptureDto)
 @Controller({ path: "payments", version: "1" })
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(@Inject(PaymentsService) private readonly paymentsService: PaymentsService) {}
 
   @Post("orders")
   createPaymentOrder(@Req() request: RequestWithUser, @Body() body: CreatePaymentOrderDto) {

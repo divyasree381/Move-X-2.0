@@ -1,4 +1,4 @@
-﻿import { ValidationPipe, VersioningType, type INestApplication } from "@nestjs/common";
+import { ValidationPipe, VersioningType, type INestApplication } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
 
@@ -14,7 +14,7 @@ export function setupApp(app: INestApplication): INestApplication {
   app.use(createPinoLoggerMiddleware());
   app.use(cookieParser());
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
       if (!origin || isExactAllowedOrigin(origin)) {
         callback(null, true);
         return;

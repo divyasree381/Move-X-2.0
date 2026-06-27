@@ -1,5 +1,5 @@
-﻿import type Redis from "ioredis";
-import type { OutboxEvent, PrismaClient } from "@prisma/client";
+import type Redis from "ioredis";
+import type { OutboxEvent, Prisma, PrismaClient } from "@prisma/client";
 
 import { contentForEvent, resolveNotificationUser, ResendWorkerEmailProvider, WorkerSmsProviderAdapter } from "./notifications.js";
 import { publishRealtime, topicForEvent } from "./realtime.js";
@@ -106,7 +106,7 @@ export class OutboxProcessor {
           payload: {
             outboxEventId: event.id,
             eventType: event.type,
-            eventPayload: payload,
+            eventPayload: payload as Prisma.InputJsonValue,
           },
         },
       }));

@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { InvoiceStatus, InvoiceType, LedgerEntryType, PaymentMethod, PayoutStatus, Prisma, ReconciliationReportStatus, UserRole } from "@prisma/client";
+import type { InvoiceType } from "@prisma/client";
+import { InvoiceStatus, LedgerEntryType, PaymentMethod, PayoutStatus, Prisma, ReconciliationReportStatus, UserRole } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { FinanceService as PaymentFinanceService } from "../payments/finance.service";
@@ -23,8 +24,8 @@ const ZERO_DECIMAL = new Prisma.Decimal(0);
 @Injectable()
 export class FinanceSurfaceService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly paymentFinance: PaymentFinanceService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(PaymentFinanceService) private readonly paymentFinance: PaymentFinanceService,
     @Inject(PAYOUT_PROVIDER) private readonly payoutProvider: PayoutProvider,
     @Inject(SETTLEMENT_PROVIDER) private readonly settlementProvider: SettlementProvider,
   ) {}
@@ -242,11 +243,11 @@ export class FinanceSurfaceService {
     const invoice = await this.prisma.invoice.create({
       data: {
         customerId: customer.id,
-        recipient: body.recipient ?? this.defaultRecipient(customer),
+        recipient: (body.recipient ?? this.defaultRecipient(customer)) as Prisma.InputJsonValue,
         type: body.referenceType as InvoiceType,
         referenceId: body.referenceId,
         amount: reference.payableAmount,
-        taxBreakdown: body.taxBreakdown ?? {},
+        taxBreakdown: (body.taxBreakdown ?? {}) as Prisma.InputJsonValue,
         status: InvoiceStatus.ISSUED,
       },
       include: { customer: { select: { id: true, role: true, name: true, email: true, phoneE164: true } } },
@@ -413,7 +414,7 @@ export class FinanceSurfaceService {
   private async computeWalletBalanceInTx(tx: PrismaTx, userId: string): Promise<Prisma.Decimal> {
     const entries = await tx.ledgerEntry.findMany({ where: { userId }, select: { type: true, amount: true } });
     return entries.reduce((balance, entry) => {
-      if ([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION].includes(entry.type)) {
+      if (([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION] as LedgerEntryType[]).includes(entry.type)) {
         return balance.plus(entry.amount);
       }
       if (entry.type === LedgerEntryType.LOYALTY) {
@@ -443,6 +444,46 @@ export class FinanceSurfaceService {
     return { ...invoice, amount: invoice.amount.toString(), createdAt: invoice.createdAt.toISOString(), updatedAt: invoice.updatedAt.toISOString() };
   }
 
+  private normalizeSettlementRows(rows: unknown): SettlementProviderRow[] {
+    if (!Array.isArray(rows)) {
+      return [];
+    }
+
+    return rows.flatMap((row): SettlementProviderRow[] => {
+      if (!row || typeof row !== "object") {
+        return [];
+      }
+
+      const record = row as Record<string, unknown>;
+      const providerPaymentId = this.stringOrFallback(record.providerPaymentId ?? record.paymentId ?? record.id, "");
+      const amount = this.stringOrFallback(record.amount ?? record.amountRupees ?? record.amountPaise, "");
+
+      if (!providerPaymentId || !amount) {
+        return [];
+      }
+
+      return [{
+        providerPaymentId,
+        amount,
+        settledAt: this.stringOrFallback(record.settledAt, new Date().toISOString()),
+        referenceType: typeof record.referenceType === "string" ? record.referenceType : undefined,
+        referenceId: typeof record.referenceId === "string" ? record.referenceId : undefined,
+        raw: record,
+      }];
+    });
+  }
+
+  private serializeReconciliationReport(report: { id: string; provider: string; status: ReconciliationReportStatus; from: Date; to: Date; providerTotal: Prisma.Decimal; ledgerTotal: Prisma.Decimal; mismatchCount: number; matchedCount: number; rows: Prisma.JsonValue; mismatches: Prisma.JsonValue; createdAt: Date; updatedAt?: Date }) {
+    return {
+      ...report,
+      providerTotal: report.providerTotal.toString(),
+      ledgerTotal: report.ledgerTotal.toString(),
+      from: report.from.toISOString(),
+      to: report.to.toISOString(),
+      createdAt: report.createdAt.toISOString(),
+      updatedAt: report.updatedAt?.toISOString() ?? report.createdAt.toISOString(),
+    };
+  }
   private recordFromJson(value: Prisma.JsonValue | null | undefined): Record<string, unknown> {
     return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
   }

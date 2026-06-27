@@ -40,7 +40,8 @@ export class ResendWorkerEmailProvider implements WorkerEmailProvider {
 }
 
 export class WorkerSmsProviderAdapter implements WorkerSmsProvider {
-  async sendSms(_input: { phoneE164: string; message: string; idempotencyKey?: string }): Promise<void> {
+  async sendSms(input: { phoneE164: string; message: string; idempotencyKey?: string }): Promise<void> {
+    void input;
     // Real SMS providers will plug in behind the shared SmsProvider adapter; worker keeps mock-safe behavior for MVP.
   }
 }

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type Redis from "ioredis";
+import type { RedisKey } from "ioredis/built/utils/RedisCommander";
 
 const CHANNEL_PREFIX = "movex:realtime:";
 
@@ -11,7 +12,7 @@ export type RealtimeWorkerMessage = {
   createdAt: string;
 };
 
-export async function publishRealtime(redis: Redis, topic: string, eventType: string, payload: unknown, id = randomUUID()) {
+export async function publishRealtime(redis: Redis, topic: string, eventType: string, payload: unknown, id: string = randomUUID()) {
   const message: RealtimeWorkerMessage = {
     id,
     type: eventType,
@@ -20,7 +21,7 @@ export async function publishRealtime(redis: Redis, topic: string, eventType: st
     createdAt: new Date().toISOString(),
   };
 
-  await redis.publish(`${CHANNEL_PREFIX}${topic}`, JSON.stringify(message));
+  await redis.publish(`${CHANNEL_PREFIX}${topic}` as RedisKey, JSON.stringify(message));
 }
 
 export function topicForEvent(eventType: string, payload: Record<string, unknown>, userId?: string): string | null {

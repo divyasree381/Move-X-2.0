@@ -8,7 +8,8 @@ export class MockSmsProvider implements SmsProvider {
     // Intentionally no-op. OTP delivery will be wired to a real provider behind this adapter.
   }
 
-  async sendSms(_input: SendSmsInput): Promise<void> {
+  async sendSms(input: SendSmsInput): Promise<void> {
+    void input;
     // Intentionally no-op. Transactional SMS delivery will be wired behind this adapter.
   }
 }

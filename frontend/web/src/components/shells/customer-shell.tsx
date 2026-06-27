@@ -21,7 +21,7 @@ export function CustomerShell({ children, role = UserRole.CUSTOMER }: { children
             <StatusPill label="Serviceable" tone="success" />
             <CartDrawer />
             <Button variant="secondary" size="icon" aria-label="Notifications">
-              <Bell className="size-4" aria-hidden="true" />
+              <Bell className="size-4" aria-hidden={true} />
             </Button>
           </div>
         </div>
@@ -30,7 +30,7 @@ export function CustomerShell({ children, role = UserRole.CUSTOMER }: { children
         <nav className="rounded-md border border-border bg-surface p-2" aria-label="Customer navigation">
           {nav.map((item) => (
             <a key={item.href} href={item.href} className="flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
-              <item.icon className="size-4" aria-hidden="true" />
+              <item.icon className="size-4" aria-hidden={true} />
               {item.label}
             </a>
           ))}
@@ -39,7 +39,7 @@ export function CustomerShell({ children, role = UserRole.CUSTOMER }: { children
           <section className="grid gap-3 rounded-md border border-border bg-surface p-4 sm:grid-cols-3">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Pinned Location</p>
-              <p className="mt-1 flex items-center gap-2 text-sm font-semibold"><MapPin className="size-4 text-brand" aria-hidden="true" /> Bengaluru</p>
+              <p className="mt-1 flex items-center gap-2 text-sm font-semibold"><MapPin className="size-4 text-brand" aria-hidden={true} /> Bengaluru</p>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground">Active Orders</p>

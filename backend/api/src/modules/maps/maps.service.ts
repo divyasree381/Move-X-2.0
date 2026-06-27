@@ -12,7 +12,7 @@ const ROUTE_CACHE_TTL_MS = Number(process.env.MAPS_ROUTE_CACHE_TTL_MS ?? 60 * 10
 export class MapsService {
   constructor(
     @Inject(MAPS_PROVIDER) private readonly provider: MapsProvider,
-    private readonly redisStore: RedisStoreService,
+    @Inject(RedisStoreService) private readonly redisStore: RedisStoreService,
   ) {}
 
   autocomplete(input: string, bias?: MapsBias): Promise<MapSuggestion[]> {

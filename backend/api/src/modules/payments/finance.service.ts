@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { LedgerEntryType, PaymentMethod, PaymentStatus, Prisma, type UserRole } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
@@ -22,7 +22,7 @@ const ZERO_DECIMAL = new Prisma.Decimal(0);
 
 @Injectable()
 export class FinanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   derivePaymentReference(referenceType: PaymentReferenceType, referenceId: string): Promise<PaymentReference> {
     return this.derivePaymentReferenceInTx(this.prisma, referenceType, referenceId);
@@ -302,7 +302,7 @@ export class FinanceService {
     const entries = await tx.ledgerEntry.findMany({ where: { userId }, select: { type: true, amount: true } });
 
     return entries.reduce((balance, entry) => {
-      if ([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION].includes(entry.type)) {
+      if (([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION] as LedgerEntryType[]).includes(entry.type)) {
         return balance.plus(entry.amount);
       }
 

@@ -1,5 +1,6 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { DisputeReason, DisputeReferenceType, DisputeStatus, Prisma, SupportTicketPriority, UserRole } from "@prisma/client";
+import { Inject, BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import type { DisputeReason, DisputeReferenceType, Prisma, UserRole } from "@prisma/client";
+import { DisputeStatus, SupportTicketPriority } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import type { AuthenticatedUser } from "../../common/types/authenticated-request";
@@ -50,11 +51,11 @@ const POLICY: Record<string, PolicyRule[]> = {
 
 @Injectable()
 export class TrustService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   cancellationPolicy(query: CancellationPolicyQueryDto) {
     const serviceType = query.serviceType ?? "FOOD";
-    const rules = POLICY[serviceType] ?? POLICY.FOOD;
+    const rules = POLICY[serviceType] ?? POLICY.FOOD ?? [];
     return {
       serviceType,
       rules: query.stage ? rules.filter((rule) => rule.stage.toLowerCase().includes(query.stage!.toLowerCase())) : rules,

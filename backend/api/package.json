@@ -1,9 +1,9 @@
-﻿{
+{
   "name": "@movex/api",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && nest build",
+    "build": "nest build",
     "dev": "pnpm --filter @movex/shared build && nest start --watch",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.prisma.json --noEmit && tsc -p tsconfig.test.json --noEmit",

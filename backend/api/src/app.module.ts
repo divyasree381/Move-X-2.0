@@ -3,6 +3,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 import { AuditInterceptor } from "./common/interceptors/audit.interceptor";
+import { PrismaModule } from "./infrastructure/prisma/prisma.module";
 import { CsrfGuard } from "./common/guards/csrf.guard";
 import { FinanceModule } from "./modules/finance/finance.module";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
@@ -24,6 +25,7 @@ import { TrustModule } from "./modules/trust/trust.module";
 
 @Module({
   imports: [
+    PrismaModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlingStorageModule],
       inject: [RedisThrottlerStorage],

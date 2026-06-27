@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 const MFA_ALGORITHM = "aes-256-gcm";
 const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -85,8 +85,8 @@ export class MfaService {
     const counterBuffer = Buffer.alloc(8);
     counterBuffer.writeBigUInt64BE(BigInt(counter));
     const hmac = createHmac("sha1", key).update(counterBuffer).digest();
-    const offset = hmac[hmac.length - 1] & 0x0f;
-    const binary = ((hmac[offset] & 0x7f) << 24) | ((hmac[offset + 1] & 0xff) << 16) | ((hmac[offset + 2] & 0xff) << 8) | (hmac[offset + 3] & 0xff);
+    const offset = hmac[hmac.length - 1]! & 0x0f;
+    const binary = ((hmac[offset]! & 0x7f) << 24) | ((hmac[offset + 1]! & 0xff) << 16) | ((hmac[offset + 2]! & 0xff) << 8) | (hmac[offset + 3]! & 0xff);
     return String(binary % 10 ** DEFAULT_DIGITS).padStart(DEFAULT_DIGITS, "0");
   }
 
@@ -159,8 +159,4 @@ function fromBase32(secret: string): Buffer {
   }
 
   return Buffer.from(bytes);
-}
-
-function readByte(buffer: Buffer, index: number): number {
-  return buffer[index] ?? 0;
 }

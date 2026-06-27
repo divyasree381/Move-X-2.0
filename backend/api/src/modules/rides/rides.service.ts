@@ -1,8 +1,8 @@
 import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { CourierStatus, HomeServiceStatus, LedgerEntryType, PaymentMethod as PrismaPaymentMethod, PaymentStatus, Prisma, RideStatus, UserRole, VehicleType } from "@prisma/client";
-import { CourierStatus as SharedCourierStatus, HomeServiceStatus as SharedHomeServiceStatus, RideStatus as SharedRideStatus, canTransition, courierStatusTransitions, homeServiceStatusTransitions, rideStatusTransitions } from "@movex/shared";
-import type { MapTravelMode, RouteSummary } from "@movex/shared";
+import { canTransition, courierStatusTransitions, homeServiceStatusTransitions, rideStatusTransitions } from "@movex/shared";
+import type { MapTravelMode, RouteSummary , CourierStatus as SharedCourierStatus, HomeServiceStatus as SharedHomeServiceStatus, RideStatus as SharedRideStatus} from "@movex/shared";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { RedisStoreService } from "../../infrastructure/redis/redis-store.service";
@@ -84,10 +84,10 @@ const DRIVER_HEARTBEAT_STALE_MS = Number(process.env.RIDE_DRIVER_HEARTBEAT_STALE
 @Injectable()
 export class RidesService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly redisStore: RedisStoreService,
-    private readonly mapsService: MapsService,
-    private readonly outboxService: OutboxService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisStoreService) private readonly redisStore: RedisStoreService,
+    @Inject(MapsService) private readonly mapsService: MapsService,
+    @Inject(OutboxService) private readonly outboxService: OutboxService,
     @Inject(REALTIME_PROVIDER) private readonly realtimeProvider: RealtimeProvider,
   ) {}
 
@@ -277,7 +277,7 @@ export class RidesService {
     const booking = await this.findCourierOrThrow(courierId);
     const isCustomer = booking.customerId === user.userId;
     const isPartner = booking.deliveryPartnerId === user.userId;
-    const isStaff = [UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role as UserRole);
+    const isStaff = ([UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN] as UserRole[]).includes(user.role as UserRole);
 
     if (!isCustomer && !isPartner && !isStaff) {
       throw new ForbiddenException("Courier cancellation is not allowed");
@@ -478,7 +478,7 @@ export class RidesService {
     const booking = await this.findHomeServiceOrThrow(bookingId);
     const isCustomer = booking.customerId === user.userId;
     const isProfessional = booking.professionalId === user.userId;
-    const isStaff = [UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role as UserRole);
+    const isStaff = ([UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN] as UserRole[]).includes(user.role as UserRole);
     if (!isCustomer && !isProfessional && !isStaff) {
       throw new ForbiddenException("Home-service cancellation is not allowed");
     }
@@ -632,7 +632,7 @@ export class RidesService {
     const ride = await this.findRideOrThrow(rideId);
     const isCustomer = ride.customerId === user.userId;
     const isDriver = ride.driverId === user.userId;
-    const isStaff = [UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role as UserRole);
+    const isStaff = ([UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN] as UserRole[]).includes(user.role as UserRole);
 
     if (!isCustomer && !isDriver && !isStaff) {
       throw new ForbiddenException("Ride cancellation is not allowed");
@@ -818,11 +818,11 @@ export class RidesService {
       vehicleType,
       distanceMeters: route.distanceMeters,
       durationSeconds: route.durationSeconds,
-      distanceKm: distanceKm.toDecimalPlaces(2).toString(),
+      distanceKm: distanceKm.toDecimalPlaces(2).toFixed(2),
       durationMinutes: Math.ceil(route.durationSeconds / 60),
-      baseFare: config.base.toString(),
-      surgeMultiplier: surgeMultiplier.toString(),
-      estimatedFare: estimatedFare.toString(),
+      baseFare: config.base.toFixed(2),
+      surgeMultiplier: surgeMultiplier.toFixed(2),
+      estimatedFare: estimatedFare.toFixed(2),
       polyline: route.polyline,
     };
   }
@@ -925,7 +925,7 @@ export class RidesService {
   }
 
   private assertCourierAccess(user: AuthenticatedUser, booking: { customerId: string; deliveryPartnerId: string | null }): void {
-    const isStaff = [UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role as UserRole);
+    const isStaff = ([UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN] as UserRole[]).includes(user.role as UserRole);
     if (!isStaff && booking.customerId !== user.userId && booking.deliveryPartnerId !== user.userId) {
       throw new ForbiddenException("Courier access is not allowed");
     }
@@ -1082,7 +1082,7 @@ export class RidesService {
   }
 
   private assertHomeServiceAccess(user: AuthenticatedUser, booking: { customerId: string; professionalId: string | null }): void {
-    const isStaff = [UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role as UserRole);
+    const isStaff = ([UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN] as UserRole[]).includes(user.role as UserRole);
     if (!isStaff && booking.customerId !== user.userId && booking.professionalId !== user.userId) {
       throw new ForbiddenException("Home-service access is not allowed");
     }
@@ -1183,7 +1183,7 @@ export class RidesService {
   }
 
   private assertRideAccess(user: AuthenticatedUser, ride: { customerId: string; driverId: string | null }): void {
-    const isStaff = [UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role as UserRole);
+    const isStaff = ([UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN] as UserRole[]).includes(user.role as UserRole);
     if (!isStaff && ride.customerId !== user.userId && ride.driverId !== user.userId) {
       throw new ForbiddenException("Ride access is not allowed");
     }
@@ -1205,7 +1205,7 @@ export class RidesService {
 
 
   private calculateCancellationFee(ride: { status: RideStatus; estimatedFare: Prisma.Decimal; driverId: string | null }, customerCancelled: boolean): Prisma.Decimal {
-    if (!customerCancelled || !ride.driverId || ![RideStatus.ASSIGNED, RideStatus.ARRIVED].includes(ride.status)) {
+    if (!customerCancelled || !ride.driverId || !([RideStatus.ASSIGNED, RideStatus.ARRIVED] as RideStatus[]).includes(ride.status)) {
       return ZERO;
     }
 
@@ -1282,7 +1282,7 @@ export class RidesService {
   private async computeWalletBalance(tx: PrismaTx | PrismaService, userId: string): Promise<Prisma.Decimal> {
     const entries = await tx.ledgerEntry.findMany({ where: { userId }, select: { type: true, amount: true } });
     return entries.reduce((balance, entry) => {
-      if ([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION].includes(entry.type)) {
+      if (([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION] as LedgerEntryType[]).includes(entry.type)) {
         return balance.plus(entry.amount);
       }
       if (entry.type === LedgerEntryType.LOYALTY) {

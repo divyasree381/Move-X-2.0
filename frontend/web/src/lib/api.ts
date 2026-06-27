@@ -1,4 +1,4 @@
-﻿import type { ApiEnvelope, MapSuggestion, MapTravelMode, RouteSummary, SelectedLocation } from "@movex/shared";
+import type { ApiEnvelope, MapSuggestion, MapTravelMode, RouteSummary, SelectedLocation } from "@movex/shared";
 
 export type RoutePoint = Pick<SelectedLocation, "address" | "placeId" | "lat" | "lng" | "source">;
 
@@ -554,7 +554,7 @@ export function getRide(rideId: string) {
 }
 
 export function driverRideQueue() {
-  return fetchApi<{ items: Array<RideSummary & { distanceKm: number }> }>("/rides/driver/queue");
+  return fetchApi<{ items: Array<RideSummary & { distanceKmFromDriver?: number | null }> }>("/rides/driver/queue");
 }
 
 export function acceptRide(rideId: string) {

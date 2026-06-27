@@ -377,7 +377,7 @@ export class UsersService {
     for (const entry of entries) {
       const signed = this.signedLedgerAmount(entry.type, entry.amount);
       net = net.plus(signed);
-      byType[entry.type] = new Prisma.Decimal(byType[entry.type]).plus(entry.amount).toString();
+      byType[entry.type] = new Prisma.Decimal(byType[entry.type] ?? "0").plus(entry.amount).toString();
       if (signed.greaterThanOrEqualTo(0)) {
         grossCredits = grossCredits.plus(signed);
       } else {
@@ -385,7 +385,7 @@ export class UsersService {
       }
     }
 
-    const unsettled = entries.filter((entry) => !entry.isSettled && [LedgerEntryType.CREDIT, LedgerEntryType.ADJUSTMENT].includes(entry.type)).reduce((sum, entry) => sum.plus(entry.amount), new Prisma.Decimal(0));
+    const unsettled = entries.filter((entry) => !entry.isSettled && ([LedgerEntryType.CREDIT, LedgerEntryType.ADJUSTMENT] as LedgerEntryType[]).includes(entry.type)).reduce((sum, entry) => sum.plus(entry.amount), new Prisma.Decimal(0));
     const payoutSummary = this.summarizePayouts(payouts);
 
     return {
@@ -409,7 +409,7 @@ export class UsersService {
   }
 
   private signedLedgerAmount(type: LedgerEntryType, amount: Prisma.Decimal): Prisma.Decimal {
-    if ([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION].includes(type)) {
+    if (([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION] as LedgerEntryType[]).includes(type)) {
       return amount;
     }
     if (type === LedgerEntryType.LOYALTY) {
@@ -423,7 +423,7 @@ export class UsersService {
     let total = new Prisma.Decimal(0);
     for (const payout of payouts) {
       total = total.plus(payout.amount);
-      byStatus[payout.status] = new Prisma.Decimal(byStatus[payout.status]).plus(payout.amount).toString();
+      byStatus[payout.status] = new Prisma.Decimal(byStatus[payout.status] ?? "0").plus(payout.amount).toString();
     }
     return { total: total.toString(), byStatus, items: payouts.map((payout) => ({ id: payout.id, amount: payout.amount.toString(), status: payout.status, reference: payout.reference, createdAt: payout.createdAt.toISOString(), updatedAt: payout.updatedAt.toISOString() })) };
   }
@@ -475,7 +475,7 @@ export class UsersService {
   private async computeWalletBalance(tx: Prisma.TransactionClient, userId: string): Promise<Prisma.Decimal> {
     const entries = await tx.ledgerEntry.findMany({ where: { userId }, select: { type: true, amount: true } });
     return entries.reduce((balance, entry) => {
-      if ([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION].includes(entry.type)) {
+      if (([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION] as LedgerEntryType[]).includes(entry.type)) {
         return balance.plus(entry.amount);
       }
       if (entry.type === LedgerEntryType.LOYALTY) {

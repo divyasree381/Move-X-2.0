@@ -2,6 +2,7 @@ node_modules
 .turbo
 
 dist
+.build
 coverage
 .next
 out
@@ -14,6 +15,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+tmp/
+_tmp_*
 
 .DS_Store
 Thumbs.db

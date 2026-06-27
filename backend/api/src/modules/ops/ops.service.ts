@@ -1,6 +1,7 @@
 import { createCipheriv, createHash, randomBytes } from "node:crypto";
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { CouponDiscountType, DisputeStatus, Prisma, ServiceType, SupportTicketPriority, UserRole } from "@prisma/client";
+import { Inject, BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import type { CouponDiscountType, ServiceType, UserRole } from "@prisma/client";
+import { DisputeStatus, Prisma, SupportTicketPriority } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import type { AuthenticatedUser } from "../../common/types/authenticated-request";
@@ -40,7 +41,7 @@ const SECRET_MASK = "********";
 
 @Injectable()
 export class OpsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async listCoupons(query: CouponQueryDto) {
     const limit = query.limit ?? 25;
@@ -202,7 +203,7 @@ export class OpsService {
       if (!dispute) {
         throw new NotFoundException("Dispute not found");
       }
-      if ([DisputeStatus.RESOLVED, DisputeStatus.REJECTED].includes(dispute.status) && body.status && body.status !== dispute.status) {
+      if (([DisputeStatus.RESOLVED, DisputeStatus.REJECTED] as DisputeStatus[]).includes(dispute.status) && body.status && body.status !== dispute.status) {
         throw new BadRequestException("Resolved disputes cannot move to a different state");
       }
 
@@ -227,7 +228,7 @@ export class OpsService {
         data: {
           status: nextStatus,
           resolution,
-          resolvedAt: [DisputeStatus.RESOLVED, DisputeStatus.REJECTED].includes(nextStatus) ? new Date() : dispute.resolvedAt,
+          resolvedAt: ([DisputeStatus.RESOLVED, DisputeStatus.REJECTED] as DisputeStatus[]).includes(nextStatus) ? new Date() : dispute.resolvedAt,
         },
       });
       await tx.auditLog.create({
@@ -278,7 +279,7 @@ export class OpsService {
       campaignName: body.campaignName?.trim() || null,
       campaignTag: body.campaignTag?.trim().toUpperCase() || null,
       firstOrderOnly: body.firstOrderOnly ?? false,
-      metadata: body.metadata ?? undefined,
+      metadata: body.metadata as Prisma.InputJsonValue | undefined,
       discountType: body.discountType as CouponDiscountType,
       discountValue: new Prisma.Decimal(body.discountValue),
       maxDiscount: body.maxDiscount === undefined ? null : new Prisma.Decimal(body.maxDiscount),

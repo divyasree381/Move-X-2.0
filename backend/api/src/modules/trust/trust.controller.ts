@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req } from "@nestjs/common";
+import { Inject, Body, Controller, Get, Post, Query, Req } from "@nestjs/common";
 import { ApiExtraModels, ApiTags } from "@nestjs/swagger";
 import { PermissionAction } from "@movex/shared";
 
@@ -11,7 +11,7 @@ import { TrustService } from "./trust.service";
 @ApiExtraModels(CancellationPolicyQueryDto, OpenDisputeDto)
 @Controller({ path: "trust", version: "1" })
 export class TrustController {
-  constructor(private readonly trustService: TrustService) {}
+  constructor(@Inject(TrustService) private readonly trustService: TrustService) {}
 
   @Get("cancellation-policy")
   @RequirePermission(PermissionAction.OwnProfileRead)

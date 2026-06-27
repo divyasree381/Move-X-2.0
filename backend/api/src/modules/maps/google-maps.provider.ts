@@ -213,7 +213,7 @@ export class GoogleMapsProvider implements MapsProvider {
         polyline: "",
         status: typeof element.status === "string" ? element.status : element.status?.message ?? element.condition,
       };
-      matrix[originIndex][destinationIndex] = cell;
+      matrix[originIndex]![destinationIndex] = cell;
     }
 
     return matrix.map((row, originIndex) =>

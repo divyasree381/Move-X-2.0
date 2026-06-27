@@ -12,8 +12,8 @@ import {
   ServiceType,
   UserRole,
 } from "@prisma/client";
-import { OrderStatus as SharedOrderStatus, canTransition, orderStatusTransitions } from "@movex/shared";
-import type { PaymentMethod as SharedPaymentMethod } from "@movex/shared";
+import { canTransition, orderStatusTransitions } from "@movex/shared";
+import type { PaymentMethod as SharedPaymentMethod , OrderStatus as SharedOrderStatus} from "@movex/shared";
 
 import { RedisStoreService } from "../../infrastructure/redis/redis-store.service";
 import { STORAGE_PROVIDER, type StorageProvider, type StoredObject } from "../../infrastructure/storage/storage-provider";
@@ -22,7 +22,7 @@ import { OutboxService } from "../outbox/outbox.service";
 import { REALTIME_PROVIDER, type RealtimeProvider } from "../realtime/realtime-provider";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import type { AuthenticatedUser } from "../../common/types/authenticated-request";
-import {
+import type {
   ApplyCouponDto,
   CancelOrderDto,
   CartItemDto,
@@ -127,11 +127,11 @@ const REFERRAL_REFERRER_CREDIT = new Prisma.Decimal(process.env.REFERRAL_REFERRE
 @Injectable()
 export class OrdersService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly redisStore: RedisStoreService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisStoreService) private readonly redisStore: RedisStoreService,
     @Inject(STORAGE_PROVIDER) private readonly storageProvider: StorageProvider,
-    private readonly marketplaceService: MarketplaceService,
-    private readonly outboxService: OutboxService,
+    @Inject(MarketplaceService) private readonly marketplaceService: MarketplaceService,
+    @Inject(OutboxService) private readonly outboxService: OutboxService,
     @Inject(REALTIME_PROVIDER) private readonly realtimeProvider: RealtimeProvider,
   ) {}
 
@@ -313,8 +313,6 @@ export class OrdersService {
         throw new BadRequestException("Cart is empty");
       }
 
-      const pickupOtp = String(randomInt(100000, 1000000));
-      const deliveryOtp = String(randomInt(100000, 1000000));
       const order = await this.prisma.$transaction(async (tx) => {
         const quote = await this.buildCheckoutQuote(tx, user.userId, cart, body.address, body.paymentMethod);
         const store = quote.store;
@@ -491,11 +489,11 @@ export class OrdersService {
       throw new NotFoundException("Order not found");
     }
 
-    if (![ServiceType.GROCERY, ServiceType.PHARMACY].includes(order.serviceType)) {
+    if (!([ServiceType.GROCERY, ServiceType.PHARMACY] as ServiceType[]).includes(order.serviceType)) {
       throw new BadRequestException("Substitutions apply only to grocery and pharmacy orders");
     }
 
-    if ([OrderStatus.PICKED_UP, OrderStatus.DELIVERED, OrderStatus.CANCELLED].includes(order.status)) {
+    if (([OrderStatus.PICKED_UP, OrderStatus.DELIVERED, OrderStatus.CANCELLED] as OrderStatus[]).includes(order.status)) {
       throw new BadRequestException("Substitutions cannot be changed after pickup");
     }
 
@@ -517,11 +515,11 @@ export class OrdersService {
       throw new NotFoundException("Order not found");
     }
 
-    if (![ServiceType.GROCERY, ServiceType.PHARMACY].includes(order.serviceType)) {
+    if (!([ServiceType.GROCERY, ServiceType.PHARMACY] as ServiceType[]).includes(order.serviceType)) {
       throw new BadRequestException("Substitutions apply only to grocery and pharmacy orders");
     }
 
-    if ([OrderStatus.PICKED_UP, OrderStatus.DELIVERED, OrderStatus.CANCELLED].includes(order.status)) {
+    if (([OrderStatus.PICKED_UP, OrderStatus.DELIVERED, OrderStatus.CANCELLED] as OrderStatus[]).includes(order.status)) {
       throw new BadRequestException("Substitutions cannot be changed after pickup");
     }
 
@@ -622,7 +620,7 @@ export class OrdersService {
     const isCustomer = order.customerId === user.userId;
     const isStore = order.store.ownerId === user.userId;
     const isDelivery = order.deliveryPartnerId === user.userId;
-    const isStaff = [UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role as UserRole);
+    const isStaff = ([UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN] as UserRole[]).includes(user.role as UserRole);
 
     if (!isCustomer && !isStore && !isDelivery && !isStaff) {
       throw new ForbiddenException("Order cancellation is not allowed");
@@ -1070,7 +1068,7 @@ export class OrdersService {
   private async computeWalletBalance(tx: PrismaTx, userId: string): Promise<Prisma.Decimal> {
     const entries = await tx.ledgerEntry.findMany({ where: { userId }, select: { type: true, amount: true } });
     return entries.reduce((balance, entry) => {
-      if ([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION].includes(entry.type)) {
+      if (([LedgerEntryType.CREDIT, LedgerEntryType.REFUND, LedgerEntryType.ADJUSTMENT, LedgerEntryType.PROMOTION] as LedgerEntryType[]).includes(entry.type)) {
         return balance.plus(entry.amount);
       }
 
@@ -1305,7 +1303,7 @@ export class OrdersService {
     if (!Array.isArray(items)) {
       return [];
     }
-    return items.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object" && !Array.isArray(item))) as Array<Record<string, unknown>>;
+    return items.filter((item) => Boolean(item && typeof item === "object" && !Array.isArray(item))) as Array<Record<string, unknown>>;
   }
 
   private jsonRecord(value: Prisma.JsonValue | unknown): Record<string, unknown> {
@@ -1391,7 +1389,7 @@ export class OrdersService {
   }
 
   private async restoreOrderStock(tx: PrismaTx, order: { status: OrderStatus; items: Prisma.JsonValue }): Promise<void> {
-    if ([OrderStatus.CANCELLED, OrderStatus.PICKED_UP, OrderStatus.DELIVERED].includes(order.status)) {
+    if (([OrderStatus.CANCELLED, OrderStatus.PICKED_UP, OrderStatus.DELIVERED] as OrderStatus[]).includes(order.status)) {
       return;
     }
 

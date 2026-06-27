@@ -41,7 +41,7 @@ export function RideDriverQueue({ isOnline }: { isOnline: boolean }) {
         {items.map((ride) => (
           <article key={ride.id} className="rounded-md border border-border p-3">
             <RideHeader ride={ride} />
-            <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><MapPin className="size-3.5" aria-hidden="true" /> {ride.distanceKm !== undefined ? `${ride.distanceKm.toFixed(1)} km from pickup` : "Distance pending"}</p>
+            <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><MapPin className="size-3.5" aria-hidden="true" /> {typeof ride.distanceKmFromDriver === "number" ? `${ride.distanceKmFromDriver.toFixed(1)} km from pickup` : "Distance pending"}</p>
             <div className="mt-3 flex flex-wrap items-end gap-2">
               {!ride.driverId ? (
                 <Button size="sm" onClick={() => acceptMutation.mutate(ride.id)} disabled={acceptMutation.isPending}>Accept ride</Button>
@@ -64,7 +64,7 @@ export function RideDriverQueue({ isOnline }: { isOnline: boolean }) {
   );
 }
 
-function RideHeader({ ride }: { ride: RideSummary & { distanceKm?: number } }) {
+function RideHeader({ ride }: { ride: RideSummary & { distanceKmFromDriver?: number | null } }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>

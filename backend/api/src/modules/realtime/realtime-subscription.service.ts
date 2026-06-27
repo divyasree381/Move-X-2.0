@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { UserRole } from "@prisma/client";
 
 import type { AuthenticatedUser } from "../../common/types/authenticated-request";
@@ -8,7 +8,7 @@ const STAFF_ROLES = new Set<string>([UserRole.SUPPORT, UserRole.FINANCE, UserRol
 
 @Injectable()
 export class RealtimeSubscriptionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async canSubscribe(user: AuthenticatedUser, topic: string): Promise<boolean> {
     const parsed = this.parseTopic(topic);

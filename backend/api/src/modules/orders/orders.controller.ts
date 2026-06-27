@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from "@nestjs/common";
+import { Inject, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from "@nestjs/common";
 import { ApiExtraModels, ApiTags } from "@nestjs/swagger";
 import { PermissionAction } from "@movex/shared";
 
@@ -25,7 +25,7 @@ import { OrdersService } from "./orders.service";
 @ApiExtraModels(CartItemDto, UpdateCartQtyDto, ApplyCouponDto, PrescriptionUploadDto, CheckoutDto, OrdersQueryDto, PrepTimeDto, PrescriptionVerificationDto, SubstitutionProposalDto, SubstitutionDecisionDto, OtpStatusDto, CancelOrderDto, RatingDto)
 @Controller({ version: "1" })
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(@Inject(OrdersService) private readonly ordersService: OrdersService) {}
 
   @Get("cart")
   getCart(@Req() request: RequestWithUser) {

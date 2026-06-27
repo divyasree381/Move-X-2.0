@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, Param, Patch, Post, Query, Res } from "@nestjs/common";
+import { Inject, Body, Controller, Get, Header, Param, Patch, Post, Query, Res } from "@nestjs/common";
 import { ApiExtraModels, ApiTags } from "@nestjs/swagger";
 import { PermissionAction } from "@movex/shared";
 import type { Response } from "express";
@@ -11,7 +11,7 @@ import { GenerateInvoiceDto, GenerateReconciliationDto, InvoiceQueryDto, LedgerQ
 @ApiExtraModels(LedgerQueryDto, WalletAdjustmentDto, PayoutSweepDto, PayoutQueryDto, MarkPayoutDto, InvoiceQueryDto, GenerateInvoiceDto, ReconciliationQueryDto, GenerateReconciliationDto)
 @Controller({ path: "finance", version: "1" })
 export class FinanceController {
-  constructor(private readonly financeService: FinanceSurfaceService) {}
+  constructor(@Inject(FinanceSurfaceService) private readonly financeService: FinanceSurfaceService) {}
 
   @Get("ledger")
   @RequirePermission(PermissionAction.FinanceLedgerRead)

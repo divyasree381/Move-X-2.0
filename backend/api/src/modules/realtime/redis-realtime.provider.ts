@@ -1,6 +1,7 @@
 import { Injectable, type OnApplicationShutdown, type OnModuleInit } from "@nestjs/common";
 import Redis, { type RedisOptions } from "ioredis";
-import { Observable, Subject } from "rxjs";
+import type { Observable} from "rxjs";
+import { Subject } from "rxjs";
 
 import type { RealtimeMessage, RealtimeProvider } from "./realtime-provider";
 
@@ -37,7 +38,11 @@ export class RedisRealtimeProvider implements RealtimeProvider, OnModuleInit, On
       }
     });
 
-    await this.subscriber.psubscribe(`${CHANNEL_PREFIX}*`);
+    try {
+      await this.subscriber.psubscribe(`${CHANNEL_PREFIX}*`);
+    } catch {
+      // Redis is optional for local/test boot; realtime streams still work in-process.
+    }
   }
 
   async publish(topic: string, message: Omit<RealtimeMessage, "topic" | "createdAt"> & { createdAt?: string }): Promise<void> {
@@ -47,7 +52,11 @@ export class RedisRealtimeProvider implements RealtimeProvider, OnModuleInit, On
       createdAt: message.createdAt ?? new Date().toISOString(),
     };
 
-    await this.publisher.publish(`${CHANNEL_PREFIX}${topic}`, JSON.stringify(payload));
+    try {
+      await this.publisher.publish(`${CHANNEL_PREFIX}${topic}`, JSON.stringify(payload));
+    } catch {
+      this.subjects.get(topic)?.next(payload);
+    }
   }
 
   stream(topic: string): Observable<RealtimeMessage> {

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Req } from "@nestjs/common";
+import { Inject, Body, Controller, Get, Param, Post, Put, Query, Req } from "@nestjs/common";
 import { ApiExtraModels, ApiTags } from "@nestjs/swagger";
 import { PermissionAction } from "@movex/shared";
 
@@ -11,7 +11,7 @@ import { PlatformService } from "./platform.service";
 @ApiExtraModels(AnalyticsQueryDto, RefreshAnalyticsDto, FeatureFlagQueryDto, UpsertFeatureFlagDto, SearchRebuildDto)
 @Controller({ path: "platform", version: "1" })
 export class PlatformController {
-  constructor(private readonly platformService: PlatformService) {}
+  constructor(@Inject(PlatformService) private readonly platformService: PlatformService) {}
 
   @Get("analytics")
   @RequirePermission(PermissionAction.PlatformAnalyticsRead)

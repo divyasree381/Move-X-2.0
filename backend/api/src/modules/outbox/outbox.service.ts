@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type { Prisma, PrismaClient } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
@@ -45,7 +45,7 @@ export type StandardOutboxPayload = {
 
 @Injectable()
 export class OutboxService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   publish(type: StandardOutboxEventType, payload: StandardOutboxPayload) {
     return this.publishInTx(this.prisma, type, payload);
@@ -55,7 +55,7 @@ export class OutboxService {
     return tx.outboxEvent.create({
       data: {
         type,
-        payload,
+        payload: payload as Prisma.InputJsonValue,
       },
     });
   }
