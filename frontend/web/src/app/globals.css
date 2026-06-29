@@ -4,20 +4,41 @@
 
 @theme {
   --font-sans: "Aptos", "Segoe UI", system-ui, sans-serif;
-  --color-brand: #ff6b00;
-  --color-brand-foreground: #fff7ed;
-  --color-delivery: #12a36b;
-  --color-ride: #2563eb;
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-popover: var(--popover);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-brand: var(--primary);
+  --color-brand-foreground: var(--primary-foreground);
+  --color-delivery: var(--success);
+  --color-ride: var(--ride);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
   --color-surface-raised: var(--surface-raised);
   --color-border: var(--border);
+  --color-input: var(--input);
   --color-ring: var(--ring);
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
   --color-destructive: var(--destructive);
   --color-warning: var(--warning);
   --color-success: var(--success);
+  --color-info: var(--info);
+  --color-food: var(--food);
+  --color-food-soft: var(--food-soft);
+  --color-grocery: var(--grocery);
+  --color-grocery-soft: var(--grocery-soft);
+  --color-pharmacy: var(--pharmacy);
+  --color-pharmacy-soft: var(--pharmacy-soft);
+  --color-courier: var(--courier);
+  --color-courier-soft: var(--courier-soft);
+  --color-home-services: var(--home-services);
+  --color-home-services-soft: var(--home-services-soft);
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -28,31 +49,77 @@
 
 :root {
   color-scheme: light;
+  --background: #f9fafb;
+  --card: #ffffff;
+  --popover: #ffffff;
   --surface: #ffffff;
-  --surface-muted: #f6f7f9;
+  --surface-muted: #f9fafb;
   --surface-raised: #ffffff;
   --foreground: #111827;
-  --muted-foreground: #5b6472;
-  --border: #d9dee7;
-  --ring: #ff8a33;
+  --muted-foreground: #6b7280;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #059669;
+  --primary: #059669;
+  --primary-hover: #047857;
+  --primary-foreground: #ffffff;
+  --accent: #f59e0b;
+  --accent-hover: #d97706;
+  --accent-foreground: #451a03;
   --destructive: #dc2626;
-  --warning: #a16207;
-  --success: #15803d;
+  --warning: #d97706;
+  --success: #16a34a;
+  --info: #2563eb;
+  --food: #c2410c;
+  --food-soft: #fff1e6;
+  --grocery: #15803d;
+  --grocery-soft: #e7f8ec;
+  --pharmacy: #0f766e;
+  --pharmacy-soft: #e0f7f5;
+  --ride: #4338ca;
+  --ride-soft: #ececfd;
+  --courier: #1d4ed8;
+  --courier-soft: #e6f0fb;
+  --home-services: #6d28d9;
+  --home-services-soft: #f0ebfb;
   --shadow-shell: 0 1px 2px rgb(17 24 39 / 0.08), 0 18px 48px rgb(17 24 39 / 0.08);
 }
 
 .dark {
   color-scheme: dark;
-  --surface: #0f141b;
-  --surface-muted: #151b24;
-  --surface-raised: #1b222d;
-  --foreground: #f5f7fb;
-  --muted-foreground: #a9b2c1;
-  --border: #303947;
-  --ring: #ff9b4d;
+  --background: #0b0f0d;
+  --card: #111613;
+  --popover: #111613;
+  --surface: #111613;
+  --surface-muted: #0b0f0d;
+  --surface-raised: #18201b;
+  --foreground: #f8fafc;
+  --muted-foreground: #a8b3ad;
+  --border: #253129;
+  --input: #253129;
+  --ring: #10b981;
+  --primary: #10b981;
+  --primary-hover: #34d399;
+  --primary-foreground: #052e20;
+  --accent: #f59e0b;
+  --accent-hover: #fbbf24;
+  --accent-foreground: #451a03;
   --destructive: #f87171;
-  --warning: #facc15;
+  --warning: #f59e0b;
   --success: #4ade80;
+  --info: #60a5fa;
+  --food: #fb923c;
+  --food-soft: #25140d;
+  --grocery: #4ade80;
+  --grocery-soft: #0e2417;
+  --pharmacy: #2dd4bf;
+  --pharmacy-soft: #0b2422;
+  --ride: #a5b4fc;
+  --ride-soft: #171936;
+  --courier: #93c5fd;
+  --courier-soft: #0d1d33;
+  --home-services: #c4b5fd;
+  --home-services-soft: #1d1733;
   --shadow-shell: 0 1px 2px rgb(0 0 0 / 0.3), 0 18px 48px rgb(0 0 0 / 0.36);
 }
 
@@ -62,13 +129,13 @@
 
 html {
   min-height: 100%;
-  background: var(--surface-muted);
+  background: var(--background);
 }
 
 body {
   min-height: 100%;
   margin: 0;
-  background: var(--surface-muted);
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   text-rendering: geometricPrecision;
@@ -87,7 +154,7 @@ select {
 }
 
 ::selection {
-  background: color-mix(in srgb, #ff6b00 22%, transparent);
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -95,50 +95,50 @@ export function CustomerDiscovery() {
 
   return (
     <div className="space-y-5">
-      <section className="overflow-hidden rounded-lg border border-[#111827]/10 bg-[#111827] text-white shadow-[0_24px_80px_rgb(17_24_39_/_0.18)]">
+      <section className="overflow-hidden rounded-lg border border-primary/20 bg-primary text-primary-foreground shadow-[var(--shadow-shell)]">
         <div className="grid gap-0 lg:grid-cols-[1.08fr_0.92fr]">
           <div className="p-5 sm:p-7 lg:p-8">
             <div className="flex flex-wrap items-center gap-2">
-              <StatusPill label="Live in Bengaluru" tone="success" className="border-white/15 bg-white/10 text-white" />
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/82">
-                <Sparkles className="size-3.5 text-brand" aria-hidden={true} /> Food, rides, courier, home care
+              <StatusPill label="Live in Bengaluru" tone="success" className="border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground" />
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-2.5 py-1 text-xs font-semibold text-primary-foreground/85">
+                <Sparkles className="size-3.5 text-accent" aria-hidden={true} /> Food, rides, courier, home care
               </span>
             </div>
             <h1 className="mt-6 max-w-2xl text-4xl font-black leading-[1.05] tracking-normal sm:text-5xl">Everything nearby, moving on one MoveX loop.</h1>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-white/70 sm:text-base">Pick your location once. Discover stores, book rides, send parcels, and track every job from the same customer home.</p>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-primary-foreground/75 sm:text-base">Pick your location once. Discover stores, book rides, send parcels, and track every job from the same customer home.</p>
 
-            <div className="mt-6 rounded-lg border border-white/12 bg-white/[0.07] p-3 backdrop-blur">
+            <div className="mt-6 rounded-lg border border-primary-foreground/20 bg-primary-foreground/10 p-3 backdrop-blur">
               <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                 <label className="relative block" htmlFor="super-search">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/45" aria-hidden={true} />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary-foreground/45" aria-hidden={true} />
                   <Input
                     id="super-search"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Search biryani, milk, medicines, stores"
-                    className="min-h-12 border-white/10 bg-white text-base text-[#111827] placeholder:text-slate-500"
+                    className="min-h-12 border-primary-foreground/20 bg-card text-base text-foreground placeholder:text-muted-foreground"
                   />
                 </label>
                 <Button type="button" className="min-h-12 px-5" onClick={() => setSelectedType(undefined)}>
                   Search nearby
                 </Button>
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-white/70">
-                <MapPin className="size-3.5 text-brand" aria-hidden={true} />
-                <span className="font-medium text-white">{location.address}</span>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-primary-foreground/75">
+                <MapPin className="size-3.5 text-primary-foreground/75" aria-hidden={true} />
+                <span className="font-medium text-primary-foreground">{location.address}</span>
                 {location.lat !== undefined && location.lng !== undefined ? <span>{location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span> : null}
               </div>
             </div>
           </div>
 
-          <div className="border-t border-white/10 bg-white/[0.05] p-5 sm:p-7 lg:border-l lg:border-t-0 lg:p-8">
-            <div className="rounded-lg bg-white p-4 text-[#111827] shadow-[0_18px_60px_rgb(0_0_0_/_0.24)]">
+          <div className="border-t border-primary-foreground/15 bg-primary-foreground/10 p-5 sm:p-7 lg:border-l lg:border-t-0 lg:p-8">
+            <div className="rounded-lg bg-card p-4 text-foreground shadow-[var(--shadow-shell)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand">Pinned Location</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Pinned Location</p>
                   <h2 className="mt-2 text-lg font-black">{location.address}</h2>
                 </div>
-                <span className="flex size-10 items-center justify-center rounded-md bg-brand/10 text-brand">
+                <span className="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
                   <Navigation size={18} aria-hidden={true} />
                 </span>
               </div>
@@ -172,7 +172,7 @@ export function CustomerDiscovery() {
       <section className="rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-5" aria-labelledby="stores-heading">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand">Marketplace</p>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Marketplace</p>
             <h2 id="stores-heading" className="mt-1 text-2xl font-black tracking-normal text-foreground">Stores near you</h2>
           </div>
           <div className="grid gap-2 sm:grid-cols-[minmax(14rem,1fr)_9rem] lg:w-[32rem]">
@@ -218,7 +218,7 @@ export function CustomerDiscovery() {
 function MiniMetric({ icon: Icon, label, value }: { icon: typeof Clock3; label: string; value: string }) {
   return (
     <div className="rounded-md border border-border bg-surface-muted p-3">
-      <Icon className="size-4 text-brand" aria-hidden={true} />
+      <Icon className="size-4 text-primary" aria-hidden={true} />
       <p className="mt-2 text-xs font-medium text-muted-foreground">{label}</p>
       <p className="mt-0.5 text-sm font-black">{value}</p>
     </div>

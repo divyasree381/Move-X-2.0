@@ -111,13 +111,13 @@ export function LocationSearchInput({ label, value, onChange, placeholder, bias 
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-slate-900" htmlFor={listId}>
+      <label className="text-sm font-medium text-foreground" htmlFor={listId}>
         {label}
       </label>
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
           id={listId}
-          className="min-h-11 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+          className="min-h-11 flex-1 rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           value={query}
           placeholder={placeholder ?? "Search address"}
           autoComplete="off"
@@ -133,30 +133,30 @@ export function LocationSearchInput({ label, value, onChange, placeholder, bias 
         />
         <button
           type="button"
-          className="min-h-11 rounded-md bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-muted-foreground"
           disabled={query.trim().length < 3 || isLoading}
           onClick={() => void useTypedFallback()}
         >
           Use typed address
         </button>
       </div>
-      <p className={error ? "text-sm text-red-700" : "text-sm text-slate-500"}>{helperText}</p>
+      <p className={error ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{helperText}</p>
       {suggestions.length > 0 ? (
         <ul
           id={`${listId}-suggestions`}
-          className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm"
+          className="overflow-hidden rounded-md border border-border bg-card shadow-sm"
           role="listbox"
         >
           {suggestions.map((suggestion) => (
             <li key={suggestion.placeId} role="option" aria-selected="false">
               <button
                 type="button"
-                className="block w-full px-3 py-2 text-left text-sm transition hover:bg-emerald-50 focus:bg-emerald-50 focus:outline-none"
+                className="block w-full px-3 py-2 text-left text-sm transition hover:bg-primary/10 focus:bg-primary/10 focus:outline-none"
                 onClick={() => void selectSuggestion(suggestion.placeId)}
               >
-                <span className="block font-medium text-slate-950">{suggestion.mainText}</span>
+                <span className="block font-medium text-foreground">{suggestion.mainText}</span>
                 {suggestion.secondaryText ? (
-                  <span className="block text-slate-500">{suggestion.secondaryText}</span>
+                  <span className="block text-muted-foreground">{suggestion.secondaryText}</span>
                 ) : null}
               </button>
             </li>

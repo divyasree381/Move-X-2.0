@@ -5,7 +5,7 @@ import { Clock3, MapPin, Star } from "lucide-react";
 import { StatusPill } from "@/components/ui";
 import type { StoreListItem } from "@/lib/api";
 
-const STORE_IMAGE_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='420' viewBox='0 0 640 420'%3E%3Crect width='640' height='420' fill='%23fff7ed'/%3E%3Ccircle cx='500' cy='90' r='130' fill='%23ffedd5'/%3E%3Crect x='70' y='120' width='500' height='210' rx='24' fill='%23ff6b00' opacity='.16'/%3E%3Cpath d='M130 270h380v30H130zM160 230h320v24H160zM190 190h260v24H190z' fill='%23ff6b00'/%3E%3C/svg%3E";
+const STORE_IMAGE_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='420' viewBox='0 0 640 420'%3E%3Crect width='640' height='420' fill='%23fff1e6'/%3E%3Ccircle cx='500' cy='90' r='130' fill='%23e7f8ec'/%3E%3Crect x='70' y='120' width='500' height='210' rx='24' fill='%23c2410c' opacity='.16'/%3E%3Cpath d='M130 270h380v30H130zM160 230h320v24H160zM190 190h260v24H190z' fill='%23c2410c'/%3E%3C/svg%3E";
 
 const typeLabel: Record<StoreListItem["type"], string> = {
   FOOD: "Food",
@@ -17,7 +17,7 @@ export function StoreCard({ store }: { store: StoreListItem }) {
   return (
     <Link
       href={`/customer/stores/${store.id}`}
-      className="group grid min-h-44 overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition hover:-translate-y-0.5 hover:border-brand/45 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 sm:grid-cols-[11rem_1fr]"
+      className="group grid min-h-44 overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 sm:grid-cols-[11rem_1fr]"
     >
       <div className="relative min-h-44 bg-surface-muted">
         <Image
@@ -28,7 +28,7 @@ export function StoreCard({ store }: { store: StoreListItem }) {
           className="object-cover transition duration-300 group-hover:scale-[1.04]"
           unoptimized={!store.imageUrl}
         />
-        <div className="absolute left-3 top-3 rounded-full bg-white/92 px-2.5 py-1 text-xs font-black text-[#111827] shadow-sm">{typeLabel[store.type]}</div>
+        <div className="absolute left-3 top-3 rounded-full bg-card/92 px-2.5 py-1 text-xs font-black text-foreground shadow-sm">{typeLabel[store.type]}</div>
       </div>
       <div className="flex min-w-0 flex-col gap-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
@@ -40,7 +40,7 @@ export function StoreCard({ store }: { store: StoreListItem }) {
         </div>
         <div className="mt-auto grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
           <Metric icon={Star} label="Rating" value={`${Number(store.ratingAverage).toFixed(1)} (${store.ratingCount})`} accent="text-warning" />
-          <Metric icon={Clock3} label="ETA" value={`${store.etaMinutes} min`} accent="text-brand" />
+          <Metric icon={Clock3} label="ETA" value={`${store.etaMinutes} min`} accent="text-primary" />
           <Metric label="Minimum" value={`Rs ${Number(store.minOrder).toFixed(0)}`} />
           {store.distanceKm !== undefined ? <Metric icon={MapPin} label="Distance" value={`${store.distanceKm.toFixed(1)} km`} /> : <Metric icon={MapPin} label="Radius" value={`${Number(store.deliveryRadiusKm).toFixed(0)} km`} />}
         </div>

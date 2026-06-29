@@ -43,20 +43,20 @@ export function OpsConsoleShell({ children, role: fallbackRole }: { children?: R
 
   return (
     <OpsPermissionContext.Provider value={permissionContext}>
-      <div className="min-h-screen bg-[#eef1f5] text-foreground">
-        <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-[#202a37] bg-[#0f1722] p-4 text-white lg:block">
+      <div className="min-h-screen bg-background text-foreground">
+        <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-border bg-foreground p-4 text-background lg:block">
           <div className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-lg bg-brand text-white">
+            <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <TerminalSquare className="size-5" aria-hidden={true} />
             </span>
             <div>
               <p className="text-sm font-black">MoveX Ops</p>
-              <p className="text-xs text-white/55">{role ?? (me.isLoading ? "Loading" : "No ops role")}</p>
+              <p className="text-xs text-background/60">{role ?? (me.isLoading ? "Loading" : "No ops role")}</p>
             </div>
           </div>
           <nav className="mt-7 space-y-1" aria-label="Operations navigation">
             {nav.map((item) => (
-              <Link key={item.href} href={item.href} className="flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-white/62 hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
+              <Link key={item.href} href={item.href} className="flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-background/65 hover:bg-background/10 hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
                 <item.icon className="size-4" aria-hidden={true} />
                 {item.label}
               </Link>
@@ -67,7 +67,7 @@ export function OpsConsoleShell({ children, role: fallbackRole }: { children?: R
           <header className="border-b border-border bg-surface/95 backdrop-blur-xl">
             <div className="flex min-h-16 items-center justify-between gap-4 px-4 lg:px-6">
               <div>
-                <p className="text-sm font-bold uppercase tracking-[0.12em] text-brand">Ops Console</p>
+                <p className="text-sm font-bold uppercase tracking-[0.12em] text-primary">Ops Console</p>
                 <h1 className="text-2xl font-black tracking-normal">Control Room</h1>
               </div>
               <StatusPill label="Permission filtered" tone="info" />

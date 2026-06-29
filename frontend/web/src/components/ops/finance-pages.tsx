@@ -120,7 +120,7 @@ export function OpsInvoicesPage() {
             </FinanceTable>
           </QueryState>
           <aside className="min-h-[32rem] rounded-md border border-border bg-surface p-3">
-            {selected ? <iframe title="Invoice preview" src={financeInvoiceHtmlUrl(selected)} className="h-[30rem] w-full rounded-md border border-border bg-white" /> : <EmptyState title="No invoice selected" description="Generate or select an invoice to preview the HTML." />}
+            {selected ? <iframe title="Invoice preview" src={financeInvoiceHtmlUrl(selected)} className="h-[30rem] w-full rounded-md border border-border bg-card" /> : <EmptyState title="No invoice selected" description="Generate or select an invoice to preview the HTML." />}
           </aside>
         </div>
       </FinancePanel>

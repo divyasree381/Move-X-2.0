@@ -48,18 +48,18 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
   }, [isOnline, role, vehicleType, writeLocationHeartbeat]);
 
   return (
-    <div className="min-h-screen bg-[#f4f6f8] text-foreground">
-      <header className="border-b border-border bg-[#101820] text-white">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-primary text-primary-foreground">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-lg bg-delivery text-lg font-black text-white shadow-sm">M</span>
+            <span className="flex size-11 items-center justify-center rounded-lg bg-primary-foreground text-lg font-black text-primary shadow-sm">M</span>
             <div>
-              <p className="text-sm font-semibold text-delivery">MoveX Partner</p>
+              <p className="text-sm font-semibold text-primary-foreground">MoveX Partner</p>
               <h1 className="text-2xl font-black tracking-normal">Queue Control</h1>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <StatusPill label={isOnline ? "Online" : "Offline"} tone={isOnline ? "success" : "warning"} className="border-white/15 bg-white/10 text-white" />
+            <StatusPill label={isOnline ? "Online" : "Offline"} tone={isOnline ? "success" : "warning"} className="border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground" />
             <Button type="button" variant={isOnline ? "secondary" : "primary"} disabled={onlineMutation.isPending} onClick={() => onlineMutation.mutate(!isOnline)}>
               <Power className="size-4" aria-hidden={true} />
               {isOnline ? "Go offline" : "Go online"}
@@ -83,7 +83,7 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
         <main className="space-y-5">
           <section className="grid gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm md:grid-cols-4">
             <Metric label="Queue" value="Live" />
-            <Metric icon={RadioTower} label="Heartbeat" value={isOnline ? "Active" : "Paused"} accent="text-delivery" />
+            <Metric icon={RadioTower} label="Heartbeat" value={isOnline ? "Active" : "Paused"} accent="text-primary" />
             {role === UserRole.DRIVER ? (
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Vehicle</p>
@@ -96,7 +96,7 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
                 </div>
               </div>
             ) : null}
-            <Metric icon={LocateFixed} label="Live location" value={coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : locationError ?? "Waiting"} accent="text-delivery" />
+            <Metric icon={LocateFixed} label="Live location" value={coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : locationError ?? "Waiting"} accent="text-primary" />
           </section>
           <PartnerOpsPanel isOnline={isOnline} />
           {typeof children === "function" ? children({ isOnline }) : children ?? (role === UserRole.DRIVER ? <RideDriverQueue isOnline={isOnline} /> : <PartnerOrderQueue role={role} isOnline={isOnline} />)}
@@ -106,7 +106,7 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
   );
 }
 
-function Metric({ icon: Icon, label, value, accent = "text-brand" }: { icon?: typeof RadioTower; label: string; value: string; accent?: string }) {
+function Metric({ icon: Icon, label, value, accent = "text-primary" }: { icon?: typeof RadioTower; label: string; value: string; accent?: string }) {
   return (
     <div>
       <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>

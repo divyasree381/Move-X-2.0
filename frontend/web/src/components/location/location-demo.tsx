@@ -12,7 +12,7 @@ export function LocationDemo() {
   const [drop, setDrop] = useState<SelectedLocation | null>(null);
 
   return (
-    <section className="w-full max-w-5xl space-y-5 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="w-full max-w-5xl space-y-5 rounded-md border border-border bg-card p-5 shadow-sm">
       <div className="grid gap-5 lg:grid-cols-2">
         <LocationSearchInput label="Pickup" value={pickup} onChange={setPickup} placeholder="Search pickup address" />
         <LocationSearchInput
@@ -27,8 +27,8 @@ export function LocationDemo() {
         <MapPicker value={pickup} onChange={setPickup} />
         <div className="space-y-4">
           <div>
-            <p className="text-sm font-medium text-slate-900">Selected coordinates</p>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="text-sm font-medium text-foreground">Selected coordinates</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               {pickup ? `${pickup.lat.toFixed(6)}, ${pickup.lng.toFixed(6)}` : "No pickup selected"}
             </p>
           </div>

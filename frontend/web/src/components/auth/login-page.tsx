@@ -100,21 +100,21 @@ export function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f7f9] text-foreground">
+    <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto grid min-h-screen w-full max-w-6xl gap-8 px-5 py-6 lg:grid-cols-[1fr_440px] lg:items-center lg:px-8">
-        <section className="flex min-h-[44rem] flex-col justify-between rounded-lg bg-[#111827] p-6 text-white shadow-[0_24px_80px_rgb(17_24_39_/_0.18)] lg:p-8">
+        <section className="flex min-h-[44rem] flex-col justify-between rounded-lg bg-primary p-6 text-primary-foreground shadow-[var(--shadow-shell)] lg:p-8">
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-md bg-brand text-lg font-black text-white">M</div>
+              <div className="flex size-11 items-center justify-center rounded-md bg-primary-foreground text-lg font-black text-primary">M</div>
               <div>
                 <p className="text-xl font-black tracking-tight">MoveX</p>
-                <p className="text-sm text-white/65">India local-services super-app</p>
+                <p className="text-sm text-primary-foreground/70">India local-services super-app</p>
               </div>
             </div>
             <div className="mt-16 max-w-xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand">One account. Every vertical.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">One account. Every vertical.</p>
               <h1 className="mt-4 text-4xl font-black leading-tight tracking-normal sm:text-5xl">Sign in to manage delivery, rides, stores, and operations.</h1>
-              <p className="mt-5 max-w-lg text-base leading-7 text-white/72">Use phone OTP for customers and partners. Staff users sign in with email and password.</p>
+              <p className="mt-5 max-w-lg text-base leading-7 text-primary-foreground/75">Use phone OTP for customers and partners. Staff users sign in with email and password.</p>
             </div>
           </div>
 
@@ -128,7 +128,7 @@ export function LoginPage() {
         <section className="rounded-lg border border-border bg-surface p-5 shadow-[var(--shadow-shell)] sm:p-6" aria-labelledby="login-title">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-brand">Welcome back</p>
+              <p className="text-sm font-semibold text-primary">Welcome back</p>
               <h2 id="login-title" className="mt-1 text-2xl font-bold text-foreground">Sign in</h2>
             </div>
             <Link href="/customer" className="rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-surface-muted">
@@ -168,12 +168,12 @@ export function LoginPage() {
                     <button
                       key={item.value}
                       type="button"
-                      className={selected ? "rounded-md border border-brand bg-brand/10 p-3 text-left" : "rounded-md border border-border bg-surface p-3 text-left hover:bg-surface-muted"}
+                      className={selected ? "rounded-md border border-primary bg-primary/10 p-3 text-left" : "rounded-md border border-border bg-surface p-3 text-left hover:bg-surface-muted"}
                       onClick={() => setRole(item.value)}
                       aria-pressed={selected}
                     >
                       <span className="flex items-start gap-3">
-                        <span className={selected ? "flex size-9 items-center justify-center rounded-md bg-brand text-white" : "flex size-9 items-center justify-center rounded-md bg-surface-muted text-muted-foreground"}>
+                        <span className={selected ? "flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground" : "flex size-9 items-center justify-center rounded-md bg-surface-muted text-muted-foreground"}>
                           <Icon size={18} aria-hidden={true} />
                         </span>
                         <span>
@@ -213,7 +213,7 @@ export function LoginPage() {
             <form className="mt-6 space-y-4" onSubmit={submitStaffLogin}>
               <div className="rounded-md border border-border bg-surface-muted p-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-9 items-center justify-center rounded-md bg-ride text-white"><Building2 size={18} aria-hidden={true} /></span>
+                  <span className="flex size-9 items-center justify-center rounded-md bg-ride-soft text-ride"><Building2 size={18} aria-hidden={true} /></span>
                   <div>
                     <p className="text-sm font-semibold">Staff console</p>
                     <p className="text-sm text-muted-foreground">Support, finance, admin and super admin roles.</p>
@@ -255,10 +255,10 @@ export function LoginPage() {
 
 function InfoTile({ icon: Icon, label, value }: { icon: typeof Smartphone; label: string; value: string }) {
   return (
-    <div className="rounded-md border border-white/12 bg-white/8 p-3">
-      <Icon size={18} aria-hidden={true} className="text-brand" />
+    <div className="rounded-md border border-primary-foreground/20 bg-primary-foreground/10 p-3">
+      <Icon size={18} aria-hidden={true} className="text-primary" />
       <p className="mt-3 text-sm font-semibold">{label}</p>
-      <p className="mt-1 text-xs leading-5 text-white/62">{value}</p>
+      <p className="mt-1 text-xs leading-5 text-primary-foreground/70">{value}</p>
     </div>
   );
 }
