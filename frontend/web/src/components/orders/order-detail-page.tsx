@@ -69,7 +69,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
               <div className="rounded-md border border-border bg-surface p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-brand">Live order</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">Live order</p>
                     <h2 className="mt-1 text-xl font-semibold text-foreground">{order.store?.name ?? order.storeId}</h2>
                     <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="size-4" aria-hidden="true" /> {statusCopy}</p>
                   </div>
@@ -100,13 +100,13 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                 </section>
               ) : null}
 
-              <div className="relative min-h-80 overflow-hidden rounded-md border border-border bg-[linear-gradient(135deg,#ecfeff_0%,#f8fafc_48%,#fff7ed_100%)] p-4">
-                <div className="absolute inset-0 opacity-60" aria-hidden="true" style={{ backgroundImage: "linear-gradient(#dbeafe 1px, transparent 1px), linear-gradient(90deg, #dbeafe 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
+              <div className="relative min-h-80 overflow-hidden rounded-md border border-border bg-[linear-gradient(135deg,var(--pharmacy-soft)_0%,var(--background)_48%,var(--food-soft)_100%)] p-4">
+                <div className="absolute inset-0 opacity-60" aria-hidden="true" style={{ backgroundImage: "linear-gradient(color-mix(in srgb, var(--info) 18%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--info) 18%, transparent) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
                 <div className="relative z-10 flex h-72 items-center justify-center">
-                  <div className="absolute left-[18%] top-[62%] rounded-md border border-border bg-surface px-3 py-2 text-sm shadow-sm"><MapPin className="mr-1 inline size-4 text-brand" aria-hidden="true" /> Store</div>
+                  <div className="absolute left-[18%] top-[62%] rounded-md border border-border bg-surface px-3 py-2 text-sm shadow-sm"><MapPin className="mr-1 inline size-4 text-primary" aria-hidden="true" /> Store</div>
                   <div className="absolute right-[16%] top-[24%] rounded-md border border-border bg-surface px-3 py-2 text-sm shadow-sm"><MapPin className="mr-1 inline size-4 text-success" aria-hidden="true" /> You</div>
-                  <div className="absolute h-1 w-[52%] -rotate-12 rounded-full bg-brand/30" aria-hidden="true" />
-                  <div className="absolute rounded-full bg-ride p-3 text-white shadow-lg transition-all duration-700 ease-out" style={partnerMarkerStyle(partnerLocation)} aria-label="Delivery partner marker">
+                  <div className="absolute h-1 w-[52%] -rotate-12 rounded-full bg-primary/30" aria-hidden="true" />
+                  <div className="absolute rounded-full bg-ride p-3 text-primary-foreground shadow-lg transition-all duration-700 ease-out" style={partnerMarkerStyle(partnerLocation)} aria-label="Delivery partner marker">
                     <Bike className="size-5" aria-hidden="true" />
                   </div>
                 </div>
@@ -114,7 +114,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
             </section>
 
             <aside className="h-fit rounded-md border border-border bg-surface p-4">
-              <div className="flex items-center gap-2 text-base font-semibold text-foreground"><ReceiptText className="size-5 text-brand" aria-hidden="true" /> Bill</div>
+              <div className="flex items-center gap-2 text-base font-semibold text-foreground"><ReceiptText className="size-5 text-primary" aria-hidden="true" /> Bill</div>
               <div className="mt-4 space-y-2 text-sm">
                 <Row label="Subtotal" value={order.subtotal} />
                 <Row label="Delivery" value={order.deliveryFee} />
@@ -141,7 +141,7 @@ function StatusTimeline({ status, prepTimeMinutes }: { status: string; prepTimeM
       {STATUS_STEPS.map((step, index) => {
         const complete = index <= currentIndex;
         return (
-          <li key={step} className={complete ? "rounded-md border border-brand/30 bg-brand/10 p-3" : "rounded-md border border-border bg-surface-muted p-3"}>
+          <li key={step} className={complete ? "rounded-md border border-primary/30 bg-primary/10 p-3" : "rounded-md border border-border bg-surface-muted p-3"}>
             <span className="text-xs font-medium text-muted-foreground">Step {index + 1}</span>
             <p className="mt-1 text-sm font-semibold text-foreground">{labelForStatus(step, prepTimeMinutes)}</p>
           </li>

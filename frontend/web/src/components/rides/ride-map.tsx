@@ -16,13 +16,13 @@ export function RideMap({ ride, driverLocation, phase = "tracking" }: RideMapPro
   const marker = driverMarkerStyle(driverLocation, status);
 
   return (
-    <section className="relative min-h-80 overflow-hidden rounded-md border border-border bg-[linear-gradient(135deg,#eff6ff_0%,#f8fafc_48%,#fff7ed_100%)] p-4" aria-label="Ride route map">
-      <div className="absolute inset-0 opacity-70" aria-hidden="true" style={{ backgroundImage: "linear-gradient(#dbeafe 1px, transparent 1px), linear-gradient(90deg, #dbeafe 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
+    <section className="relative min-h-80 overflow-hidden rounded-md border border-border bg-[linear-gradient(135deg,var(--ride-soft)_0%,var(--background)_48%,var(--food-soft)_100%)] p-4" aria-label="Ride route map">
+      <div className="absolute inset-0 opacity-70" aria-hidden="true" style={{ backgroundImage: "linear-gradient(color-mix(in srgb, var(--info) 18%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--info) 18%, transparent) 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
       <div className="relative z-10 h-72">
         <div className="absolute left-[16%] top-[64%] rounded-md border border-border bg-surface px-3 py-2 text-sm shadow-sm"><CircleDot className="mr-1 inline size-4 text-ride" aria-hidden="true" /> Pickup</div>
-        <div className="absolute right-[14%] top-[18%] rounded-md border border-border bg-surface px-3 py-2 text-sm shadow-sm"><Flag className="mr-1 inline size-4 text-brand" aria-hidden="true" /> Drop</div>
+        <div className="absolute right-[14%] top-[18%] rounded-md border border-border bg-surface px-3 py-2 text-sm shadow-sm"><Flag className="mr-1 inline size-4 text-primary" aria-hidden="true" /> Drop</div>
         <div className="absolute left-[25%] top-[49%] h-1 w-[52%] -rotate-[18deg] rounded-full bg-ride/30" aria-hidden="true" />
-        <div className="absolute rounded-full bg-ride p-3 text-white shadow-lg transition-all duration-700 ease-out" style={marker} aria-label="Driver marker">
+        <div className="absolute rounded-full bg-ride p-3 text-primary-foreground shadow-lg transition-all duration-700 ease-out" style={marker} aria-label="Driver marker">
           <Bike className="size-5" aria-hidden="true" />
         </div>
         <div className="absolute bottom-0 left-0 flex flex-wrap gap-2">

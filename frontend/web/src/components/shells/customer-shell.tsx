@@ -11,14 +11,14 @@ export function CustomerShell({ children, role = UserRole.CUSTOMER }: { children
   const nav = navForRole(role, customerNav);
 
   return (
-    <div className="min-h-screen bg-[#f4f6f8] text-foreground">
-      <header className="sticky top-0 z-30 border-b border-border bg-white/92 backdrop-blur-xl">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-30 border-b border-border bg-surface/92 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/customer" className="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
-            <span className="flex size-10 items-center justify-center rounded-lg bg-brand text-lg font-black text-white shadow-sm">M</span>
+            <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-lg font-black text-primary-foreground shadow-sm">M</span>
             <span>
-              <span className="block text-lg font-black tracking-normal text-[#111827]">MoveX</span>
-              <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground"><MapPin className="size-3.5 text-brand" aria-hidden={true} /> Bengaluru</span>
+              <span className="block text-lg font-black tracking-normal text-foreground">MoveX</span>
+              <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground"><MapPin className="size-3.5 text-primary" aria-hidden={true} /> Bengaluru</span>
             </span>
           </Link>
           <div className="hidden min-w-0 flex-1 justify-center md:flex">
@@ -78,7 +78,7 @@ function SummaryCard({ label, value, detail, icon: Icon }: { label: string; valu
           <p className="mt-2 text-2xl font-black tracking-normal text-foreground">{value}</p>
           <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
         </div>
-        {Icon ? <span className="flex size-10 items-center justify-center rounded-md bg-brand/10 text-brand"><Icon size={18} aria-hidden={true} /></span> : null}
+        {Icon ? <span className="flex size-10 items-center justify-center rounded-md bg-brand/10 text-primary"><Icon size={18} aria-hidden={true} /></span> : null}
       </div>
     </div>
   );

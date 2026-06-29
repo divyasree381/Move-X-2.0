@@ -59,15 +59,15 @@ export function RouteSummary({ from, to, mode = "DRIVE" }: RouteSummaryProps) {
   }, [route]);
 
   if (!from || !to) {
-    return <p className="text-sm text-slate-500">Route unavailable until both locations are set.</p>;
+    return <p className="text-sm text-muted-foreground">Route unavailable until both locations are set.</p>;
   }
 
   if (status === "loading") {
-    return <p className="text-sm text-slate-500">Calculating route and ETA...</p>;
+    return <p className="text-sm text-muted-foreground">Calculating route and ETA...</p>;
   }
 
   if (status === "error") {
-    return <p className="text-sm text-red-700">{error}</p>;
+    return <p className="text-sm text-destructive">{error}</p>;
   }
 
   if (!display) {
@@ -75,14 +75,14 @@ export function RouteSummary({ from, to, mode = "DRIVE" }: RouteSummaryProps) {
   }
 
   return (
-    <div className="grid gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">
+    <div className="grid gap-3 rounded-md border border-primary/20 bg-primary/10 p-4 sm:grid-cols-2">
       <div>
-        <p className="text-xs font-medium text-emerald-700">Distance</p>
-        <p className="mt-1 text-2xl font-semibold text-slate-950">{display.distance}</p>
+        <p className="text-xs font-medium text-primary">Distance</p>
+        <p className="mt-1 text-2xl font-semibold text-foreground">{display.distance}</p>
       </div>
       <div>
-        <p className="text-xs font-medium text-emerald-700">ETA</p>
-        <p className="mt-1 text-2xl font-semibold text-slate-950">{display.eta}</p>
+        <p className="text-xs font-medium text-primary">ETA</p>
+        <p className="mt-1 text-2xl font-semibold text-foreground">{display.eta}</p>
       </div>
     </div>
   );

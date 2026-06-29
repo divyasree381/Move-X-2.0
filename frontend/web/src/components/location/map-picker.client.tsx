@@ -118,7 +118,7 @@ export function MapPickerClient({ value, onChange }: MapPickerClientProps) {
     <div className="space-y-3">
       <div
         ref={mapRef}
-        className="relative h-72 overflow-hidden rounded-md border border-slate-300 bg-emerald-50"
+        className="relative h-72 overflow-hidden rounded-md border border-input bg-primary/10"
         role="application"
         aria-label="Interactive location picker"
         onPointerDown={(event) => {
@@ -164,7 +164,7 @@ export function MapPickerClient({ value, onChange }: MapPickerClientProps) {
         />
         <button
           type="button"
-          className="absolute grid size-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-emerald-600 text-white shadow-lg ring-4 ring-white transition hover:bg-emerald-700"
+          className="absolute grid size-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-card transition hover:bg-primary-hover"
           style={markerPosition}
           aria-label="Selected marker"
         >
@@ -172,19 +172,19 @@ export function MapPickerClient({ value, onChange }: MapPickerClientProps) {
         </button>
       </div>
       <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-        <label className="space-y-1 text-sm font-medium text-slate-800">
+        <label className="space-y-1 text-sm font-medium text-foreground">
           <span>Latitude</span>
           <input
-            className="min-h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            className="min-h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             value={manualLat}
             inputMode="decimal"
             onChange={(event) => setManualLat(event.target.value)}
           />
         </label>
-        <label className="space-y-1 text-sm font-medium text-slate-800">
+        <label className="space-y-1 text-sm font-medium text-foreground">
           <span>Longitude</span>
           <input
-            className="min-h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            className="min-h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             value={manualLng}
             inputMode="decimal"
             onChange={(event) => setManualLng(event.target.value)}
@@ -192,13 +192,13 @@ export function MapPickerClient({ value, onChange }: MapPickerClientProps) {
         </label>
         <button
           type="button"
-          className="self-end rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-950 transition hover:border-emerald-600 hover:text-emerald-700"
+          className="self-end rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary hover:text-primary"
           onClick={applyManualCoordinates}
         >
           Apply
         </button>
       </div>
-      <p className="text-sm text-slate-600">{status ?? current.address}</p>
+      <p className="text-sm text-muted-foreground">{status ?? current.address}</p>
     </div>
   );
 }

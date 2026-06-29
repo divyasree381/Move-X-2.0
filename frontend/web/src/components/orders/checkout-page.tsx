@@ -127,7 +127,7 @@ export function CheckoutPage() {
                   </div>
                   <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
                     <Input value={prescriptionNote} onChange={(event) => setPrescriptionNote(event.target.value)} placeholder="Optional note for pharmacist" />
-                    <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-medium text-white focus-within:ring-2 focus-within:ring-ring/30">
+                    <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground focus-within:ring-2 focus-within:ring-ring/30">
                       Upload
                       <input
                         type="file"
