@@ -902,7 +902,7 @@ export function routeForRole(role: AuthRole | string) {
   }
 
   if (["RESTAURANT", "DELIVERY", "DRIVER"].includes(role)) {
-    return "/partner";
+    return "/partner/dashboard";
   }
 
   return "/ops";
@@ -1295,4 +1295,3 @@ export function upsertPlatformFeatureFlag(key: string, input: { enabled: boolean
 export function requestPlatformSearchRebuild(input: { scope?: string } = {}) {
   return fetchApi<{ accepted: boolean; eventId: string }>("/platform/search/rebuild", { method: "POST", body: JSON.stringify(input) });
 }
-

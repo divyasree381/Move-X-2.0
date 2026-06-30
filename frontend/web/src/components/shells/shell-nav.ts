@@ -1,4 +1,4 @@
-﻿import { PermissionAction, type UserRole, hasPermission } from "@movex/shared";
+import { PermissionAction, type UserRole, hasPermission } from "@movex/shared";
 import { BadgeIndianRupee, BarChart3, Bike, ClipboardList, FileClock, FileText, Flag, GitCompareArrows, Headphones, Home, Landmark, MapPinned, Package, PackageCheck, ReceiptText, Search, Settings, ShieldCheck, Store, Tags, UserRound, Users, Wallet } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -20,7 +20,7 @@ export const customerNav: ShellNavItem[] = [
 ];
 
 export const partnerNav: ShellNavItem[] = [
-  { label: "Queue", href: "/partner", icon: PackageCheck, permission: PermissionAction.PartnerOnlineUpdate },
+  { label: "Queue", href: "/partner/dashboard", icon: PackageCheck, permission: PermissionAction.PartnerOnlineUpdate },
   { label: "Courier", href: "/partner/couriers", icon: Package, permission: PermissionAction.PartnerOnlineUpdate },
   { label: "Services", href: "/partner/home-services", icon: Home, permission: PermissionAction.PartnerOnlineUpdate },
   { label: "Ride Queue", href: "/partner/rides", icon: Bike, permission: PermissionAction.PartnerOnlineUpdate },
@@ -50,4 +50,3 @@ export const opsNav: ShellNavItem[] = [
 export function navForRole(role: UserRole, items: ShellNavItem[]) {
   return items.filter((item) => !item.permission || hasPermission(role, item.permission));
 }
-
