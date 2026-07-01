@@ -319,18 +319,18 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
   }, [prefersReducedMotion]);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
+    <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
       <AnimatePresence>{showIntro && introReady && canAnimate ? <LoginIntro key="login-intro" /> : null}</AnimatePresence>
 
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl items-start px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
         <motion.div
           layout={canAnimate}
           initial={canAnimate ? { opacity: 0.96, scale: 0.985 } : false}
           animate={{ opacity: 1, scale: 1 }}
           transition={revealTransition}
-          className="grid w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)] lg:h-[min(44rem,calc(100vh-3rem))] lg:grid-cols-[minmax(0,0.95fr)_minmax(25rem,0.8fr)]"
+          className="grid w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)] lg:min-h-[min(44rem,calc(100vh-3rem))] lg:grid-cols-[minmax(0,0.95fr)_minmax(25rem,0.8fr)]"
         >
-          <section className="relative flex min-h-[17rem] overflow-hidden bg-primary p-5 text-primary-foreground sm:min-h-[22rem] sm:p-8 lg:h-full lg:min-h-0">
+          <section className="relative flex min-h-[17rem] overflow-hidden bg-primary p-5 text-primary-foreground sm:min-h-[22rem] sm:p-8 lg:min-h-0">
             <div className="relative z-10 flex w-full flex-col justify-between gap-10">
               <div className="flex items-center justify-between gap-4">
                 <LogoLockup />
@@ -359,7 +359,7 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
             initial={canAnimate ? { opacity: 0, y: 18 } : false}
             animate={{ opacity: showIntro && canAnimate ? 0 : 1, y: showIntro && canAnimate ? 18 : 0 }}
             transition={canAnimate ? { duration: 0.46, delay: showIntro ? 0 : 0.08, ease: "easeOut" } : { duration: 0 }}
-            className="flex min-h-0 flex-col bg-surface/98 p-5 backdrop-blur sm:p-6 lg:h-full lg:overflow-hidden lg:p-8"
+            className="flex min-h-0 flex-col bg-surface/98 p-5 backdrop-blur sm:p-6 lg:p-8"
             aria-labelledby="login-title"
           >
             <motion.div className="flex min-h-0 flex-1 flex-col" initial={canAnimate ? "hidden" : false} animate={showIntro && canAnimate ? "hidden" : "show"} variants={{ hidden: {}, show: { transition: { staggerChildren: 0.065, delayChildren: 0.08 } } }}>
@@ -380,7 +380,7 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
               </FormReveal>
 
               <FormReveal canAnimate={canAnimate}>
-                <div className="mt-6 min-h-0 lg:overflow-y-auto lg:pr-1">{children}</div>
+                <div className="mt-6 min-h-0">{children}</div>
               </FormReveal>
 
               <FormReveal canAnimate={canAnimate}>
