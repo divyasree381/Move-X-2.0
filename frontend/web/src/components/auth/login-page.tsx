@@ -79,17 +79,17 @@ export function PartnerSelectionPage() {
             <Link
               key={partner.slug}
               href={`/login/partner/${partner.slug}`}
-              className="group min-h-36 rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+              className="group rounded-lg border border-border bg-surface p-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
             >
               <span className="flex items-start justify-between gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                   <Icon className="size-5" aria-hidden={true} />
                 </span>
                 <ChevronRight className="size-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden={true} />
               </span>
-              <span className="mt-4 block text-base font-medium text-foreground">{partner.label}</span>
-              <span className="mt-1 block text-sm leading-6 text-muted-foreground">{partner.description}</span>
-              <span className="mt-3 inline-flex rounded-full bg-surface-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{partner.serviceLine}</span>
+              <span className="mt-3 block text-base font-medium text-foreground">{partner.label}</span>
+              <span className="mt-1 block text-sm leading-5 text-muted-foreground">{partner.description}</span>
+              <span className="mt-2 inline-flex rounded-full bg-surface-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{partner.serviceLine}</span>
             </Link>
           );
         })}
@@ -105,7 +105,7 @@ export function PartnerOtpLoginPage({ partner }: { partner: PartnerLoginConfig }
     <AuthFrame eyebrow="Partner OTP" title={`Continue as ${partner.label}`} description="Your partner type is selected before OTP, so the backend receives the correct auth role." backHref="/login/partner">
       <div className="mb-5 rounded-lg border border-border bg-surface-muted p-4">
         <div className="flex items-start gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <Icon className="size-5" aria-hidden={true} />
           </span>
           <div>
@@ -322,74 +322,76 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
       <AnimatePresence>{showIntro && introReady && canAnimate ? <LoginIntro key="login-intro" /> : null}</AnimatePresence>
 
-      <div className="mx-auto grid min-h-screen w-full max-w-6xl gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-center lg:gap-10 lg:px-8">
-        <motion.section
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <motion.div
           layout={canAnimate}
           initial={canAnimate ? { opacity: 0.96, scale: 0.985 } : false}
           animate={{ opacity: 1, scale: 1 }}
           transition={revealTransition}
-          className="relative flex min-h-[15rem] w-72 max-w-full justify-self-center overflow-hidden rounded-lg border border-primary/20 bg-primary p-5 text-primary-foreground shadow-[var(--shadow-shell)] sm:min-h-[22rem] sm:w-full sm:p-8 lg:min-h-[42rem]"
+          className="grid w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)] lg:h-[min(44rem,calc(100vh-3rem))] lg:grid-cols-[minmax(0,0.95fr)_minmax(25rem,0.8fr)]"
         >
-          <div className="relative z-10 flex w-full flex-col justify-between gap-10">
-            <div className="flex items-center justify-between gap-4">
-              <LogoLockup />
-              <Link href="/" className="hidden rounded-md border border-primary-foreground/20 px-3 py-2 text-sm font-medium text-primary-foreground/80 transition hover:bg-primary-foreground/10 hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/35 sm:inline-flex">
-                Home
-              </Link>
-            </div>
-
-            <div className="max-w-xl">
-              <p className="text-sm font-medium uppercase tracking-[0.16em] text-primary-foreground/70">One account. Every vertical.</p>
-              <h1 className="mt-3 max-w-[18.5rem] break-words text-2xl font-medium leading-[1.08] tracking-normal sm:mt-4 sm:max-w-lg sm:text-5xl">Sign in through the right door.</h1>
-              <p className="mt-4 max-w-[18.5rem] text-sm font-normal leading-6 text-primary-foreground/74 sm:mt-5 sm:text-base sm:leading-7">Customers, partners, and staff each get a focused route while the backend still authenticates with a locked role.</p>
-            </div>
-
-            <div className="hidden flex-wrap gap-2 sm:flex">
-              {trustChips.map((chip) => (
-                <span key={chip} className="rounded-full border border-primary-foreground/18 bg-primary-foreground/10 px-3 py-1.5 text-xs font-medium text-primary-foreground/82">
-                  {chip}
-                </span>
-              ))}
-            </div>
-          </div>
-        </motion.section>
-
-        <motion.section
-          initial={canAnimate ? { opacity: 0, y: 18 } : false}
-          animate={{ opacity: showIntro && canAnimate ? 0 : 1, y: showIntro && canAnimate ? 18 : 0 }}
-          transition={canAnimate ? { duration: 0.46, delay: showIntro ? 0 : 0.08, ease: "easeOut" } : { duration: 0 }}
-          className="w-72 max-w-full justify-self-center rounded-lg border border-border bg-surface/96 p-5 shadow-[var(--shadow-shell)] backdrop-blur sm:w-full sm:p-6"
-          aria-labelledby="login-title"
-        >
-          <motion.div initial={canAnimate ? "hidden" : false} animate={showIntro && canAnimate ? "hidden" : "show"} variants={{ hidden: {}, show: { transition: { staggerChildren: 0.065, delayChildren: 0.08 } } }}>
-            <FormReveal canAnimate={canAnimate}>
-              {backHref ? (
-                <Link href={backHref} className="mb-5 inline-flex items-center gap-2 rounded-md text-sm font-medium text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
-                  <ArrowLeft className="size-4" aria-hidden={true} /> Back
+          <section className="relative flex min-h-[17rem] overflow-hidden bg-primary p-5 text-primary-foreground sm:min-h-[22rem] sm:p-8 lg:h-full lg:min-h-0">
+            <div className="relative z-10 flex w-full flex-col justify-between gap-10">
+              <div className="flex items-center justify-between gap-4">
+                <LogoLockup />
+                <Link href="/" className="hidden rounded-md border border-primary-foreground/20 px-3 py-2 text-sm font-medium text-primary-foreground/80 transition hover:bg-primary-foreground/10 hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/35 sm:inline-flex">
+                  Home
                 </Link>
-              ) : null}
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-primary">{eyebrow}</p>
-                  <h2 id="login-title" className="mt-1 text-2xl font-medium text-foreground">{title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+              </div>
+
+              <div className="max-w-xl">
+                <p className="text-sm font-medium uppercase tracking-[0.16em] text-primary-foreground/70">One account. Every vertical.</p>
+                <h1 className="mt-3 max-w-[18.5rem] break-words text-2xl font-medium leading-[1.08] tracking-normal sm:mt-4 sm:max-w-lg sm:text-5xl">Sign in through the right door.</h1>
+                <p className="mt-4 max-w-[18.5rem] text-sm font-normal leading-6 text-primary-foreground/74 sm:mt-5 sm:text-base sm:leading-7">Customers, partners, and staff each get a focused route while the backend still authenticates with a locked role.</p>
+              </div>
+
+              <div className="hidden flex-wrap gap-2 sm:flex">
+                {trustChips.map((chip) => (
+                  <span key={chip} className="rounded-full border border-primary-foreground/18 bg-primary-foreground/10 px-3 py-1.5 text-xs font-medium text-primary-foreground/82">
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <motion.section
+            initial={canAnimate ? { opacity: 0, y: 18 } : false}
+            animate={{ opacity: showIntro && canAnimate ? 0 : 1, y: showIntro && canAnimate ? 18 : 0 }}
+            transition={canAnimate ? { duration: 0.46, delay: showIntro ? 0 : 0.08, ease: "easeOut" } : { duration: 0 }}
+            className="flex min-h-0 flex-col bg-surface/98 p-5 backdrop-blur sm:p-6 lg:h-full lg:overflow-hidden lg:p-8"
+            aria-labelledby="login-title"
+          >
+            <motion.div className="flex min-h-0 flex-1 flex-col" initial={canAnimate ? "hidden" : false} animate={showIntro && canAnimate ? "hidden" : "show"} variants={{ hidden: {}, show: { transition: { staggerChildren: 0.065, delayChildren: 0.08 } } }}>
+              <FormReveal canAnimate={canAnimate}>
+                {backHref ? (
+                  <Link href={backHref} className="mb-5 inline-flex items-center gap-2 rounded-md text-sm font-medium text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+                    <ArrowLeft className="size-4" aria-hidden={true} /> Back
+                  </Link>
+                ) : null}
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-primary">{eyebrow}</p>
+                    <h2 id="login-title" className="mt-1 text-2xl font-medium text-foreground">{title}</h2>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+                  </div>
+                  <span className="hidden rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary sm:inline-flex">Secure</span>
                 </div>
-                <span className="hidden rounded-full border border-border bg-surface-muted px-3 py-1.5 text-xs font-medium text-muted-foreground sm:inline-flex">Secure</span>
-              </div>
-            </FormReveal>
+              </FormReveal>
 
-            <FormReveal canAnimate={canAnimate}>
-              <div className="mt-6">{children}</div>
-            </FormReveal>
+              <FormReveal canAnimate={canAnimate}>
+                <div className="mt-6 min-h-0 lg:overflow-y-auto lg:pr-1">{children}</div>
+              </FormReveal>
 
-            <FormReveal canAnimate={canAnimate}>
-              <div className="mt-6 flex items-center gap-2 border-t border-border pt-5 text-sm text-muted-foreground">
-                <Headphones size={16} aria-hidden={true} />
-                <span>For local testing, keep the backend running on port 3001.</span>
-              </div>
-            </FormReveal>
-          </motion.div>
-        </motion.section>
+              <FormReveal canAnimate={canAnimate}>
+                <div className="mt-6 flex items-center gap-2 border-t border-border pt-5 text-sm text-muted-foreground lg:mt-auto">
+                  <Headphones size={16} aria-hidden={true} />
+                  <span>For local testing, keep the backend running on port 3001.</span>
+                </div>
+              </FormReveal>
+            </motion.div>
+          </motion.section>
+        </motion.div>
       </div>
     </main>
   );
@@ -397,7 +399,7 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
 
 function AuthOptionCard({ href, label, description, icon: Icon, tone }: { href: string; label: string; description: string; icon: LucideIcon; tone: string }) {
   return (
-    <Link href={href} className="group rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+    <Link href={href} className="group rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
       <span className="flex items-start justify-between gap-4">
         <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-md", tone)}>
           <Icon className="size-5" aria-hidden={true} />
