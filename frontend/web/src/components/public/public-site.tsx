@@ -99,18 +99,18 @@ export function PublicHomePage() {
 
   return (
     <PublicSiteShell active="home">
-      <section className="relative min-h-[74vh] overflow-hidden bg-surface text-primary-foreground">
-        <img src={heroImageUrl} alt="City street with food delivery and mobility activity" className="absolute inset-0 size-full object-cover" />
-        <div className="absolute inset-0 bg-slate-950/70" aria-hidden={true} />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent" aria-hidden={true} />
-        <div className="relative mx-auto flex min-h-[74vh] max-w-7xl flex-col justify-center px-4 py-20 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden bg-primary text-white">
+        <img src={heroImageUrl} alt="MoveX delivery, mobility, and local services" className="absolute inset-0 size-full object-cover object-center" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.82)_0%,rgba(2,6,23,0.58)_48%,rgba(2,6,23,0.22)_100%)]" aria-hidden={true} />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.42)_0%,rgba(2,6,23,0)_44%,rgba(2,6,23,0.34)_100%)]" aria-hidden={true} />
+        <div className="relative mx-auto flex min-h-[34rem] max-w-7xl items-center px-4 pb-24 pt-20 sm:px-6 sm:pb-24 sm:pt-24 lg:min-h-[36rem] lg:px-8">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/18 bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur">
               <Sparkles className="size-4 text-accent" aria-hidden={true} />
-              Now rebuilding the public MoveX experience
+              One MoveX account for the whole city
             </div>
-            <h1 className="mt-6 max-w-3xl text-5xl font-medium leading-[1.02] tracking-normal text-white sm:text-6xl lg:text-7xl">Get a ride, order essentials, and move anything nearby.</h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-white/78 sm:text-lg">MoveX brings food, grocery, pharmacy, rides, courier, and home services into one location-first customer experience.</p>
+            <h1 className="mt-6 max-w-3xl text-4xl font-medium leading-[1.04] tracking-normal text-white sm:text-5xl lg:text-6xl">Get food, rides, essentials, and help nearby.</h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-white/78 sm:text-lg">Food, grocery, pharmacy, rides, courier, and home services come together in one location-first customer experience.</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="min-h-12 px-6">
                 <Link href="/stores"><Search className="size-4" aria-hidden={true} /> Explore stores</Link>
@@ -119,33 +119,44 @@ export function PublicHomePage() {
                 <Link href="/rides"><Bike className="size-4" aria-hidden={true} /> Book a ride</Link>
               </Button>
             </div>
+            <div className="mt-8 flex max-w-2xl flex-wrap gap-2">
+              {publicServices.map((service) => {
+                const Icon = serviceIcons[service.id] ?? Sparkles;
+
+                return (
+                  <Link key={service.id} href={service.href} className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/86 backdrop-blur transition hover:bg-white/16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35">
+                    <Icon className="size-3.5" aria-hidden={true} />
+                    {service.label}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
       <main>
-        <section className="mx-auto -mt-10 max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-3 rounded-lg border border-border bg-surface p-3 shadow-[var(--shadow-shell)] md:grid-cols-[1.2fr_0.8fr_auto] md:items-center">
+        <section className="relative z-10 mx-auto -mt-12 max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-3 rounded-lg border border-border bg-surface p-3 shadow-[var(--shadow-shell)] md:grid-cols-[1fr_1fr_auto] md:items-center">
             <div className="flex items-center gap-3 rounded-md bg-surface-muted px-3 py-3">
               <LocateFixed className="size-5 text-primary" aria-hidden={true} />
               <div>
-                <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Delivering around</p>
+                <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Browsing around</p>
                 <p className="text-sm font-medium">Indiranagar, Bengaluru</p>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-md bg-surface-muted px-3 py-3">
               <Clock3 className="size-5 text-primary" aria-hidden={true} />
               <div>
-                <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Fastest ETA</p>
+                <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Fastest promise</p>
                 <p className="text-sm font-medium">12 min pharmacy dispatch</p>
               </div>
             </div>
-            <Button asChild className="min-h-12">
+            <Button asChild className="min-h-12 px-6">
               <Link href="/login">Set location</Link>
             </Button>
           </div>
         </section>
-
         <Section eyebrow="Services" title="Choose one vertical now. Discover the rest when you need them." description="The public site mirrors the old MoveX service discovery flow while connecting into the new authenticated app when a user is ready to order.">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {publicServices.map((service) => <ServiceCard key={service.id} service={service} />)}
