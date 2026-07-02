@@ -1,5 +1,7 @@
 import type { OtpLoginRole } from "@/lib/api";
 
+export const PARTNER_LOGIN_TYPE_SESSION_KEY = "movex-partner-login-type";
+
 export type PartnerLoginType = "store-partner" | "delivery-partner" | "driver" | "electrician" | "home-repair" | "plumber";
 
 export type PartnerLoginConfig = {

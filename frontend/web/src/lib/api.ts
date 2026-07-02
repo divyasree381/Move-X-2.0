@@ -896,12 +896,30 @@ export function logout() {
   return fetchApi<{ message: string }>("/auth/logout", { method: "POST", skipRefresh: true });
 }
 
+const PARTNER_AUTH_ROLES = ["RESTAURANT", "DELIVERY", "DRIVER"] as const;
+
+export function isPartnerAuthRole(role: AuthRole | string): role is Extract<AuthRole, "RESTAURANT" | "DELIVERY" | "DRIVER"> {
+  return PARTNER_AUTH_ROLES.includes(role as Extract<AuthRole, "RESTAURANT" | "DELIVERY" | "DRIVER">);
+}
+
+export function routeForAuthenticatedUser(user: Pick<AuthUser, "role" | "partnerApproval">) {
+  if (user.role === "CUSTOMER") {
+    return "/customer";
+  }
+
+  if (isPartnerAuthRole(user.role)) {
+    return user.partnerApproval === "APPROVED" ? "/partner/dashboard" : "/partner/onboarding";
+  }
+
+  return "/ops";
+}
+
 export function routeForRole(role: AuthRole | string) {
   if (role === "CUSTOMER") {
     return "/customer";
   }
 
-  if (["RESTAURANT", "DELIVERY", "DRIVER"].includes(role)) {
+  if (isPartnerAuthRole(role)) {
     return "/partner/dashboard";
   }
 
@@ -911,6 +929,10 @@ export type CurrentUser = AuthUserResponse;
 
 export function currentUser() {
   return fetchApi<CurrentUser>("/auth/me");
+}
+
+export function submitPartnerProfile(input: { name?: string; avatarUrl?: string }) {
+  return fetchApi<AuthUser>("/users/me/partner-profile", { method: "PATCH", body: JSON.stringify(input) });
 }
 export type OpsCoupon = {
   id: string;
