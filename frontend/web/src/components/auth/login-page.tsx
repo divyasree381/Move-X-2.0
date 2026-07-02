@@ -13,7 +13,7 @@ import { adminLogin, requestOtpLogin, routeForAuthenticatedUser, type OtpLoginRo
 import { cn } from "@/lib/utils";
 
 const INTRO_SESSION_KEY = "movex-login-intro-seen";
-const verticalChips = ["Food", "Grocery", "Pharmacy", "Rides", "Courier", "Home"];
+const serviceChips = ["Food", "Grocery", "Pharmacy", "Rides", "Courier", "Home"];
 const trustChips = ["OTP secure", "HttpOnly sessions", "Role locked"];
 
 const partnerIcons: Record<PartnerLoginConfig["slug"], LucideIcon> = {
@@ -367,7 +367,7 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
               </div>
 
               <div className="max-w-xl">
-                <p className="text-sm font-medium uppercase tracking-[0.16em] text-primary-foreground/70">One account. Every vertical.</p>
+                <p className="text-sm font-medium uppercase tracking-[0.16em] text-primary-foreground/70">One account. Every service.</p>
                 <h1 className="mt-3 max-w-[18.5rem] break-words text-2xl font-medium leading-[1.08] tracking-normal sm:mt-4 sm:max-w-lg sm:text-5xl">Sign in through the right door.</h1>
                 <p className="mt-4 max-w-[18.5rem] text-sm font-normal leading-6 text-primary-foreground/74 sm:mt-5 sm:text-base sm:leading-7">Customers, partners, and staff each get a focused route while the backend still authenticates with a locked role.</p>
               </div>
@@ -459,10 +459,10 @@ function LoginIntro() {
           MoveX
         </motion.p>
         <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.28, ease: "easeOut" }} className="mt-2 text-base font-normal text-primary-foreground/76">
-          One account. Every vertical.
+          One account. Every service.
         </motion.p>
         <motion.div initial="hidden" animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.065, delayChildren: 0.34 } } }} className="mt-8 flex max-w-lg flex-wrap justify-center gap-2">
-          {verticalChips.map((chip) => (
+          {serviceChips.map((chip) => (
             <motion.span key={chip} variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.22, ease: "easeOut" }} className="rounded-full border border-primary-foreground/18 bg-primary-foreground/10 px-3 py-1.5 text-xs font-medium text-primary-foreground/78">
               {chip}
             </motion.span>

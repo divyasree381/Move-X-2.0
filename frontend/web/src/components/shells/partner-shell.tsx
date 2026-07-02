@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { UserRole } from "@movex/shared";
 import { useMutation } from "@tanstack/react-query";
-import { LocateFixed, Power, RadioTower } from "lucide-react";
+import { LocateFixed, Power, RadioTower, type LucideIcon } from "lucide-react";
 
 import { PartnerOrderQueue } from "@/components/orders";
 import { PartnerOpsPanel } from "@/components/partner";
@@ -39,7 +39,7 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
       },
       () => {
         setCoords(null);
-        setLocationError("Location heartbeat paused");
+        setLocationError("Location access paused");
       },
       { enableHighAccuracy: true, maximumAge: 10_000, timeout: 15_000 },
     );
@@ -81,22 +81,27 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
         </aside>
 
         <main className="space-y-5">
-          <section className="grid gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm md:grid-cols-4">
-            <Metric label="Queue" value="Live" />
-            <Metric icon={RadioTower} label="Heartbeat" value={isOnline ? "Active" : "Paused"} accent="text-primary" />
-            {role === UserRole.DRIVER ? (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Vehicle</p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {(["BIKE", "AUTO", "CAB"] as const).map((option) => (
-                    <button key={option} type="button" aria-pressed={vehicleType === option} onClick={() => setVehicleType(option)} className={vehicleType === option ? "rounded-md border border-ride bg-ride/10 px-2 py-1 text-xs font-black text-ride" : "rounded-md border border-border bg-surface px-2 py-1 text-xs font-black text-muted-foreground"}>
-                      {option}
-                    </button>
-                  ))}
+          <section className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+            <div className="grid gap-3 md:grid-cols-4">
+              <Metric label="Jobs" value={isOnline ? "Ready" : "Waiting"} sub={isOnline ? "Nearby jobs can appear here" : "Go online to receive jobs"} />
+              <Metric icon={RadioTower} label="Availability" value={isOnline ? "Ready for jobs" : "Offline"} sub={isOnline ? "Live updates are on" : "Updates are paused"} accent="text-primary" />
+              {role === UserRole.DRIVER ? (
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Vehicle</p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {(["BIKE", "AUTO", "CAB"] as const).map((option) => (
+                      <button key={option} type="button" aria-pressed={vehicleType === option} onClick={() => setVehicleType(option)} className={vehicleType === option ? "rounded-md border border-ride bg-ride/10 px-2 py-1 text-xs font-black text-ride" : "rounded-md border border-border bg-surface px-2 py-1 text-xs font-black text-muted-foreground"}>
+                        {option}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : null}
-            <Metric icon={LocateFixed} label="Live location" value={coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : locationError ?? "Waiting"} accent="text-primary" />
+              ) : null}
+              <Metric icon={LocateFixed} label="Location" value={coords ? "Sharing live" : isOnline ? locationError ?? "Starting..." : "Off"} sub={coords ? "Used only for nearby matching" : isOnline ? "Allow location access to get jobs" : "Starts after you go online"} accent="text-primary" />
+            </div>
+            <p className="mt-4 rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
+              {isOnline ? "You are visible for nearby jobs. Keep location access on for accurate matching." : "Go online to share live location and receive nearby jobs."}
+            </p>
           </section>
           <PartnerOpsPanel isOnline={isOnline} />
           {typeof children === "function" ? children({ isOnline }) : children ?? (role === UserRole.DRIVER ? <RideDriverQueue isOnline={isOnline} /> : <PartnerOrderQueue role={role} isOnline={isOnline} />)}
@@ -106,7 +111,7 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
   );
 }
 
-function Metric({ icon: Icon, label, value, accent = "text-primary" }: { icon?: typeof RadioTower; label: string; value: string; accent?: string }) {
+function Metric({ icon: Icon, label, value, sub, accent = "text-primary" }: { icon?: LucideIcon; label: string; value: string; sub?: string; accent?: string }) {
   return (
     <div>
       <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
@@ -114,6 +119,7 @@ function Metric({ icon: Icon, label, value, accent = "text-primary" }: { icon?: 
         {Icon ? <Icon className={`size-4 ${accent}`} aria-hidden={true} /> : null}
         {value}
       </p>
+      {sub ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{sub}</p> : null}
     </div>
   );
 }

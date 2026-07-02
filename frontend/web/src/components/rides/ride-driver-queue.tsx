@@ -27,7 +27,7 @@ export function RideDriverQueue({ isOnline }: { isOnline: boolean }) {
   const items = queue.data?.items ?? [];
 
   if (!isOnline) {
-    return <EmptyState title="Go online for ride offers" description="Ride requests appear after your driver heartbeat starts." />;
+    return <EmptyState title="Go online for ride offers" description="Ride requests appear after you go online and share location." />;
   }
 
   if (items.length === 0) {

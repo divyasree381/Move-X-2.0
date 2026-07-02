@@ -113,7 +113,7 @@ function OnlineSessions({ summary }: { summary: PartnerPeriodSummary }) {
         {sessions.length > 0 ? sessions.map((session) => (
           <div key={session.id} className="rounded-md border border-border bg-surface px-3 py-2">
             <p className="font-medium text-foreground">{new Date(session.startedAt).toLocaleTimeString()} to {session.endedAt ? new Date(session.endedAt).toLocaleTimeString() : "now"}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Last heartbeat: {session.lastHeartbeatAt ? new Date(session.lastHeartbeatAt).toLocaleTimeString() : "not received"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Last location update: {session.lastHeartbeatAt ? new Date(session.lastHeartbeatAt).toLocaleTimeString() : "not received"}</p>
           </div>
         )) : <EmptyState title="No online sessions today" description="Go online to start tracking availability time." />}
       </div>

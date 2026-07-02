@@ -34,7 +34,10 @@ export type PublicOffer = {
   title: string;
   description: string;
   service: "Food" | "Grocery" | "Pharmacy" | "Rides" | "Courier" | "Home services";
+  imageUrl: string;
   plannedBenefit: string;
+  secondaryBenefit: string;
+  footerNote: string;
   ctaLabel: string;
   href: string;
 };
@@ -45,6 +48,7 @@ export type PublicService = {
   description: string;
   href: string;
   tone: string;
+  imageUrl: string;
 };
 
 export type PartnerTrack = {
@@ -57,12 +61,12 @@ export type PartnerTrack = {
 export const heroImageUrl = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1800&q=80";
 
 export const publicServices: PublicService[] = [
-  { id: "food", label: "Food", description: "Hot meals from trusted kitchens nearby.", href: "/stores?type=FOOD", tone: "bg-food-soft text-food" },
-  { id: "grocery", label: "Grocery", description: "Fresh produce, staples, and daily essentials.", href: "/stores?type=GROCERY", tone: "bg-grocery-soft text-grocery" },
-  { id: "pharmacy", label: "Pharmacy", description: "Medicines with prescription-ready checkout.", href: "/stores?type=PHARMACY", tone: "bg-pharmacy-soft text-pharmacy" },
-  { id: "rides", label: "Rides", description: "Bike, auto, and cab pricing before you book.", href: "/rides", tone: "bg-ride-soft text-ride" },
-  { id: "courier", label: "Courier", description: "Parcel pickup, live tracking, and OTP handoff.", href: "/customer/couriers", tone: "bg-courier-soft text-courier" },
-  { id: "home", label: "Home services", description: "Verified professionals for scheduled jobs.", href: "/customer/home-services", tone: "bg-home-services-soft text-home-services" },
+  { id: "food", label: "Food", description: "Hot meals from trusted kitchens nearby.", href: "/stores?type=FOOD", tone: "bg-food-soft text-food", imageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=900&q=80" },
+  { id: "grocery", label: "Grocery", description: "Fresh produce, staples, and daily essentials.", href: "/stores?type=GROCERY", tone: "bg-grocery-soft text-grocery", imageUrl: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80" },
+  { id: "pharmacy", label: "Pharmacy", description: "Medicines with prescription-ready checkout.", href: "/stores?type=PHARMACY", tone: "bg-pharmacy-soft text-pharmacy", imageUrl: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=80" },
+  { id: "rides", label: "Rides", description: "Bike, auto, and cab pricing before you book.", href: "/rides", tone: "bg-ride-soft text-ride", imageUrl: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=900&q=80" },
+  { id: "courier", label: "Courier", description: "Parcel pickup, live tracking, and OTP handoff.", href: "/customer/couriers", tone: "bg-courier-soft text-courier", imageUrl: "https://images.unsplash.com/photo-1580674285054-bed31e145f59?auto=format&fit=crop&w=900&q=80" },
+  { id: "home", label: "Home services", description: "Verified professionals for scheduled jobs.", href: "/customer/home-services", tone: "bg-home-services-soft text-home-services", imageUrl: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=900&q=80" },
 ];
 
 export const publicStores: PublicStore[] = [
@@ -200,7 +204,10 @@ export const publicOffers: PublicOffer[] = [
     title: "First-order launch perk",
     description: "Preview savings for early customers ordering meals from nearby kitchens.",
     service: "Food",
+    imageUrl: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=900&q=80",
     plannedBenefit: "Planned benefit: up to Rs 150",
+    secondaryBenefit: "Wallet and bank offers will appear after checkout is connected.",
+    footerNote: "Food stores nearby",
     ctaLabel: "Explore stores",
     href: "/stores?type=FOOD",
   },
@@ -209,7 +216,10 @@ export const publicOffers: PublicOffer[] = [
     title: "Morning ride perk",
     description: "A future commuter offer for bike, auto, and cab trips during busy morning hours.",
     service: "Rides",
+    imageUrl: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
     plannedBenefit: "Planned benefit: up to Rs 75",
+    secondaryBenefit: "Surge-aware ride perks will be validated before payment.",
+    footerNote: "Bike, auto, cab",
     ctaLabel: "Plan a ride",
     href: "/rides",
   },
@@ -218,7 +228,10 @@ export const publicOffers: PublicOffer[] = [
     title: "Pantry top-up perk",
     description: "A preview basket benefit for fresh produce, staples, snacks, and daily essentials.",
     service: "Grocery",
+    imageUrl: "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=900&q=80",
     plannedBenefit: "Planned benefit: Rs 100 basket value",
+    secondaryBenefit: "Eligible baskets and item rules will be checked server-side.",
+    footerNote: "Daily essentials",
     ctaLabel: "Browse grocery",
     href: "/stores?type=GROCERY",
   },
@@ -227,16 +240,34 @@ export const publicOffers: PublicOffer[] = [
     title: "Priority pharmacy perk",
     description: "A planned dispatch benefit for verified prescriptions and wellness orders.",
     service: "Pharmacy",
+    imageUrl: "https://images.unsplash.com/photo-1576671081837-49000212a370?auto=format&fit=crop&w=900&q=80",
     plannedBenefit: "Planned benefit: reduced delivery fee",
+    secondaryBenefit: "Prescription checks stay required before order acceptance.",
+    footerNote: "Prescription ready",
     ctaLabel: "View pharmacy",
     href: "/stores?type=PHARMACY",
+  },
+  {
+    id: "courier-starter",
+    title: "Courier starter perk",
+    description: "A preview pickup benefit for small parcels, documents, and city drops.",
+    service: "Courier",
+    imageUrl: "https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?auto=format&fit=crop&w=900&q=80",
+    plannedBenefit: "Planned benefit: reduced pickup fee",
+    secondaryBenefit: "Distance and parcel rules will be calculated at booking.",
+    footerNote: "OTP handoff",
+    ctaLabel: "Send a parcel",
+    href: "/customer/couriers",
   },
   {
     id: "home-service-starter",
     title: "Home service starter perk",
     description: "A future credit preview for plumbing, electrical, and repair bookings.",
     service: "Home services",
+    imageUrl: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=900&q=80",
     plannedBenefit: "Planned benefit: starter service credit",
+    secondaryBenefit: "Slot, professional, and cancellation rules will show before booking.",
+    footerNote: "Scheduled jobs",
     ctaLabel: "View services",
     href: "/customer/home-services",
   },

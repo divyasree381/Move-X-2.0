@@ -27,7 +27,7 @@ export function CourierPartnerQueue({ isOnline }: { isOnline: boolean }) {
   const items = queue.data?.items ?? [];
 
   if (!isOnline) {
-    return <EmptyState title="Go online for courier jobs" description="Courier pickups appear after your live location heartbeat starts." />;
+    return <EmptyState title="Go online for courier jobs" description="Courier pickups appear after you go online and share location." />;
   }
 
   if (items.length === 0) {

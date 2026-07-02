@@ -27,7 +27,7 @@ export function HomeServiceProfessionalQueue({ isOnline }: { isOnline: boolean }
   const items = queue.data?.items ?? [];
 
   if (!isOnline) {
-    return <EmptyState title="Go online for home-service jobs" description="Scheduled service requests appear after your live location heartbeat starts." />;
+    return <EmptyState title="Go online for home-service jobs" description="Scheduled service requests appear after you go online and share location." />;
   }
 
   if (items.length === 0) {
