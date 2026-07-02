@@ -8,8 +8,8 @@ import { ArrowLeft, Bike, Building2, ChevronRight, Hammer, Headphones, PlugZap, 
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { partnerLoginConfigs, type PartnerLoginConfig } from "@/lib/auth-flow";
-import { adminLogin, requestOtpLogin, routeForRole, type OtpLoginRole, verifyOtpLogin } from "@/lib/api";
+import { PARTNER_LOGIN_TYPE_SESSION_KEY, partnerLoginConfigs, type PartnerLoginConfig } from "@/lib/auth-flow";
+import { adminLogin, requestOtpLogin, routeForAuthenticatedUser, type OtpLoginRole, verifyOtpLogin } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const INTRO_SESSION_KEY = "movex-login-intro-seen";
@@ -114,7 +114,7 @@ export function PartnerOtpLoginPage({ partner }: { partner: PartnerLoginConfig }
           </div>
         </div>
       </div>
-      <OtpLoginFlow role={partner.backendRole} label={partner.label} description="We will send a 6-digit OTP to the phone linked with this partner account." />
+      <OtpLoginFlow role={partner.backendRole} label={partner.label} description="We will send a 6-digit OTP to the phone linked with this partner account." partnerType={partner.slug} />
     </AuthFrame>
   );
 }
@@ -127,11 +127,11 @@ export function StaffLoginPage() {
   );
 }
 
-function OtpLoginFlow({ role, label, description }: { role: OtpLoginRole; label: string; description: string }) {
+function OtpLoginFlow({ role, label, description, partnerType }: { role: OtpLoginRole; label: string; description: string; partnerType?: PartnerLoginConfig["slug"] }) {
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
   const canAnimate = !prefersReducedMotion;
-  const [phone, setPhone] = useState("+919876543210");
+  const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
   const [otpRequested, setOtpRequested] = useState(false);
@@ -146,6 +146,10 @@ function OtpLoginFlow({ role, label, description }: { role: OtpLoginRole; label:
     setIsSubmitting(true);
 
     try {
+      if (partnerType) {
+        window.sessionStorage.setItem(PARTNER_LOGIN_TYPE_SESSION_KEY, partnerType);
+      }
+
       const result = await requestOtpLogin({ phone, role });
       setOtpRequested(true);
       setDevCode(result.devCode ?? null);
@@ -166,7 +170,7 @@ function OtpLoginFlow({ role, label, description }: { role: OtpLoginRole; label:
 
     try {
       const result = await verifyOtpLogin({ phone, role, code });
-      router.replace(routeForRole(result.user.role));
+      router.replace(routeForAuthenticatedUser(result.user));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not verify OTP.");
     } finally {
@@ -184,7 +188,7 @@ function OtpLoginFlow({ role, label, description }: { role: OtpLoginRole; label:
       <form className="space-y-4" onSubmit={submitOtpRequest}>
         <div className="space-y-1.5">
           <label className="text-sm font-medium" htmlFor="phone">Phone number</label>
-          <Input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+919876543210" autoComplete="tel" className="min-h-12" />
+          <Input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" autoComplete="tel" className="min-h-12" />
         </div>
         <motion.div whileTap={canAnimate ? { scale: 0.98 } : undefined}>
           <Button className="min-h-12 w-full" type="submit" disabled={isSubmitting || phone.trim().length < 5}>
@@ -242,7 +246,7 @@ function StaffLoginFlow() {
 
     try {
       const result = await adminLogin({ email, password, mfaCode: mfaCode || undefined });
-      router.replace(routeForRole(result.user.role));
+      router.replace(routeForAuthenticatedUser(result.user));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not sign in.");
     } finally {

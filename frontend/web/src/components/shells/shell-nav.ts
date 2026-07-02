@@ -25,7 +25,7 @@ export const partnerNav: ShellNavItem[] = [
   { label: "Services", href: "/partner/home-services", icon: Home, permission: PermissionAction.PartnerOnlineUpdate },
   { label: "Ride Queue", href: "/partner/rides", icon: Bike, permission: PermissionAction.PartnerOnlineUpdate },
   { label: "Location", href: "/partner/location", icon: MapPinned, permission: PermissionAction.PartnerLocationUpdate },
-  { label: "Profile", href: "/partner/profile", icon: Store, permission: PermissionAction.PartnerProfileSubmit },
+  { label: "Verification", href: "/partner/onboarding", icon: Store, permission: PermissionAction.PartnerProfileSubmit },
 ];
 
 export const opsNav: ShellNavItem[] = [
