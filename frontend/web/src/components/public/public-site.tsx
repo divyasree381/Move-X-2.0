@@ -105,10 +105,10 @@ export function PublicSiteShell({ active, children }: { active?: PublicNavKey; c
               <LogoMark />
               <div>
                 <p className="text-lg font-medium">MoveX</p>
-                <p className="text-sm text-muted-foreground">One account. Every vertical.</p>
+                <p className="text-sm text-muted-foreground">One account. Every service.</p>
               </div>
             </div>
-            <p className="mt-4 max-w-md text-sm leading-6 text-muted-foreground">A multi-vertical local-services platform for food, grocery, pharmacy, mobility, courier, and home services.</p>
+            <p className="mt-4 max-w-md text-sm leading-6 text-muted-foreground">A multi-service local platform for food, grocery, pharmacy, mobility, courier, and home services.</p>
           </div>
           <FooterColumn title="Company" links={[{ label: "About", href: "/about" }, { label: "Partner", href: "/partner" }, { label: "Get Help", href: "/support" }]} />
           <FooterColumn title="Services" links={[{ label: "Stores", href: "/stores" }, { label: "Rides", href: "/rides" }, { label: "Offers", href: "/offers" }]} />
@@ -182,7 +182,7 @@ export function PublicHomePage() {
             </Button>
           </div>
         </section>
-        <Section eyebrow="Services" title="Choose one vertical now. Discover the rest when you need them." description="The public site mirrors the old MoveX service discovery flow while connecting into the new authenticated app when a user is ready to order.">
+        <Section eyebrow="Services" title="What do you need today?" description="Explore food, groceries, medicines, rides, courier, and home services from one place.">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {publicServices.map((service) => <ServiceCard key={service.id} service={service} />)}
           </div>
@@ -349,7 +349,7 @@ function DietaryBadge({ type }: { type: DietaryType }) {
 export function PublicOffersPage() {
   return (
     <PublicSiteShell active="offers">
-      <PageHeader eyebrow="Offers" title="Launch perks across MoveX" description="These cards preview planned launch benefits for each vertical. They are not active coupon codes yet." />
+      <PageHeader eyebrow="Offers" title="Launch perks across MoveX" description="These image-led cards preview planned service benefits. They are not active coupon codes yet." />
       <main className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {publicOffers.map((offer) => <OfferCard key={offer.id} offer={offer} />)}
@@ -434,7 +434,7 @@ export function PublicSupportPage() {
           <SupportCard icon={Package} title="Order help" description="Track missing items, substitutions, cancellations, refunds, and delivery OTP issues." />
           <SupportCard icon={Bike} title="Ride help" description="Review trip status, start OTP, fare questions, cancellation fees, and safety reports." />
           <SupportCard icon={Truck} title="Courier help" description="Get assistance with pickup, drop OTP, parcel condition, and live tracking." />
-          <SupportCard icon={Store} title="Partner help" description="Resolve approval, menu, payout, online status, and location heartbeat issues." />
+          <SupportCard icon={Store} title="Partner help" description="Resolve approval, menu, payout, online status, and location-sharing issues." />
         </section>
         <aside className="h-fit rounded-lg border border-border bg-surface p-5 shadow-[var(--shadow-shell)]">
           <Headphones className="size-8 text-primary" aria-hidden={true} />
@@ -453,10 +453,10 @@ export function PublicSupportPage() {
 export function PublicAboutPage() {
   return (
     <PublicSiteShell active="about">
-      <PageHeader eyebrow="About MoveX" title="A local-services super-app built around one shared service spine" description="Locate, estimate, confirm, match, track, complete, and rate. Every vertical uses the same operational loop instead of isolated workflows." />
+      <PageHeader eyebrow="About MoveX" title="A local-services super-app built around one shared service spine" description="Locate, estimate, confirm, match, track, complete, and rate. Every service uses the same operational loop instead of isolated workflows." />
       <main className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
         <section className="grid gap-4 md:grid-cols-3">
-          <AboutMetric value="6" label="Verticals" description="Food, grocery, pharmacy, rides, courier, and home services." />
+          <AboutMetric value="6" label="Services" description="Food, grocery, pharmacy, rides, courier, and home services." />
           <AboutMetric value="8" label="Roles" description="Customer, partner, delivery, driver, support, finance, admin, and super admin." />
           <AboutMetric value="1" label="Ledger" description="Money movement flows through one authoritative financial spine." />
         </section>
@@ -468,7 +468,7 @@ export function PublicAboutPage() {
               <p className="mt-4 text-base leading-7 text-muted-foreground">MoveX connects public discovery pages to authenticated customer, partner, and ops surfaces. The public site now gives new visitors the same entry points as the older Vercel app while the new system powers the deeper workflows.</p>
             </div>
             <div className="grid gap-3">
-              {["Location-first discovery", "Shared checkout and fulfillment loop", "Partner matching with live heartbeats", "Finance and support surfaces for operations"].map((item) => (
+              {["Location-first discovery", "Shared checkout and fulfillment loop", "Partner matching with fresh live locations", "Finance and support surfaces for operations"].map((item) => (
                 <div key={item} className="flex items-center gap-3 rounded-md bg-surface-muted p-3">
                   <CheckCircle2 className="size-5 text-success" aria-hidden={true} />
                   <span className="text-sm font-medium">{item}</span>
@@ -530,17 +530,22 @@ function ServiceCard({ service }: { service: PublicService }) {
   const Icon = serviceIcons[service.id] ?? Sparkles;
 
   return (
-    <Link href={service.href} className="group rounded-lg border border-border bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
-      <span className={cn("flex size-12 items-center justify-center rounded-md", service.tone)}>
-        <Icon className="size-5" aria-hidden={true} />
-      </span>
-      <h3 className="mt-5 text-lg font-medium">{service.label}</h3>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{service.description}</p>
-      <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">Explore <ChevronRight className="size-4 transition group-hover:translate-x-0.5" aria-hidden={true} /></span>
+    <Link href={service.href} className="group overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+      <div className="relative h-36 overflow-hidden bg-surface-muted">
+        <img src={service.imageUrl} alt="" className="size-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.02)_0%,rgba(2,6,23,0.38)_100%)]" aria-hidden={true} />
+        <span className={cn("absolute bottom-3 left-3 flex size-12 items-center justify-center rounded-md border border-white/40 bg-white/92 shadow-sm backdrop-blur", service.tone)}>
+          <Icon className="size-5" aria-hidden={true} />
+        </span>
+      </div>
+      <div className="p-5">
+        <h3 className="text-lg font-medium">{service.label}</h3>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{service.description}</p>
+        <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">Explore <ChevronRight className="size-4 transition group-hover:translate-x-0.5" aria-hidden={true} /></span>
+      </div>
     </Link>
   );
 }
-
 function PublicStoreCard({ store, compact = false }: { store: PublicStore; compact?: boolean }) {
   return (
     <Link href={`/stores/${store.id}`} className="group overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
@@ -571,29 +576,39 @@ function OfferCard({ offer }: { offer: PublicOffer }) {
   const Icon = offerIcons[offer.service];
 
   return (
-    <article className="group flex min-h-full flex-col rounded-lg border border-border bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
-      <div className="flex items-start justify-between gap-3">
-        <span className={cn("flex size-12 items-center justify-center rounded-md", offerTone[offer.service])}>
-          <Icon className="size-5" aria-hidden={true} />
+    <article className="group flex min-h-full flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
+      <div className="relative h-44 overflow-hidden bg-surface-muted">
+        <img src={offer.imageUrl} alt="" className="size-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.05)_0%,rgba(2,6,23,0.72)_100%)]" aria-hidden={true} />
+        <span className={cn("absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm", offerTone[offer.service])}>
+          <Icon className="size-3.5" aria-hidden={true} />
+          {offer.service}
         </span>
-        <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">Coming soon</span>
+        <span className="absolute right-3 top-3 rounded-full border border-white/22 bg-white/88 px-2.5 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur">Coming soon</span>
+        <div className="absolute inset-x-4 bottom-4">
+          <h3 className="max-w-sm text-xl font-medium leading-tight text-white">{offer.title}</h3>
+          <p className="mt-1 text-xs font-medium text-white/72">{offer.footerNote}</p>
+        </div>
       </div>
-      <p className="mt-5 text-sm font-medium text-primary">{offer.service}</p>
-      <h3 className="mt-1 text-xl font-medium">{offer.title}</h3>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{offer.description}</p>
-      <div className="mt-5 rounded-md border border-border bg-surface-muted p-3 text-sm text-foreground">
-        <span className="flex items-start gap-2">
-          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden={true} />
-          <span>{offer.plannedBenefit}</span>
-        </span>
+      <div className="flex flex-1 flex-col p-4">
+        <p className="text-sm leading-6 text-muted-foreground">{offer.description}</p>
+        <div className="mt-4 rounded-md bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground shadow-sm">
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 shrink-0" aria-hidden={true} />
+            {offer.plannedBenefit}
+          </span>
+        </div>
+        <div className="mt-3 rounded-md bg-primary/10 px-3 py-2.5 text-sm text-primary">
+          {offer.secondaryBenefit}
+        </div>
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">Preview only. Final coupon validation connects when promotions go live.</p>
+        <Button asChild variant="secondary" className="mt-5 w-full">
+          <Link href={offer.href}>{offer.ctaLabel}<ArrowRight className="size-4" aria-hidden={true} /></Link>
+        </Button>
       </div>
-      <Button asChild variant="secondary" className="mt-5 w-full">
-        <Link href={offer.href}>{offer.ctaLabel}<ArrowRight className="size-4" aria-hidden={true} /></Link>
-      </Button>
     </article>
   );
 }
-
 function RideFarePanel() {
   return (
     <section className="rounded-lg border border-border bg-surface p-5 shadow-[var(--shadow-shell)]">

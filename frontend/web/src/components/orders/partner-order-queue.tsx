@@ -84,7 +84,7 @@ function DeliveryQueue({ isOnline }: { isOnline: boolean }) {
   const items = queue.data?.items ?? [];
 
   if (!isOnline) {
-    return <EmptyState title="Go online for jobs" description="Delivery jobs appear after your live location heartbeat starts." />;
+    return <EmptyState title="Go online for jobs" description="Delivery jobs appear after you go online and share location." />;
   }
 
   if (items.length === 0) {
