@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { dietaryLabels, resolveDietaryType, type DietaryType } from "@/lib/dietary";
 import { findPublicStore, heroImageUrl, isPublicStoreType, partnerTracks, publicOffers, publicServices, publicStores, rideOptions, storesByType, type PublicOffer, type PublicService, type PublicStore, type PublicStoreType } from "@/lib/public-site-data";
 
 const navItems = [
@@ -37,6 +38,12 @@ const storeLabel: Record<PublicStoreType, string> = {
   FOOD: "Food",
   GROCERY: "Grocery",
   PHARMACY: "Pharmacy",
+};
+
+const dietaryTone: Record<DietaryType, string> = {
+  VEG: "border-success/35 bg-success/10 text-success",
+  NON_VEG: "border-destructive/35 bg-destructive/10 text-destructive",
+  EGG: "border-warning/35 bg-warning/10 text-warning",
 };
 
 export function PublicSiteShell({ active, children }: { active?: PublicNavKey; children: ReactNode }) {
@@ -202,7 +209,7 @@ export function PublicHomePage() {
           </div>
         </section>
 
-        <Section eyebrow="Offers" title="Launch offers for every vertical" description="Promotions are presented publicly, but redemption stays validated on the backend at checkout.">
+        <Section eyebrow="Offers" title="Launch offers for every vertical" description="Frontend launch previews for early MoveX users. Real coupon validation will connect when promotions go live.">
           <div className="grid gap-4 md:grid-cols-3">
             {publicOffers.slice(0, 3).map((offer) => <OfferCard key={offer.code} offer={offer} />)}
           </div>
@@ -277,6 +284,7 @@ export function PublicStoreDetailPage({ storeId }: { storeId: string }) {
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-base font-medium">{item.name}</h3>
+                            <MenuDietaryBadge item={item} storeType={store.type} />
                             {item.badge ? <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">{item.badge}</span> : null}
                           </div>
                           <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
@@ -304,10 +312,26 @@ export function PublicStoreDetailPage({ storeId }: { storeId: string }) {
   );
 }
 
+function MenuDietaryBadge({ item, storeType }: { item: { dietaryType?: DietaryType | null; name?: string; description?: string; tags?: string[] }; storeType: PublicStoreType }) {
+  const dietaryType = resolveDietaryType(item, storeType);
+
+  return dietaryType ? <DietaryBadge type={dietaryType} /> : null;
+}
+
+function DietaryBadge({ type }: { type: DietaryType }) {
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium", dietaryTone[type])} aria-label={`${dietaryLabels[type]} item`}>
+      <span className="grid size-3 place-items-center rounded-[3px] border border-current" aria-hidden={true}>
+        <span className="size-1.5 rounded-full bg-current" />
+      </span>
+      {dietaryLabels[type]}
+    </span>
+  );
+}
 export function PublicOffersPage() {
   return (
     <PublicSiteShell active="offers">
-      <PageHeader eyebrow="Offers" title="Promotions across every MoveX vertical" description="Public offers help discovery, while eligibility and final discounts are still recomputed server-side during checkout." />
+      <PageHeader eyebrow="Offers" title="Promotions across every MoveX vertical" description="These frontend offer cards preview the campaign experience. Coupon validation will connect to backend rules when promotions go live." />
       <main className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {publicOffers.map((offer) => <OfferCard key={offer.code} offer={offer} />)}
@@ -619,3 +643,4 @@ function AboutMetric({ value, label, description }: { value: string; label: stri
 export function resolvePublicStoreType(value: unknown): PublicStoreType | undefined {
   return isPublicStoreType(value) ? value : undefined;
 }
+
