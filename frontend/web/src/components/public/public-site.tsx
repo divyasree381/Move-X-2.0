@@ -13,7 +13,7 @@ const navItems = [
   { label: "Rides", href: "/rides", key: "rides" },
   { label: "Offers", href: "/offers", key: "offers" },
   { label: "Partner", href: "/partner", key: "partner" },
-  { label: "Support", href: "/support", key: "support" },
+  { label: "Get Help", href: "/support", key: "support" },
   { label: "About", href: "/about", key: "about" },
 ] as const;
 
@@ -38,6 +38,24 @@ const storeLabel: Record<PublicStoreType, string> = {
   FOOD: "Food",
   GROCERY: "Grocery",
   PHARMACY: "Pharmacy",
+};
+
+const offerIcons: Record<PublicOffer["service"], LucideIcon> = {
+  Food: Utensils,
+  Grocery: ShoppingBasket,
+  Pharmacy: Pill,
+  Rides: Bike,
+  Courier: Package,
+  "Home services": Home,
+};
+
+const offerTone: Record<PublicOffer["service"], string> = {
+  Food: "bg-food-soft text-food",
+  Grocery: "bg-grocery-soft text-grocery",
+  Pharmacy: "bg-pharmacy-soft text-pharmacy",
+  Rides: "bg-ride-soft text-ride",
+  Courier: "bg-courier-soft text-courier",
+  "Home services": "bg-home-services-soft text-home-services",
 };
 
 const dietaryTone: Record<DietaryType, string> = {
@@ -92,7 +110,7 @@ export function PublicSiteShell({ active, children }: { active?: PublicNavKey; c
             </div>
             <p className="mt-4 max-w-md text-sm leading-6 text-muted-foreground">A multi-vertical local-services platform for food, grocery, pharmacy, mobility, courier, and home services.</p>
           </div>
-          <FooterColumn title="Company" links={[{ label: "About", href: "/about" }, { label: "Partner", href: "/partner" }, { label: "Support", href: "/support" }]} />
+          <FooterColumn title="Company" links={[{ label: "About", href: "/about" }, { label: "Partner", href: "/partner" }, { label: "Get Help", href: "/support" }]} />
           <FooterColumn title="Services" links={[{ label: "Stores", href: "/stores" }, { label: "Rides", href: "/rides" }, { label: "Offers", href: "/offers" }]} />
           <FooterColumn title="Apps" links={[{ label: "Customer", href: "/customer" }, { label: "Partner dashboard", href: "/partner/dashboard" }, { label: "Ops console", href: "/ops" }]} />
         </div>
@@ -209,9 +227,9 @@ export function PublicHomePage() {
           </div>
         </section>
 
-        <Section eyebrow="Offers" title="Launch offers for every vertical" description="Frontend launch previews for early MoveX users. Real coupon validation will connect when promotions go live.">
+        <Section eyebrow="Offers" title="Launch perks coming soon" description="A frontend preview of the benefits MoveX can unlock across food, rides, grocery, pharmacy, and home services.">
           <div className="grid gap-4 md:grid-cols-3">
-            {publicOffers.slice(0, 3).map((offer) => <OfferCard key={offer.code} offer={offer} />)}
+            {publicOffers.slice(0, 3).map((offer) => <OfferCard key={offer.id} offer={offer} />)}
           </div>
         </Section>
       </main>
@@ -331,10 +349,10 @@ function DietaryBadge({ type }: { type: DietaryType }) {
 export function PublicOffersPage() {
   return (
     <PublicSiteShell active="offers">
-      <PageHeader eyebrow="Offers" title="Promotions across every MoveX vertical" description="These frontend offer cards preview the campaign experience. Coupon validation will connect to backend rules when promotions go live." />
+      <PageHeader eyebrow="Offers" title="Launch perks across MoveX" description="These cards preview planned launch benefits for each vertical. They are not active coupon codes yet." />
       <main className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {publicOffers.map((offer) => <OfferCard key={offer.code} offer={offer} />)}
+          {publicOffers.map((offer) => <OfferCard key={offer.id} offer={offer} />)}
         </div>
       </main>
     </PublicSiteShell>
@@ -410,7 +428,7 @@ export function PublicPartnerPage() {
 export function PublicSupportPage() {
   return (
     <PublicSiteShell active="support">
-      <PageHeader eyebrow="Support" title="Help for orders, rides, refunds, and partner operations" description="Public support gives customers a clear path to help, while authenticated tickets remain linked to orders, rides, courier jobs, and support actions." />
+      <PageHeader eyebrow="Get Help" title="Help for orders, rides, refunds, and partner operations" description="Find the right support path for customer bookings, partner operations, payments, and account questions." />
       <main className="mx-auto grid max-w-7xl gap-6 px-4 pb-14 sm:px-6 lg:grid-cols-[1fr_22rem] lg:px-8">
         <section className="grid gap-4 md:grid-cols-2">
           <SupportCard icon={Package} title="Order help" description="Track missing items, substitutions, cancellations, refunds, and delivery OTP issues." />
@@ -550,18 +568,28 @@ function PublicStoreCard({ store, compact = false }: { store: PublicStore; compa
 }
 
 function OfferCard({ offer }: { offer: PublicOffer }) {
+  const Icon = offerIcons[offer.service];
+
   return (
-    <article className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+    <article className="group flex min-h-full flex-col rounded-lg border border-border bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        <span className="rounded-md bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent-foreground">{offer.code}</span>
-        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{offer.service}</span>
+        <span className={cn("flex size-12 items-center justify-center rounded-md", offerTone[offer.service])}>
+          <Icon className="size-5" aria-hidden={true} />
+        </span>
+        <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">Coming soon</span>
       </div>
-      <h3 className="mt-5 text-xl font-medium">{offer.title}</h3>
+      <p className="mt-5 text-sm font-medium text-primary">{offer.service}</p>
+      <h3 className="mt-1 text-xl font-medium">{offer.title}</h3>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">{offer.description}</p>
-      <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4 text-sm">
-        <span className="font-medium text-foreground">{offer.saving}</span>
-        <span className="text-muted-foreground">{offer.expires}</span>
+      <div className="mt-5 rounded-md border border-border bg-surface-muted p-3 text-sm text-foreground">
+        <span className="flex items-start gap-2">
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden={true} />
+          <span>{offer.plannedBenefit}</span>
+        </span>
       </div>
+      <Button asChild variant="secondary" className="mt-5 w-full">
+        <Link href={offer.href}>{offer.ctaLabel}<ArrowRight className="size-4" aria-hidden={true} /></Link>
+      </Button>
     </article>
   );
 }
