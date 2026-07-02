@@ -67,10 +67,10 @@ export function LocationSearchInput({ label, value, onChange, placeholder, bias 
     }
 
     if (value) {
-      return `${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}`;
+      return value.source === "gps" ? "GPS location selected" : "Location pin selected";
     }
 
-    return isLoading ? "Searching..." : "Awaiting location.";
+    return isLoading ? "Searching nearby places..." : "Search, pick from suggestions, or use a typed address.";
   }, [error, isLoading, value]);
 
   async function selectSuggestion(placeId: string) {
@@ -117,7 +117,7 @@ export function LocationSearchInput({ label, value, onChange, placeholder, bias 
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
           id={listId}
-          className="min-h-11 flex-1 rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="min-h-12 flex-1 rounded-md border border-input bg-surface px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           value={query}
           placeholder={placeholder ?? "Search address"}
           autoComplete="off"
@@ -133,18 +133,18 @@ export function LocationSearchInput({ label, value, onChange, placeholder, bias 
         />
         <button
           type="button"
-          className="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-muted-foreground"
+          className="min-h-12 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-muted-foreground sm:whitespace-nowrap"
           disabled={query.trim().length < 3 || isLoading}
           onClick={() => void useTypedFallback()}
         >
-          Use typed address
+          Use typed
         </button>
       </div>
       <p className={error ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{helperText}</p>
       {suggestions.length > 0 ? (
         <ul
           id={`${listId}-suggestions`}
-          className="overflow-hidden rounded-md border border-border bg-card shadow-sm"
+          className="overflow-hidden rounded-md border border-border bg-surface shadow-[var(--shadow-shell)]"
           role="listbox"
         >
           {suggestions.map((suggestion) => (
@@ -166,3 +166,4 @@ export function LocationSearchInput({ label, value, onChange, placeholder, bias 
     </div>
   );
 }
+

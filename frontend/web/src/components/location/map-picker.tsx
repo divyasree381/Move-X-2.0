@@ -5,7 +5,7 @@ import type { SelectedLocation } from "@movex/shared";
 
 const DynamicMapPicker = dynamic(() => import("./map-picker.client").then((mod) => mod.MapPickerClient), {
   ssr: false,
-  loading: () => <div className="h-72 rounded-md border border-input bg-surface-muted" aria-label="Loading map" />,
+  loading: () => <div className="min-h-[28rem] rounded-lg border border-border bg-surface-muted shadow-[var(--shadow-shell)] sm:min-h-[34rem]" aria-label="Loading map" />,
 });
 
 type MapPickerProps = {
@@ -16,3 +16,4 @@ type MapPickerProps = {
 export function MapPicker(props: MapPickerProps) {
   return <DynamicMapPicker {...props} />;
 }
+
