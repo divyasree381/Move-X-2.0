@@ -30,12 +30,13 @@ export type PublicStore = {
 };
 
 export type PublicOffer = {
-  code: string;
+  id: string;
   title: string;
   description: string;
   service: "Food" | "Grocery" | "Pharmacy" | "Rides" | "Courier" | "Home services";
-  saving: string;
-  expires: string;
+  plannedBenefit: string;
+  ctaLabel: string;
+  href: string;
 };
 
 export type PublicService = {
@@ -194,11 +195,51 @@ export const publicStores: PublicStore[] = [
 ];
 
 export const publicOffers: PublicOffer[] = [
-  { code: "MOVEX50", title: "50 percent off your first order", description: "For new customers ordering from food, grocery, or pharmacy partners.", service: "Food", saving: "Up to Rs 150", expires: "This week" },
-  { code: "RIDE25", title: "Save on morning rides", description: "Valid on bike, auto, and cab rides before 11 AM.", service: "Rides", saving: "Up to Rs 75", expires: "Daily" },
-  { code: "GROCERY100", title: "Pantry top-up offer", description: "Flat discount on grocery baskets above Rs 999.", service: "Grocery", saving: "Rs 100 off", expires: "Ends Sunday" },
-  { code: "MEDFAST", title: "Pharmacy priority dispatch", description: "Reduced delivery fee on verified prescription orders.", service: "Pharmacy", saving: "Free delivery", expires: "Limited" },
-  { code: "HOMECARE", title: "Service visit starter pack", description: "Introductory credit for plumbing, electrical, and repair bookings.", service: "Home services", saving: "Rs 200 credit", expires: "Launch" },
+  {
+    id: "food-first-order",
+    title: "First-order launch perk",
+    description: "Preview savings for early customers ordering meals from nearby kitchens.",
+    service: "Food",
+    plannedBenefit: "Planned benefit: up to Rs 150",
+    ctaLabel: "Explore stores",
+    href: "/stores?type=FOOD",
+  },
+  {
+    id: "ride-morning",
+    title: "Morning ride perk",
+    description: "A future commuter offer for bike, auto, and cab trips during busy morning hours.",
+    service: "Rides",
+    plannedBenefit: "Planned benefit: up to Rs 75",
+    ctaLabel: "Plan a ride",
+    href: "/rides",
+  },
+  {
+    id: "grocery-pantry",
+    title: "Pantry top-up perk",
+    description: "A preview basket benefit for fresh produce, staples, snacks, and daily essentials.",
+    service: "Grocery",
+    plannedBenefit: "Planned benefit: Rs 100 basket value",
+    ctaLabel: "Browse grocery",
+    href: "/stores?type=GROCERY",
+  },
+  {
+    id: "pharmacy-priority",
+    title: "Priority pharmacy perk",
+    description: "A planned dispatch benefit for verified prescriptions and wellness orders.",
+    service: "Pharmacy",
+    plannedBenefit: "Planned benefit: reduced delivery fee",
+    ctaLabel: "View pharmacy",
+    href: "/stores?type=PHARMACY",
+  },
+  {
+    id: "home-service-starter",
+    title: "Home service starter perk",
+    description: "A future credit preview for plumbing, electrical, and repair bookings.",
+    service: "Home services",
+    plannedBenefit: "Planned benefit: starter service credit",
+    ctaLabel: "View services",
+    href: "/customer/home-services",
+  },
 ];
 
 export const partnerTracks: PartnerTrack[] = [
