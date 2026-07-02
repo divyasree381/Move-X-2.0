@@ -234,6 +234,7 @@ function StaffLoginFlow() {
   const [email, setEmail] = useState("admin@movex.local");
   const [password, setPassword] = useState("");
   const [mfaCode, setMfaCode] = useState("");
+  const [showMfaField, setShowMfaField] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -245,10 +246,16 @@ function StaffLoginFlow() {
     setIsSubmitting(true);
 
     try {
-      const result = await adminLogin({ email, password, mfaCode: mfaCode || undefined });
+      const result = await adminLogin({ email, password, mfaCode: showMfaField && mfaCode ? mfaCode : undefined });
       router.replace(routeForAuthenticatedUser(result.user));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not sign in.");
+      const message = caught instanceof Error ? caught.message : "Could not sign in.";
+
+      if (message.toLowerCase().includes("mfa")) {
+        setShowMfaField(true);
+      }
+
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -261,7 +268,7 @@ function StaffLoginFlow() {
           <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-ride-soft text-ride"><Building2 size={18} aria-hidden={true} /></span>
           <div>
             <p className="text-sm font-medium text-foreground">Staff console</p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">Email, password, and MFA for operations users.</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">Use email and password first. Add an authenticator code only when your staff account requires MFA.</p>
           </div>
         </div>
       </div>
@@ -275,10 +282,26 @@ function StaffLoginFlow() {
           <label className="text-sm font-medium" htmlFor="staff-password">Password</label>
           <Input id="staff-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" type="password" autoComplete="current-password" className="min-h-12" />
         </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium" htmlFor="staff-mfa">MFA code</label>
-          <Input id="staff-mfa" value={mfaCode} onChange={(event) => setMfaCode(event.target.value)} placeholder="Optional for local setup" inputMode="numeric" maxLength={6} className="min-h-12" />
-        </div>
+        <AnimatePresence initial={false}>
+          {showMfaField ? (
+            <motion.div
+              key="staff-mfa-field"
+              initial={canAnimate ? { opacity: 0, y: 8 } : false}
+              animate={{ opacity: 1, y: 0 }}
+              exit={canAnimate ? { opacity: 0, y: -6 } : undefined}
+              transition={{ duration: canAnimate ? 0.2 : 0, ease: "easeOut" }}
+              className="space-y-1.5 rounded-md border border-border bg-surface-muted p-3"
+            >
+              <label className="text-sm font-medium" htmlFor="staff-mfa">Authenticator code</label>
+              <Input id="staff-mfa" value={mfaCode} onChange={(event) => setMfaCode(event.target.value)} placeholder="6-digit code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="min-h-12 bg-surface" />
+              <p className="text-xs leading-5 text-muted-foreground">Required only for staff accounts with MFA enabled. Local setup can continue without it.</p>
+            </motion.div>
+          ) : (
+            <button type="button" className="rounded-md text-left text-sm font-medium text-primary transition hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" onClick={() => setShowMfaField(true)}>
+              Use MFA code
+            </button>
+          )}
+        </AnimatePresence>
         <motion.div whileTap={canAnimate ? { scale: 0.98 } : undefined}>
           <Button className="min-h-12 w-full" type="submit" disabled={isSubmitting || !email || !password}>
             {isSubmitting ? "Signing in..." : "Sign in to ops"}
@@ -469,3 +492,4 @@ function FormReveal({ canAnimate, children }: { canAnimate: boolean; children: R
     </motion.div>
   );
 }
+

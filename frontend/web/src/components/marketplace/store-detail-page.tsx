@@ -58,7 +58,7 @@ export function StoreDetailPage({ storeId }: { storeId: string }) {
               <h2 id="menu-heading" className="text-base font-semibold text-foreground">Menu</h2>
               <div className="mt-4">
                 <QueryState isLoading={menuQuery.isLoading} isError={menuQuery.isError} error={menuQuery.error} onRetry={() => menuQuery.refetch()}>
-                  <StoreMenu items={menuQuery.data ?? []} />
+                  <StoreMenu items={menuQuery.data ?? []} storeType={store.type} />
                 </QueryState>
               </div>
             </section>

@@ -1,4 +1,5 @@
 import type { ApiEnvelope, MapSuggestion, MapTravelMode, RouteSummary, SelectedLocation } from "@movex/shared";
+import type { DietaryType } from "@/lib/dietary";
 
 export type RoutePoint = Pick<SelectedLocation, "address" | "placeId" | "lat" | "lng" | "source">;
 
@@ -183,6 +184,7 @@ export type MarketplaceMenuItem = {
   available: boolean;
   stock: number;
   customizations?: unknown;
+  dietaryType?: DietaryType | null;
 };
 
 export type StoreQueryParams = {
@@ -1317,3 +1319,4 @@ export function upsertPlatformFeatureFlag(key: string, input: { enabled: boolean
 export function requestPlatformSearchRebuild(input: { scope?: string } = {}) {
   return fetchApi<{ accepted: boolean; eventId: string }>("/platform/search/rebuild", { method: "POST", body: JSON.stringify(input) });
 }
+

@@ -1,3 +1,5 @@
+import type { DietaryType } from "@/lib/dietary";
+
 export type PublicStoreType = "FOOD" | "GROCERY" | "PHARMACY";
 
 export type PublicMenuItem = {
@@ -6,6 +8,7 @@ export type PublicMenuItem = {
   description: string;
   price: number;
   badge?: string;
+  dietaryType?: DietaryType;
 };
 
 export type PublicStore = {
@@ -78,9 +81,9 @@ export const publicStores: PublicStore[] = [
     tags: ["Biryani", "Kebabs", "Family meals"],
     isOpen: true,
     menu: [
-      { section: "Best sellers", name: "Chicken Dum Biryani", description: "Aromatic rice, tender chicken, raita, and salan.", price: 249, badge: "Popular" },
-      { section: "Best sellers", name: "Paneer Tikka Biryani", description: "Smoky paneer layered with long-grain rice.", price: 229 },
-      { section: "Sides", name: "Chicken 65", description: "Crisp, spicy bites tossed with curry leaves.", price: 189 },
+      { section: "Best sellers", name: "Chicken Dum Biryani", description: "Aromatic rice, tender chicken, raita, and salan.", price: 249, badge: "Popular", dietaryType: "NON_VEG" },
+      { section: "Best sellers", name: "Paneer Tikka Biryani", description: "Smoky paneer layered with long-grain rice.", price: 229, dietaryType: "VEG" },
+      { section: "Sides", name: "Chicken 65", description: "Crisp, spicy bites tossed with curry leaves.", price: 189, dietaryType: "NON_VEG" },
     ],
   },
   {
@@ -141,9 +144,9 @@ export const publicStores: PublicStore[] = [
     tags: ["Burgers", "Fries", "Shakes"],
     isOpen: true,
     menu: [
-      { section: "Burgers", name: "Classic Cheese Burger", description: "Grilled patty, cheddar, house sauce, toasted bun.", price: 189 },
-      { section: "Combos", name: "Burger Meal", description: "Burger, fries, and a chilled drink.", price: 279, badge: "Combo" },
-      { section: "Sides", name: "Loaded Fries", description: "Crisp fries with cheese and peppers.", price: 149 },
+      { section: "Burgers", name: "Classic Cheese Burger", description: "Grilled patty, cheddar, house sauce, toasted bun.", price: 189, dietaryType: "NON_VEG" },
+      { section: "Combos", name: "Burger Meal", description: "Burger, fries, and a chilled drink.", price: 279, badge: "Combo", dietaryType: "NON_VEG" },
+      { section: "Sides", name: "Loaded Fries", description: "Crisp fries with cheese and peppers.", price: 149, dietaryType: "VEG" },
     ],
   },
   {
@@ -162,9 +165,9 @@ export const publicStores: PublicStore[] = [
     tags: ["Pizza", "Pasta", "Desserts"],
     isOpen: true,
     menu: [
-      { section: "Pizzas", name: "Farmhouse Pan Pizza", description: "Capsicum, onion, tomato, corn, and mozzarella.", price: 319 },
-      { section: "Pizzas", name: "Chicken Pepperoni Pizza", description: "Pepperoni, cheese, and herbed crust.", price: 379 },
-      { section: "Sides", name: "Garlic Breadsticks", description: "Baked breadsticks with cheesy dip.", price: 139 },
+      { section: "Pizzas", name: "Farmhouse Pan Pizza", description: "Capsicum, onion, tomato, corn, and mozzarella.", price: 319, dietaryType: "VEG" },
+      { section: "Pizzas", name: "Chicken Pepperoni Pizza", description: "Pepperoni, cheese, and herbed crust.", price: 379, dietaryType: "NON_VEG" },
+      { section: "Sides", name: "Garlic Breadsticks", description: "Baked breadsticks with cheesy dip.", price: 139, dietaryType: "VEG" },
     ],
   },
   {
@@ -221,3 +224,4 @@ export function findPublicStore(storeId: string) {
 export function isPublicStoreType(value: unknown): value is PublicStoreType {
   return value === "FOOD" || value === "GROCERY" || value === "PHARMACY";
 }
+
