@@ -24,7 +24,12 @@ const roleLabels: Record<string, string> = {
   DRIVER: "Driver",
 };
 
-export function PartnerOnboardingPage() {
+type PartnerOnboardingPreview = {
+  user: AuthUser;
+  partnerType?: PartnerLoginConfig["slug"];
+};
+
+export function PartnerOnboardingPage({ preview }: { preview?: PartnerOnboardingPreview } = {}) {
   const router = useRouter();
   const [activeStep, setActiveStep] = useState(0);
   const [name, setName] = useState("");
@@ -36,21 +41,22 @@ export function PartnerOnboardingPage() {
   const [selectedPartner, setSelectedPartner] = useState<PartnerLoginConfig | null>(null);
   const [submittedUser, setSubmittedUser] = useState<AuthUser | null>(null);
 
-  const me = useQuery({ queryKey: ["auth-me"], queryFn: currentUser, retry: false });
-  const user = submittedUser ?? me.data?.user ?? null;
+  const isPreview = Boolean(preview);
+  const me = useQuery({ queryKey: ["auth-me"], queryFn: currentUser, retry: false, enabled: !isPreview });
+  const user = submittedUser ?? preview?.user ?? me.data?.user ?? null;
   const partnerApproval = user?.partnerApproval ?? "NONE";
   const isApproved = partnerApproval === "APPROVED";
   const isPartner = Boolean(user && isPartnerAuthRole(user.role));
   const partnerLabel = selectedPartner?.label ?? (user ? roleLabels[user.role] ?? "Partner" : "Partner");
 
   useEffect(() => {
-    const storedType = window.sessionStorage.getItem(PARTNER_LOGIN_TYPE_SESSION_KEY);
+    const storedType = preview?.partnerType ?? window.sessionStorage.getItem(PARTNER_LOGIN_TYPE_SESSION_KEY);
     const config = partnerLoginConfigs.find((partner) => partner.slug === storedType);
 
     if (config) {
       setSelectedPartner(config);
     }
-  }, []);
+  }, [preview?.partnerType]);
 
   useEffect(() => {
     if (user?.name && !name) {
@@ -73,7 +79,17 @@ export function PartnerOnboardingPage() {
   }, [partnerApproval]);
 
   const mutation = useMutation({
-    mutationFn: () => submitPartnerProfile({ name: name.trim(), avatarUrl: avatarUrl.trim() || undefined }),
+    mutationFn: async () => {
+      if (isPreview) {
+        if (!user) {
+          throw new Error("Preview user is missing.");
+        }
+
+        return { ...user, name: name.trim(), avatarUrl: avatarUrl.trim() || null, partnerApproval: "PENDING" };
+      }
+
+      return submitPartnerProfile({ name: name.trim(), avatarUrl: avatarUrl.trim() || undefined });
+    },
     onSuccess: (nextUser) => {
       setSubmittedUser(nextUser);
       setActiveStep(3);
@@ -93,11 +109,11 @@ export function PartnerOnboardingPage() {
     }
   }
 
-  if (me.isLoading) {
+  if (!isPreview && me.isLoading) {
     return <OnboardingShell><Skeleton className="min-h-[34rem]" /></OnboardingShell>;
   }
 
-  if (me.isError || !user) {
+  if ((!isPreview && me.isError) || !user) {
     return (
       <OnboardingShell>
         <ErrorState title="Sign in required" description="Log in as a partner to continue verification." action={<Button asChild><Link href="/login/partner">Partner login</Link></Button>} />
