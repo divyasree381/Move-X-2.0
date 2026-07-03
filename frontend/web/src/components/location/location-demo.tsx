@@ -150,7 +150,7 @@ export function LocationDemo() {
             </div>
             <Button type="button" onClick={() => setActivePoint(activePoint === "pickup" ? "drop" : "pickup")}>Next step</Button>
           </div>
-          <MapPicker value={activeLocation} onChange={updateActiveLocation} />
+          <MapPicker value={activeLocation} onChange={updateActiveLocation} showAdvancedControls />
         </div>
       </div>
     </section>

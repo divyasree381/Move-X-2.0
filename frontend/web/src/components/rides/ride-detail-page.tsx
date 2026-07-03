@@ -1,14 +1,14 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Clock3, Star } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Clock3, Star } from "lucide-react";
 
 import { QueryState } from "@/providers/query-state";
 import { OpenDisputePanel } from "@/components/trust";
 import { Button, StatusPill } from "@/components/ui";
-import { getRide, rateRide, type RealtimeMessage } from "@/lib/api";
+import { cancelRide, getRide, rateRide, type RealtimeMessage } from "@/lib/api";
 import { useRealtimeTopic } from "@/hooks/use-realtime-topic";
 import { RideMap } from "./ride-map";
 
@@ -28,6 +28,14 @@ export function RideDetailPage({ rideId }: { rideId: string }) {
       queryClient.invalidateQueries({ queryKey: ["rides"] });
     },
   });
+  const cancelMutation = useMutation({
+    mutationFn: () => cancelRide(rideId, "Cancelled from customer app"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ride", rideId] });
+      queryClient.invalidateQueries({ queryKey: ["rides"] });
+    },
+  });
+  const canCancel = ride ? ["REQUESTED", "ASSIGNED", "ARRIVED"].includes(ride.status) : false;
 
   const onRealtimeMessage = useCallback(
     (message: RealtimeMessage) => {
@@ -83,6 +91,29 @@ export function RideDetailPage({ rideId }: { rideId: string }) {
                 <Row label="Estimated" value={ride.estimatedFare} />
                 <Row label="Final" value={ride.finalFare ?? ride.estimatedFare} strong />
                 <Row label="Surge" value={`${ride.surgeMultiplier}x`} raw />
+              </div>
+              <div className="mt-5 rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
+                <p className="flex items-center gap-2 font-semibold text-foreground"><AlertTriangle className="size-4 text-warning" aria-hidden="true" /> Ride cancellation</p>
+                <p className="mt-1 text-muted-foreground">You can cancel before the ride starts. Any fee is calculated from the latest ride state.</p>
+                {canCancel ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="mt-3 w-full"
+                    disabled={cancelMutation.isPending}
+                    onClick={() => {
+                      if (window.confirm("Cancel this ride? Any applicable fee will be calculated before refund.")) {
+                        cancelMutation.mutate();
+                      }
+                    }}
+                  >
+                    {cancelMutation.isPending ? "Cancelling" : "Cancel ride"}
+                  </Button>
+                ) : (
+                  <p className="mt-3 rounded-md border border-border bg-surface p-2 text-xs text-muted-foreground">Cancellation is unavailable after the ride has started or ended.</p>
+                )}
+                {cancelMutation.error ? <p role="status" className="mt-2 text-sm text-destructive">{cancelMutation.error instanceof Error ? cancelMutation.error.message : "Ride could not be cancelled"}</p> : null}
               </div>
               <OpenDisputePanel referenceType="RIDE" referenceId={ride.id} />
               {ride.status === "COMPLETED" && !ride.rated ? (

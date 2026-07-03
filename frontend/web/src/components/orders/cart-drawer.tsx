@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Minus, Plus, ShoppingBag, Ticket, Trash2 } from "lucide-react";
+import { ArrowRight, Minus, Plus, ShoppingBag, Ticket, Trash2 } from "lucide-react";
 
 import { Button, Drawer, DrawerContent, DrawerTrigger, EmptyState, Input, RetryButton, Skeleton, StatusPill } from "@/components/ui";
 import { ApiError, applyCartCoupon, clearCart, getCart, removeCartCoupon, removeCartItem, updateCartItemQty, type CartResponse } from "@/lib/api";
@@ -12,6 +12,7 @@ const CART_QUERY_KEY = ["cart"] as const;
 
 export function CartDrawer() {
   const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
   const cartQuery = useQuery({ queryKey: CART_QUERY_KEY, queryFn: getCart });
@@ -64,14 +65,22 @@ export function CartDrawer() {
   });
 
   const itemCount = useMemo(() => cart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0, [cart]);
+  const hasItems = Boolean(cart && cart.items.length > 0);
+  const cartTotal = cart?.pricing.total ?? "0";
 
   return (
-    <Drawer>
-      <DrawerTrigger asChild>
-        <Button variant="secondary" size="icon" aria-label={`Cart with ${itemCount} items`}>
-          <ShoppingBag className="size-4" aria-hidden="true" />
-        </Button>
-      </DrawerTrigger>
+    <>
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerTrigger asChild>
+          <Button variant="secondary" size="icon" className="relative" aria-label={`Cart with ${itemCount} items`}>
+            <ShoppingBag className="size-4" aria-hidden="true" />
+            {itemCount > 0 ? (
+              <span className="absolute -right-1.5 -top-1.5 grid min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[0.65rem] font-semibold leading-5 text-primary-foreground shadow-sm" aria-hidden="true">
+                {itemCount > 9 ? "9+" : itemCount}
+              </span>
+            ) : null}
+          </Button>
+        </DrawerTrigger>
       <DrawerContent title="Cart" description={cart?.store ? cart.store.name : "Delivery checkout"} className="flex flex-col">
         <div className="mt-5 flex min-h-0 flex-1 flex-col gap-4">
           {cartQuery.isLoading ? (
@@ -168,6 +177,21 @@ export function CartDrawer() {
         </div>
       </DrawerContent>
     </Drawer>
+    {hasItems ? (
+      <button
+        type="button"
+        className="fixed inset-x-4 bottom-4 z-40 flex min-h-14 items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary px-4 text-left text-primary-foreground shadow-[var(--shadow-shell)] md:hidden"
+        onClick={() => setOpen(true)}
+        aria-label={`View cart with ${itemCount} items totaling Rs ${Number(cartTotal).toFixed(0)}`}
+      >
+        <span>
+          <span className="block text-sm font-semibold">{itemCount} item{itemCount === 1 ? "" : "s"} in cart</span>
+          <span className="block text-xs text-primary-foreground/75">Rs {Number(cartTotal).toFixed(0)} - View cart</span>
+        </span>
+        <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+      </button>
+    ) : null}
+    </>
   );
 }
 
