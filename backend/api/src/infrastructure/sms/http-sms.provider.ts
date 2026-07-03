@@ -47,10 +47,12 @@ export class HttpSmsProvider implements SmsProvider {
           let data = '';
           res.on('data', (chunk: Buffer) => data += chunk.toString());
           res.on('end', () => {
-            if (res.statusCode >= 200 && res.statusCode < 300) {
+            const statusCode = res.statusCode ?? 500;
+
+            if (statusCode >= 200 && statusCode < 300) {
               resolve(data);
             } else {
-              reject(new Error(`Status: ${res.statusCode}`));
+              reject(new Error(`Status: ${statusCode}`));
             }
           });
         });
