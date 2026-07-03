@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, Bike, Building2, ChevronRight, Hammer, Headphones, PlugZap, ShieldCheck, Store, Truck, UserRound, Wrench, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Bike, Building2, ChevronRight, Headphones, Home, ShieldCheck, Store, Truck, UserRound, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +20,7 @@ const partnerIcons: Record<PartnerLoginConfig["slug"], LucideIcon> = {
   "store-partner": Store,
   "delivery-partner": Truck,
   driver: Bike,
-  electrician: PlugZap,
-  "home-repair": Hammer,
-  plumber: Wrench,
+  "home-services-partner": Home,
 };
 
 const gatewayOptions = [
@@ -36,7 +34,7 @@ const gatewayOptions = [
   {
     href: "/login/partner",
     label: "Partner Login",
-    description: "Stores, delivery partners, drivers, and home-service professionals.",
+    description: "Stores, delivery partners, drivers, and home-service partners.",
     icon: Building2,
     tone: "bg-grocery-soft text-grocery",
   },
@@ -70,7 +68,7 @@ export function CustomerOtpLoginPage() {
 
 export function PartnerSelectionPage() {
   return (
-    <AuthFrame eyebrow="Partner login" title="Select your partner type" description="Choose the workstream you belong to, then continue with phone OTP." backHref="/login">
+    <AuthFrame eyebrow="Partner login" title="Select your partner type" description="Choose the workstream you belong to, then continue with phone OTP and verification." backHref="/login">
       <div className="grid gap-3 sm:grid-cols-2">
         {partnerLoginConfigs.map((partner) => {
           const Icon = partnerIcons[partner.slug];

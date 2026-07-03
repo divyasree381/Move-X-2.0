@@ -1,4 +1,4 @@
-﻿import { UserRole } from "./enums.js";
+import { UserRole } from "./enums.js";
 
 export const PermissionAction = {
   StaffRegister: "identity:staff:register",
@@ -23,6 +23,7 @@ export const PermissionAction = {
   FinanceInvoiceManage: "finance:invoices:manage",
   FinanceReconciliationRead: "finance:reconciliation:read",
   PlatformAnalyticsRead: "platform:analytics:read",
+  PlatformHomepageManage: "platform:homepage:manage",
   PlatformFeatureFlagsManage: "platform:feature-flags:manage",
   PlatformSearchRebuildManage: "platform:search:rebuild",
   StoreManage: "marketplace:store:manage",
@@ -124,6 +125,7 @@ export const PERMISSION_MATRIX = {
     PermissionAction.FinanceInvoiceManage,
     PermissionAction.FinanceReconciliationRead,
     PermissionAction.PlatformAnalyticsRead,
+    PermissionAction.PlatformHomepageManage,
     PermissionAction.PlatformFeatureFlagsManage,
     PermissionAction.PlatformSearchRebuildManage,
   ],

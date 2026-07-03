@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { PermissionAction } from "@movex/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Flag, RefreshCw, Search } from "lucide-react";
+import { BarChart3, Eye, EyeOff, Flag, Home, RefreshCw, Search } from "lucide-react";
 
 import { QueryState } from "@/providers/query-state";
 import { useOpsPermission } from "@/components/shells";
@@ -56,6 +57,132 @@ export function OpsAnalyticsPage() {
   );
 }
 
+export function OpsHomepagePage() {
+  const [heroTitle, setHeroTitle] = useState("Order food, book rides, and get home services nearby.");
+  const [heroSubtitle, setHeroSubtitle] = useState("Preview the public homepage controls before backend-managed content APIs are connected.");
+  const [visibleServices, setVisibleServices] = useState(() => new Set(homepageServices.map((service) => service.id)));
+  const [offerStripVisible, setOfferStripVisible] = useState(true);
+
+  function toggleService(serviceId: string) {
+    setVisibleServices((current) => {
+      const next = new Set(current);
+
+      if (next.has(serviceId)) {
+        next.delete(serviceId);
+      } else {
+        next.add(serviceId);
+      }
+
+      return next;
+    });
+  }
+
+  return (
+    <PlatformPermissionBoundary action={PermissionAction.PlatformHomepageManage}>
+      <PlatformPanel
+        title="Homepage Control"
+        description="Super Admin-only controls for public services, banners, and launch surfaces."
+        icon={<Home className="size-5" aria-hidden="true" />}
+        filters={<div className="flex flex-wrap gap-2"><StatusPill label="SUPER_ADMIN only" tone="success" /><StatusPill label="Preview only" tone="warning" /></div>}
+      >
+        <section className="rounded-md border border-warning/30 bg-warning/10 p-4 text-sm text-foreground">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-semibold">Preview-only controls</p>
+              <p className="mt-1 leading-6 text-muted-foreground">Changes on this page are local UI previews. Persistence should connect to SystemConfig, audit logs, and the public homepage API in a backend pass.</p>
+            </div>
+            <Button asChild variant="secondary" size="sm"><Link href="/">Open public homepage</Link></Button>
+          </div>
+        </section>
+
+        <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
+          <section className="space-y-4 rounded-md border border-border bg-surface p-4">
+            <div>
+              <h3 className="font-semibold text-foreground">Hero banner</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Draft the main public homepage message. Saving will connect to system config later.</p>
+            </div>
+            <div className="grid gap-3">
+              <label className="space-y-1.5 text-sm font-medium text-foreground">
+                <span>Headline</span>
+                <Input value={heroTitle} onChange={(event) => setHeroTitle(event.target.value)} />
+              </label>
+              <label className="space-y-1.5 text-sm font-medium text-foreground">
+                <span>Supporting copy</span>
+                <Input value={heroSubtitle} onChange={(event) => setHeroSubtitle(event.target.value)} />
+              </label>
+            </div>
+          </section>
+
+          <section className="rounded-md border border-border bg-foreground p-4 text-background">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-background/60">Preview</p>
+            <h3 className="mt-4 text-2xl font-semibold leading-tight">{heroTitle}</h3>
+            <p className="mt-3 text-sm leading-6 text-background/70">{heroSubtitle}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {homepageServices.filter((service) => visibleServices.has(service.id)).map((service) => (
+                <span key={service.id} className="rounded-full bg-background/10 px-3 py-1.5 text-xs font-medium text-background/80">{service.label}</span>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <section className="rounded-md border border-border bg-surface p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-foreground">Service visibility</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Hide or show customer-facing services without changing login roles.</p>
+            </div>
+            <StatusPill label={`${visibleServices.size} visible`} tone="info" />
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {homepageServices.map((service) => {
+              const visible = visibleServices.has(service.id);
+
+              return (
+                <button
+                  key={service.id}
+                  type="button"
+                  aria-pressed={visible}
+                  className="rounded-md border border-border bg-surface-muted p-4 text-left transition hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                  onClick={() => toggleService(service.id)}
+                >
+                  <span className="flex items-start justify-between gap-3">
+                    <span>
+                      <span className="block font-semibold text-foreground">{service.label}</span>
+                      <span className="mt-1 block text-sm leading-6 text-muted-foreground">{service.description}</span>
+                    </span>
+                    {visible ? <Eye className="size-5 text-success" aria-hidden="true" /> : <EyeOff className="size-5 text-muted-foreground" aria-hidden="true" />}
+                  </span>
+                  <span className="mt-3 inline-flex rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-muted-foreground">{visible ? "Visible" : "Hidden"}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-md border border-border bg-surface p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-foreground">Launch offers strip</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Super Admin can hide public promo previews while real coupon validation remains server-side.</p>
+            </div>
+            <Button type="button" variant={offerStripVisible ? "primary" : "secondary"} onClick={() => setOfferStripVisible((value) => !value)}>
+              {offerStripVisible ? "Shown on homepage" : "Hidden from homepage"}
+            </Button>
+          </div>
+        </section>
+      </PlatformPanel>
+    </PlatformPermissionBoundary>
+  );
+}
+
+const homepageServices = [
+  { id: "food", label: "Food", description: "Restaurants and prepared meals." },
+  { id: "grocery", label: "Grocery", description: "Daily essentials and staples." },
+  { id: "pharmacy", label: "Pharmacy", description: "Prescription-ready medicine orders." },
+  { id: "rides", label: "Rides", description: "Bike, auto, and cab booking." },
+  { id: "courier", label: "Courier", description: "Parcel pickup and delivery." },
+  { id: "home-services", label: "Home services", description: "One service partner path for plumbing, electrical, repair, and more." },
+];
 export function OpsFeatureFlagsPage() {
   const queryClient = useQueryClient();
   const [key, setKey] = useState("vertical.pharmacy.enabled");

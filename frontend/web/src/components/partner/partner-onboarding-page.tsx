@@ -12,10 +12,10 @@ import { currentUser, isPartnerAuthRole, routeForAuthenticatedUser, submitPartne
 import { cn } from "@/lib/utils";
 
 const steps: Array<{ title: string; description: string; icon: LucideIcon }> = [
-  { title: "Account", description: "Confirm the role attached to this login.", icon: ShieldCheck },
-  { title: "Profile", description: "Add the public name customers and ops teams see.", icon: UserRound },
-  { title: "Documents", description: "Prepare identity, bank, and work proof for review.", icon: IdCard },
-  { title: "Review", description: "Submit the profile for admin approval.", icon: ClipboardCheck },
+  { title: "Account", description: "Confirm the selected partner path.", icon: ShieldCheck },
+  { title: "Profile", description: "Add role-specific setup details.", icon: UserRound },
+  { title: "Documents", description: "Prepare proof for review.", icon: IdCard },
+  { title: "Review", description: "Submit for admin approval.", icon: ClipboardCheck },
 ];
 
 const roleLabels: Record<string, string> = {
@@ -24,9 +24,18 @@ const roleLabels: Record<string, string> = {
   DRIVER: "Driver",
 };
 
+const HOME_SERVICE_CATEGORIES = ["Plumbing", "Electrical", "Appliance repair", "Cleaning", "Painting", "Carpentry"] as const;
+
 type PartnerOnboardingPreview = {
   user: AuthUser;
   partnerType?: PartnerLoginConfig["slug"];
+};
+
+type ProfileGuide = {
+  summary: string;
+  setupLabel: string;
+  setupPlaceholder: string;
+  focusItems: string[];
 };
 
 export function PartnerOnboardingPage({ preview }: { preview?: PartnerOnboardingPreview } = {}) {
@@ -35,6 +44,8 @@ export function PartnerOnboardingPage({ preview }: { preview?: PartnerOnboarding
   const [name, setName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [serviceArea, setServiceArea] = useState("Bengaluru");
+  const [setupNote, setSetupNote] = useState("");
+  const [serviceCategories, setServiceCategories] = useState<string[]>([]);
   const [documentRef, setDocumentRef] = useState("");
   const [bankRef, setBankRef] = useState("");
   const [consent, setConsent] = useState(false);
@@ -48,6 +59,10 @@ export function PartnerOnboardingPage({ preview }: { preview?: PartnerOnboarding
   const isApproved = partnerApproval === "APPROVED";
   const isPartner = Boolean(user && isPartnerAuthRole(user.role));
   const partnerLabel = selectedPartner?.label ?? (user ? roleLabels[user.role] ?? "Partner" : "Partner");
+  const isHomeServicesPartner = selectedPartner?.slug === "home-services-partner" || partnerLabel.toLowerCase().includes("home services");
+  const selectedServiceSummary = serviceCategories.length > 0 ? serviceCategories.join(", ") : "Not selected";
+  const setupGuide = useMemo(() => getProfileGuide(partnerLabel, isHomeServicesPartner), [isHomeServicesPartner, partnerLabel]);
+  const authRoutingLabel = isHomeServicesPartner ? "Home services partner path, partner auth" : `${partnerLabel} path locked`;
 
   useEffect(() => {
     const storedType = preview?.partnerType ?? window.sessionStorage.getItem(PARTNER_LOGIN_TYPE_SESSION_KEY);
@@ -70,7 +85,7 @@ export function PartnerOnboardingPage({ preview }: { preview?: PartnerOnboarding
 
   const requiredItems = useMemo(() => getRequirements(partnerLabel), [partnerLabel]);
   const isReviewLocked = partnerApproval === "PENDING";
-  const canSubmit = name.trim().length >= 2 && serviceArea.trim().length >= 2 && documentRef.trim().length >= 3 && bankRef.trim().length >= 3 && consent && !isReviewLocked;
+  const canSubmit = name.trim().length >= 2 && serviceArea.trim().length >= 2 && setupNote.trim().length >= 3 && (!isHomeServicesPartner || serviceCategories.length > 0) && documentRef.trim().length >= 3 && bankRef.trim().length >= 3 && consent && !isReviewLocked;
 
   useEffect(() => {
     if (partnerApproval === "PENDING" || partnerApproval === "APPROVED") {
@@ -165,10 +180,10 @@ export function PartnerOnboardingPage({ preview }: { preview?: PartnerOnboarding
         </aside>
 
         <form className="rounded-lg border border-border bg-surface p-5 shadow-[var(--shadow-shell)] sm:p-6" onSubmit={submit}>
-          {activeStep === 0 ? <AccountStep user={user} partnerLabel={partnerLabel} /> : null}
-          {activeStep === 1 ? <ProfileStep name={name} avatarUrl={avatarUrl} serviceArea={serviceArea} setName={setName} setAvatarUrl={setAvatarUrl} setServiceArea={setServiceArea} /> : null}
+          {activeStep === 0 ? <AccountStep user={user} partnerLabel={partnerLabel} authRoutingLabel={authRoutingLabel} /> : null}
+          {activeStep === 1 ? <ProfileStep name={name} avatarUrl={avatarUrl} serviceArea={serviceArea} setupNote={setupNote} setupGuide={setupGuide} serviceCategories={serviceCategories} isHomeServicesPartner={isHomeServicesPartner} setName={setName} setAvatarUrl={setAvatarUrl} setServiceArea={setServiceArea} setSetupNote={setSetupNote} setServiceCategories={setServiceCategories} /> : null}
           {activeStep === 2 ? <DocumentsStep requirements={requiredItems} documentRef={documentRef} bankRef={bankRef} setDocumentRef={setDocumentRef} setBankRef={setBankRef} /> : null}
-          {activeStep === 3 ? <ReviewStep name={name} serviceArea={serviceArea} documentRef={documentRef} bankRef={bankRef} consent={consent} setConsent={setConsent} partnerApproval={partnerApproval} mutationError={mutation.error instanceof Error ? mutation.error.message : null} /> : null}
+          {activeStep === 3 ? <ReviewStep name={name} serviceArea={serviceArea} setupNote={setupNote} selectedServiceSummary={isHomeServicesPartner ? selectedServiceSummary : null} documentRef={documentRef} bankRef={bankRef} consent={consent} setConsent={setConsent} partnerApproval={partnerApproval} mutationError={mutation.error instanceof Error ? mutation.error.message : null} /> : null}
 
           <div className="mt-7 flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-between">
             <Button type="button" variant="secondary" disabled={activeStep === 0 || mutation.isPending} onClick={() => setActiveStep((step) => Math.max(step - 1, 0))}>Back</Button>
@@ -195,13 +210,13 @@ function OnboardingShell({ children }: { children: ReactNode }) {
   );
 }
 
-function AccountStep({ user, partnerLabel }: { user: AuthUser; partnerLabel: string }) {
+function AccountStep({ user, partnerLabel, authRoutingLabel }: { user: AuthUser; partnerLabel: string; authRoutingLabel: string }) {
   return (
     <section>
-      <StepHeader eyebrow="Step 1" title="Confirm account" description="The selected partner path is locked to this session before verification continues." />
+      <StepHeader eyebrow="Step 1" title="Confirm account" description="The selected partner path stays locked through OTP and onboarding." />
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <InfoTile label="Partner type" value={partnerLabel} />
-        <InfoTile label="Backend role" value={user.role} />
+        <InfoTile label="Auth routing" value={authRoutingLabel} />
         <InfoTile label="Phone" value={user.phoneE164 ?? "Not added"} />
         <InfoTile label="Approval" value={user.partnerApproval ?? "NONE"} />
       </div>
@@ -209,13 +224,47 @@ function AccountStep({ user, partnerLabel }: { user: AuthUser; partnerLabel: str
   );
 }
 
-function ProfileStep({ name, avatarUrl, serviceArea, setName, setAvatarUrl, setServiceArea }: { name: string; avatarUrl: string; serviceArea: string; setName: (value: string) => void; setAvatarUrl: (value: string) => void; setServiceArea: (value: string) => void }) {
+function ProfileStep({ name, avatarUrl, serviceArea, setupNote, setupGuide, serviceCategories, isHomeServicesPartner, setName, setAvatarUrl, setServiceArea, setSetupNote, setServiceCategories }: { name: string; avatarUrl: string; serviceArea: string; setupNote: string; setupGuide: ProfileGuide; serviceCategories: string[]; isHomeServicesPartner: boolean; setName: (value: string) => void; setAvatarUrl: (value: string) => void; setServiceArea: (value: string) => void; setSetupNote: (value: string) => void; setServiceCategories: (value: string[]) => void }) {
+  function toggleService(category: string) {
+    setServiceCategories(serviceCategories.includes(category) ? serviceCategories.filter((item) => item !== category) : [...serviceCategories, category]);
+  }
+
   return (
     <section>
-      <StepHeader eyebrow="Step 2" title="Profile details" description="Use a clear name and service area so ops can identify the partner during approval." />
+      <StepHeader eyebrow="Step 2" title="Profile details" description={setupGuide.summary} />
       <div className="mt-6 grid gap-4">
         <Field label="Display name" htmlFor="partner-name"><Input id="partner-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="MoveX partner name" className="min-h-12" /></Field>
         <Field label="Primary service area" htmlFor="service-area"><Input id="service-area" value={serviceArea} onChange={(event) => setServiceArea(event.target.value)} placeholder="Indiranagar, Bengaluru" className="min-h-12" /></Field>
+        <div className="rounded-md border border-border bg-surface-muted p-4">
+          <p className="text-sm font-medium text-foreground">Verification focus</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {setupGuide.focusItems.map((item) => <StatusPill key={item} label={item} tone="info" />)}
+          </div>
+        </div>
+        {isHomeServicesPartner ? (
+          <fieldset className="rounded-md border border-border bg-surface-muted p-4">
+            <legend className="px-1 text-sm font-medium text-foreground">Services offered</legend>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">Pick the categories this partner can serve. More categories can be added later from admin-managed service config.</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {HOME_SERVICE_CATEGORIES.map((category) => {
+                const active = serviceCategories.includes(category);
+
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    aria-pressed={active}
+                    className={cn("rounded-md border p-3 text-left text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30", active ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-foreground hover:border-primary/40")}
+                    onClick={() => toggleService(category)}
+                  >
+                    {category}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        ) : null}
+        <Field label={setupGuide.setupLabel} htmlFor="setup-note"><Input id="setup-note" value={setupNote} onChange={(event) => setSetupNote(event.target.value)} placeholder={setupGuide.setupPlaceholder} className="min-h-12" /></Field>
         <Field label="Profile image URL" htmlFor="avatar-url"><Input id="avatar-url" value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://..." className="min-h-12" /></Field>
       </div>
     </section>
@@ -237,13 +286,15 @@ function DocumentsStep({ requirements, documentRef, bankRef, setDocumentRef, set
   );
 }
 
-function ReviewStep({ name, serviceArea, documentRef, bankRef, consent, setConsent, partnerApproval, mutationError }: { name: string; serviceArea: string; documentRef: string; bankRef: string; consent: boolean; setConsent: (value: boolean) => void; partnerApproval: string; mutationError: string | null }) {
+function ReviewStep({ name, serviceArea, setupNote, selectedServiceSummary, documentRef, bankRef, consent, setConsent, partnerApproval, mutationError }: { name: string; serviceArea: string; setupNote: string; selectedServiceSummary: string | null; documentRef: string; bankRef: string; consent: boolean; setConsent: (value: boolean) => void; partnerApproval: string; mutationError: string | null }) {
   return (
     <section>
       <StepHeader eyebrow="Step 4" title="Review and submit" description="Submission moves the partner profile into pending admin review." />
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <InfoTile label="Display name" value={name || "Missing"} />
         <InfoTile label="Service area" value={serviceArea || "Missing"} />
+        <InfoTile label="Setup details" value={setupNote || "Missing"} />
+        {selectedServiceSummary ? <InfoTile label="Services offered" value={selectedServiceSummary} /> : null}
         <InfoTile label="Document reference" value={documentRef || "Missing"} />
         <InfoTile label="Bank reference" value={bankRef || "Missing"} />
       </div>
@@ -294,17 +345,57 @@ function RequirementCard({ label }: { label: string }) {
   );
 }
 
+function getProfileGuide(partnerLabel: string, isHomeServicesPartner: boolean): ProfileGuide {
+  const normalized = partnerLabel.toLowerCase();
+
+  if (normalized.includes("store")) {
+    return {
+      summary: "Add store setup details so ops can review licenses, catalog readiness, and service area in one pass.",
+      setupLabel: "Store setup details",
+      setupPlaceholder: "Restaurant, grocery, or pharmacy type; cuisine or catalog focus; expected opening hours",
+      focusItems: ["Store type", "Catalog readiness", "Opening hours"],
+    };
+  }
+
+  if (normalized.includes("driver")) {
+    return {
+      summary: "Add driver and vehicle details so ops can verify ride eligibility before approvals.",
+      setupLabel: "Vehicle and license details",
+      setupPlaceholder: "Bike, auto, or cab; vehicle number; license or permit reference",
+      focusItems: ["Vehicle type", "Driving license", "City coverage"],
+    };
+  }
+
+  if (isHomeServicesPartner) {
+    return {
+      summary: "Choose the home-service categories and explain experience so admins can approve the right services.",
+      setupLabel: "Experience and availability",
+      setupPlaceholder: "5 years electrical repair, available evenings, service radius 8 km",
+      focusItems: ["Service categories", "Experience", "Availability"],
+    };
+  }
+
+  return {
+    summary: "Add delivery coverage and equipment details so ops can approve live jobs confidently.",
+    setupLabel: "Delivery setup details",
+    setupPlaceholder: "Bike delivery, insulated bag, preferred zones, shift availability",
+    focusItems: ["Coverage zone", "Equipment", "Availability"],
+  };
+}
+
 function getRequirements(partnerLabel: string) {
-  if (partnerLabel.toLowerCase().includes("store")) {
+  const normalized = partnerLabel.toLowerCase();
+
+  if (normalized.includes("store")) {
     return ["Store license", "GST or FSSAI proof", "Bank account"];
   }
 
-  if (partnerLabel.toLowerCase().includes("driver")) {
+  if (normalized.includes("driver")) {
     return ["Driving license", "Vehicle document", "Bank account"];
   }
 
-  if (["electrician", "plumber", "repair"].some((keyword) => partnerLabel.toLowerCase().includes(keyword))) {
-    return ["Identity proof", "Skill certificate", "Bank account"];
+  if (normalized.includes("home services")) {
+    return ["Identity proof", "Skill or experience proof", "Bank account"];
   }
 
   return ["Identity proof", "Work eligibility", "Bank account"];
