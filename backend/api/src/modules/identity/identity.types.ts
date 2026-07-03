@@ -14,6 +14,8 @@ export type IdentityUser = {
   partnerApproval: string;
   rejectionReason?: string | null;
   lastSeenAt?: Date | null;
+  lastLoginAt?: Date | null;
+  profileCompleted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 };

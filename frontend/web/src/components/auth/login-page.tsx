@@ -136,6 +136,28 @@ function OtpLoginFlow({ role, label, description, partnerType }: { role: OtpLogi
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(300);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+
+  useEffect(() => {
+    let timer: number;
+    if (isTimerActive && timeLeft > 0) {
+      timer = window.setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      setIsTimerActive(false);
+      setCode("");
+    }
+    return () => window.clearInterval(timer);
+  }, [isTimerActive, timeLeft]);
+
+  useEffect(() => {
+    if (code.length === 6 && !isSubmitting && timeLeft > 0) {
+      void performVerify(code);
+    }
+  }, [code]);
 
   async function submitOtpRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -153,28 +175,61 @@ function OtpLoginFlow({ role, label, description, partnerType }: { role: OtpLogi
       setDevCode(result.devCode ?? null);
       setStatus(result.devCode ? `Development OTP: ${result.devCode}` : result.message);
       setCode(result.devCode ?? "");
+      setTimeLeft(300);
+      setIsTimerActive(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not request OTP.");
     } finally {
       setIsSubmitting(false);
+      setIsResending(false);
     }
   }
 
-  async function submitOtpVerify(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function performVerify(currentCode: string) {
+    if (currentCode.length !== 6 || isSubmitting || timeLeft === 0) return;
+    
     setError(null);
     setStatus(null);
     setIsSubmitting(true);
 
     try {
-      const result = await verifyOtpLogin({ phone, role, code });
+      const result = await verifyOtpLogin({ phone, role, code: currentCode });
       router.replace(routeForAuthenticatedUser(result.user));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not verify OTP.");
-    } finally {
       setIsSubmitting(false);
     }
   }
+
+  function submitOtpVerify(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void performVerify(code);
+  }
+
+  async function handleResendOtp() {
+    setIsResending(true);
+    setCode("");
+    setError(null);
+    setStatus(null);
+
+    try {
+      const result = await requestOtpLogin({ phone, role });
+      setDevCode(result.devCode ?? null);
+      setStatus(result.devCode ? `Development OTP: ${result.devCode}` : "A new OTP has been sent.");
+      setTimeLeft(300);
+      setIsTimerActive(true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not resend OTP.");
+    } finally {
+      setIsResending(false);
+    }
+  }
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
 
   return (
     <div className="space-y-5">
@@ -208,11 +263,28 @@ function OtpLoginFlow({ role, label, description, partnerType }: { role: OtpLogi
           >
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="otp-code">OTP code</label>
-              <Input id="otp-code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="6 digits" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="min-h-12" />
+              <Input id="otp-code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="6 digits" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="min-h-12" disabled={isSubmitting || timeLeft === 0} />
             </div>
             {devCode ? <p className="text-sm text-muted-foreground">Local dev code: <span className="font-medium text-foreground">{devCode}</span></p> : null}
+            
+            {timeLeft > 0 ? (
+              <p className={`text-sm transition-colors duration-300 ${timeLeft <= 30 ? "text-destructive animate-pulse" : "text-muted-foreground"}`}>
+                OTP expires in {formatTime(timeLeft)}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-destructive">OTP Expired</p>
+                <p className="text-sm text-muted-foreground">
+                  Didn't receive the OTP?{" "}
+                  <button type="button" onClick={handleResendOtp} disabled={isResending} className="font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 rounded-sm">
+                    {isResending ? "Sending..." : "Resend OTP"}
+                  </button>
+                </p>
+              </div>
+            )}
+
             <motion.div whileTap={canAnimate ? { scale: 0.98 } : undefined}>
-              <Button className="min-h-12 w-full" type="submit" disabled={isSubmitting || code.length !== 6}>
+              <Button className="min-h-12 w-full" type="submit" disabled={isSubmitting || code.length !== 6 || timeLeft === 0}>
                 {isSubmitting ? "Verifying..." : "Verify and continue"}
               </Button>
             </motion.div>

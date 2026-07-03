@@ -1,4 +1,4 @@
-﻿CREATE TABLE "AnalyticsDailyProjection" (
+CREATE TABLE "AnalyticsDailyProjection" (
   "id" TEXT NOT NULL,
   "date" DATE NOT NULL,
   "scope" TEXT NOT NULL DEFAULT 'ALL',

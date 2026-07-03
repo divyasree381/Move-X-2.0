@@ -203,6 +203,13 @@ export class IdentityRepository {
     });
   }
 
+  async updateUserLastLogin(userId: string, lastLoginAt: Date): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt },
+    });
+  }
+
   async listUsers(input: UserListInput) {
     const users = await this.prisma.user.findMany({
       where: input.role ? { role: input.role as PrismaUserRole } : undefined,
@@ -409,6 +416,8 @@ export class IdentityRepository {
       partnerApproval: string;
       rejectionReason?: string | null;
       lastSeenAt?: Date | null;
+      lastLoginAt?: Date | null;
+      profileCompleted: boolean;
       createdAt?: Date;
       updatedAt?: Date;
     };
@@ -427,6 +436,8 @@ export class IdentityRepository {
       partnerApproval: record.partnerApproval,
       rejectionReason: record.rejectionReason,
       lastSeenAt: record.lastSeenAt,
+      lastLoginAt: record.lastLoginAt,
+      profileCompleted: record.profileCompleted,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };

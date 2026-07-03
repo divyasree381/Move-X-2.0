@@ -232,6 +232,8 @@ model User {
   isBanned            Boolean         @default(false)
   isOnline            Boolean         @default(false)
   lastSeenAt          DateTime?
+  lastLoginAt         DateTime?
+  profileCompleted    Boolean         @default(false)
   partnerApproval     PartnerApproval @default(NONE)
   rejectionReason     String?
   createdAt           DateTime        @default(now())

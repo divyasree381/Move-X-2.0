@@ -36,6 +36,10 @@ export class OtpChallengeService {
     await this.redisStore.setJson(this.getLatestKey(challenge.phoneE164, challenge.role), challenge, ttlMs);
   }
 
+  async deleteLatest(phoneE164: string, role: string): Promise<void> {
+    await this.redisStore.delete(this.getLatestKey(phoneE164, role));
+  }
+
   getLatestKey(phoneE164: string, role: string): string {
     return `identity:otp:latest:${role}:${phoneE164}`;
   }

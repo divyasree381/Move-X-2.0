@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, ForbiddenException, Inject, Injectable, Logger, ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
 import { AdminType } from "@prisma/client";
 import { canPasswordLogin, PERMISSION_MATRIX } from "@movex/shared";
 import { randomInt } from "node:crypto";
@@ -30,6 +30,8 @@ export type OtpVerifyResult = {
 
 @Injectable()
 export class IdentityService {
+  private readonly logger = new Logger(IdentityService.name);
+
   constructor(
     @Inject(IdentityRepository) private readonly repository: IdentityRepository,
     @Inject(TokenHashService) private readonly tokenHashService: TokenHashService,
@@ -49,6 +51,8 @@ export class IdentityService {
     const phoneE164 = normalizePhoneToE164(input.phone);
     await this.rateLimiter.consumeOtpRequest(phoneE164, metadata.ipAddress);
 
+    this.logger.log(`OTP request received for ${phoneE164} (Role: ${input.role})`);
+
     const code = this.generateOtpCode();
     const codeHash = this.tokenHashService.hashOtp(phoneE164, input.role, code);
 
@@ -59,15 +63,20 @@ export class IdentityService {
       now: new Date(),
     });
 
+    this.logger.log(`OTP generated and stored for ${phoneE164}`);
+
     try {
+      this.logger.log(`Sending SMS API request for ${phoneE164}...`);
       await this.smsProvider.sendOtp({ phoneE164, code, purpose: "LOGIN" });
-    } catch {
-      // Keep the public response generic to avoid account or provider-state enumeration.
+      this.logger.log(`SMS API request sent successfully to ${phoneE164}`);
+    } catch (error: unknown) {
+      this.logger.error(`Failed to send SMS to ${phoneE164}. Exact error:`, error);
+      throw new ServiceUnavailableException(`Failed to send OTP SMS. Details: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     return {
       message: GENERIC_OTP_MESSAGE,
-      ...(process.env.NODE_ENV === "production" ? {} : { devCode: code }),
+      // Removed devCode mapping so OTP is forced to be checked via mobile SMS
     };
   }
 
@@ -98,15 +107,20 @@ export class IdentityService {
       throw this.invalidOtp();
     }
 
-    challenge.usedAt = now.toISOString();
-    await this.otpChallenges.save(challenge);
+    // OTP is valid. Delete it from Redis so it cannot be used again.
+    await this.otpChallenges.deleteLatest(phoneE164, input.role);
 
+    // Find existing user or create a new one permanently in Postgres
     const user = await this.findOrCreateUser(phoneE164, input.role);
 
     if (user.isBanned) {
       throw new UnauthorizedException(GENERIC_AUTH_ERROR);
     }
 
+    // Update the last login timestamp for tracking
+    await this.repository.updateUserLastLogin(user.id, now);
+
+    // Generate the session/JWT
     const session = await this.sessionService.createSession({
       userId: user.id,
       ipAddress: metadata.ipAddress,
