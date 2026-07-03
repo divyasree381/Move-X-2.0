@@ -20,6 +20,7 @@ const LNG_SPAN = 0.08;
 type MapPickerClientProps = {
   value: SelectedLocation | null;
   onChange: (location: SelectedLocation) => void;
+  showAdvancedControls?: boolean;
 };
 
 type Coordinates = {
@@ -27,7 +28,7 @@ type Coordinates = {
   lng: number;
 };
 
-export function MapPickerClient({ value, onChange }: MapPickerClientProps) {
+export function MapPickerClient({ value, onChange, showAdvancedControls = false }: MapPickerClientProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const current = value ?? DEFAULT_LOCATION;
   const [draftCoordinates, setDraftCoordinates] = useState<Coordinates | null>(null);
@@ -96,7 +97,7 @@ export function MapPickerClient({ value, onChange }: MapPickerClientProps) {
       onChange({ address, lat, lng, source });
       setStatus("Exact pin updated");
     } catch {
-      onChange({ address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, lat, lng, source });
+      onChange({ address: "Selected map pin", lat, lng, source });
       setStatus("Address lookup is unavailable. The pin is still saved.");
     } finally {
       setDraftCoordinates(null);
@@ -173,9 +174,11 @@ export function MapPickerClient({ value, onChange }: MapPickerClientProps) {
           <button type="button" className="grid size-11 place-items-center rounded-full border border-border bg-surface/94 text-foreground shadow-sm backdrop-blur transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" aria-label="Recenter map" onClick={() => void commitCoordinates(current.lat, current.lng, "gps")}>
             <LocateFixed className="size-5" aria-hidden={true} />
           </button>
-          <button type="button" className="grid size-11 place-items-center rounded-full border border-border bg-surface/94 text-foreground shadow-sm backdrop-blur transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" aria-label="Show advanced location controls" onClick={() => setShowAdvanced((next) => !next)}>
-            <SlidersHorizontal className="size-5" aria-hidden={true} />
-          </button>
+          {showAdvancedControls ? (
+            <button type="button" className="grid size-11 place-items-center rounded-full border border-border bg-surface/94 text-foreground shadow-sm backdrop-blur transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" aria-label="Show advanced location controls" onClick={() => setShowAdvanced((next) => !next)}>
+              <SlidersHorizontal className="size-5" aria-hidden={true} />
+            </button>
+          ) : null}
         </div>
 
         <div className="pointer-events-none absolute inset-0 grid place-items-center" aria-hidden={true}>
@@ -197,7 +200,7 @@ export function MapPickerClient({ value, onChange }: MapPickerClientProps) {
             <span className="hidden shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary sm:inline-flex">{current.source.replace("-", " ")}</span>
           </div>
 
-          {showAdvanced ? (
+          {showAdvancedControls && showAdvanced ? (
             <div className="mt-4 grid gap-2 border-t border-border pt-4 sm:grid-cols-[1fr_1fr_auto]">
               <label className="space-y-1 text-xs font-medium text-foreground">
                 <span>Latitude</span>

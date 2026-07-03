@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Minus, Plus, ShoppingBag } from "lucide-react";
 
-import { Button, Dialog, DialogContent, Input } from "@/components/ui";
+import { Button, Dialog, DialogContent, Input, useToast } from "@/components/ui";
 import { addCartItem, type MarketplaceMenuItem } from "@/lib/api";
 
 type Option = {
@@ -24,12 +24,14 @@ export function CustomizationModal({ item, open, onOpenChange }: { item: Marketp
   const [substitutionNote, setSubstitutionNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const groups = useMemo(() => parseCustomizationGroups(item?.customizations), [item]);
   const addMutation = useMutation({
     mutationFn: () => addCartItem({ menuItemId: item?.id ?? "", quantity, customizations: {}, note: note.trim() || undefined, substitutionPreference: { allow: allowSubstitution, note: substitutionNote.trim() || null } }),
     onMutate: () => setError(null),
     onSuccess: (cart) => {
       queryClient.setQueryData(["cart"], cart);
+      toast({ title: "Added to cart", description: `${quantity} item${quantity === 1 ? "" : "s"} added. View your cart when you are ready.`, kind: "success" });
       setQuantity(1);
       setNote("");
       setAllowSubstitution(true);

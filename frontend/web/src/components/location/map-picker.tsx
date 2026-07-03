@@ -11,6 +11,7 @@ const DynamicMapPicker = dynamic(() => import("./map-picker.client").then((mod) 
 type MapPickerProps = {
   value: SelectedLocation | null;
   onChange: (location: SelectedLocation) => void;
+  showAdvancedControls?: boolean;
 };
 
 export function MapPicker(props: MapPickerProps) {
