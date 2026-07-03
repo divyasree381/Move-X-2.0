@@ -936,6 +936,19 @@ export function currentUser() {
 export function submitPartnerProfile(input: { name?: string; avatarUrl?: string }) {
   return fetchApi<AuthUser>("/users/me/partner-profile", { method: "PATCH", body: JSON.stringify(input) });
 }
+export type PartnerVerificationKind = "store" | "delivery" | "driver" | "home-services";
+export type PartnerVerificationPayload = { partnerKind: PartnerVerificationKind; name?: string; avatarUrl?: string; profile: Record<string, unknown>; address: Record<string, unknown>; documents: Record<string, unknown>; settlements: Record<string, unknown> };
+export type PartnerVerificationRecord = PartnerVerificationPayload & { id: string; userId: string; status: string; rejectionReason?: string | null; submittedAt?: string | null; reviewedAt?: string | null; reviewedById?: string | null; createdAt: string; updatedAt: string };
+export type PartnerVerificationSubmitResponse = { user: AuthUser; verification: PartnerVerificationRecord | null };
+export function getPartnerVerification() {
+  return fetchApi<PartnerVerificationRecord | null>("/users/me/partner-verification");
+}
+export function submitPartnerVerification(input: PartnerVerificationPayload) {
+  return fetchApi<PartnerVerificationSubmitResponse>("/users/me/partner-verification", { method: "PUT", body: JSON.stringify(input) });
+}
+export function getAdminPartnerVerification(userId: string) {
+  return fetchApi<PartnerVerificationRecord | null>(`/users/admin/partners/${encodeURIComponent(userId)}/verification`);
+}
 export type OpsCoupon = {
   id: string;
   code: string;

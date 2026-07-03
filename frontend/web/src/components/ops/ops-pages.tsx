@@ -19,6 +19,7 @@ import {
   actionOpsDispute,
   createTicket,
   deactivateCoupon,
+  getAdminPartnerVerification,
   getTicket,
   opsAudit,
   opsDisputes,
@@ -86,11 +87,12 @@ export function OpsPartnersPage() {
     <PermissionBoundary action={PermissionAction.PartnersReadPending}>
       <OpsPanel title="Partner Approvals" description="Review restaurant, delivery, and driver partner onboarding requests.">
         <QueryState isLoading={partners.isLoading} isError={partners.isError} error={partners.error} onRetry={() => partners.refetch()}>
-          <DataTable headers={["Partner", "Role", "Submitted", "Actions"]} empty="No pending partners">
+          <DataTable headers={["Partner", "Role", "Verification", "Submitted", "Actions"]} empty="No pending partners">
             {(partners.data?.items ?? []).map((partner) => (
               <tr key={partner.id} className="border-t border-border">
                 <Cell><Primary text={partner.name ?? partner.email ?? partner.phoneE164 ?? partner.id} sub={partner.id} /></Cell>
                 <Cell><StatusPill label={partner.role} tone="info" /></Cell>
+                <Cell><PartnerVerificationCell userId={partner.id} /></Cell>
                 <Cell>{partner.partnerApproval}</Cell>
                 <Cell>{reviewAccess.can ? <ReviewButtons onApprove={() => mutation.mutate({ id: partner.id, approval: "APPROVED" })} onReject={() => mutation.mutate({ id: partner.id, approval: "REJECTED" })} disabled={mutation.isPending} /> : <span className="text-xs text-muted-foreground">Review locked</span>}</Cell>
               </tr>
@@ -280,6 +282,35 @@ function ReviewButtons({ onApprove, onReject, disabled }: { onApprove: () => voi
   return <div className="flex flex-wrap gap-2"><Button size="sm" disabled={disabled} onClick={onApprove}><CheckCircle2 className="size-4" aria-hidden="true" /> Approve</Button><Button size="sm" variant="secondary" disabled={disabled} onClick={onReject}><XCircle className="size-4" aria-hidden="true" /> Reject</Button></div>;
 }
 
+function PartnerVerificationCell({ userId }: { userId: string }) {
+  const verification = useQuery({ queryKey: ["ops-partner-verification", userId], queryFn: () => getAdminPartnerVerification(userId) });
+
+  if (verification.isLoading) {
+    return <span className="text-xs text-muted-foreground">Loading...</span>;
+  }
+
+  if (!verification.data) {
+    return <span className="text-xs text-muted-foreground">No full pack yet</span>;
+  }
+
+  const profile = verification.data.profile;
+  const address = verification.data.address;
+  const documents = verification.data.documents;
+  const settlements = verification.data.settlements;
+  const files = documents.files && typeof documents.files === "object" ? Object.keys(documents.files as Record<string, unknown>).length : 0;
+  const bankReady = Boolean(settlements.accountHolderName && settlements.ifscCode);
+
+  return (
+    <div className="space-y-1 text-xs text-muted-foreground">
+      <p className="font-medium text-foreground">{String(profile.businessName ?? profile.ownerName ?? verification.data.partnerKind)}</p>
+      <p>{String(address.city ?? "Location pending")} - {files} document files</p>
+      <div className="flex flex-wrap gap-1">
+        <StatusPill label={verification.data.status} tone={verification.data.status === "REJECTED" ? "danger" : verification.data.status === "APPROVED" ? "success" : "warning"} />
+        <StatusPill label={bankReady ? "Bank ready" : "Bank missing"} tone={bankReady ? "success" : "warning"} />
+      </div>
+    </div>
+  );
+}
 function RoleFilter() {
   const router = useRouter();
   return <select className="rounded-md border border-border bg-surface px-3 py-2 text-sm" onChange={(e) => router.push(e.target.value ? `/ops/users?role=${e.target.value}` : "/ops/users")} defaultValue=""><option value="">All roles</option><option>CUSTOMER</option><option>RESTAURANT</option><option>DELIVERY</option><option>DRIVER</option><option>SUPPORT</option><option>FINANCE</option><option>ADMIN</option><option>SUPER_ADMIN</option></select>;

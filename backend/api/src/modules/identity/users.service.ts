@@ -1,6 +1,6 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { CourierStatus, HomeServiceStatus, LedgerEntryType, OrderStatus, PartnerShiftStatus, PayoutStatus, Prisma, RideStatus, UserRole } from "@prisma/client";
+import { CourierStatus, HomeServiceStatus, LedgerEntryType, OrderStatus, PartnerApproval, PartnerShiftStatus, PayoutStatus, Prisma, RideStatus, UserRole } from "@prisma/client";
 import { RedisStoreService } from "../../infrastructure/redis/redis-store.service";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { REALTIME_PROVIDER, type RealtimeProvider } from "../realtime/realtime-provider";
@@ -9,12 +9,30 @@ import type { PublicUser, SessionRecord } from "./identity.types";
 import { SessionService } from "./session/session.service";
 import type { AddressDto, UpdateAddressDto } from "./dto/address.dto";
 import type { AdminUsersQueryDto } from "./dto/admin-users-query.dto";
+import type { PartnerVerificationDto } from "./dto/partner-verification.dto";
 import { StubRouteOptimizationProvider } from "../partner-ops/route-optimization.provider";
 
 const APPROVED = "APPROVED";
 const LOCATION_TTL_MS = 30_000;
 const REFERRAL_REFEREE_CREDIT = new Prisma.Decimal(process.env.REFERRAL_REFEREE_CREDIT ?? "50");
 const PARTNER_ROLES = new Set<string>([UserRole.RESTAURANT, UserRole.DELIVERY, UserRole.DRIVER]);
+type PartnerVerificationRow = {
+  id: string;
+  userId: string;
+  partnerKind: string;
+  profile: Prisma.JsonValue;
+  address: Prisma.JsonValue;
+  documents: Prisma.JsonValue;
+  settlements: Prisma.JsonValue;
+  status: string;
+  rejectionReason: string | null;
+  submittedAt: Date | null;
+  reviewedAt: Date | null;
+  reviewedById: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 function startOfDay(date: Date): Date {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
@@ -183,6 +201,69 @@ export class UsersService {
     return this.sessionService.toPublicUser(user);
   }
 
+  async getPartnerVerification(userId: string) {
+    const rows = await this.prisma.$queryRaw<PartnerVerificationRow[]>`
+      SELECT "id", "userId", "partnerKind", "profile", "address", "documents", "settlements", "status", "rejectionReason", "submittedAt", "reviewedAt", "reviewedById", "createdAt", "updatedAt"
+      FROM "PartnerVerification"
+      WHERE "userId" = ${userId}
+      LIMIT 1
+    `;
+
+    return rows[0] ? this.serializePartnerVerification(rows[0]) : null;
+  }
+
+  async submitPartnerVerification(session: SessionRecord, input: PartnerVerificationDto) {
+    this.assertPartnerRole(session);
+    this.assertPartnerKindAllowed(session, input.partnerKind);
+
+    const now = new Date();
+    const profile = input.profile ?? {};
+    const address = input.address ?? {};
+    const documents = input.documents ?? {};
+    const settlements = input.settlements ?? {};
+    const name =
+      input.name?.trim() ||
+      this.stringFromRecord(profile, "ownerName") ||
+      this.stringFromRecord(profile, "businessName");
+    const avatarUrl = input.avatarUrl?.trim() || undefined;
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
+        where: { id: session.userId },
+        data: {
+          ...(name ? { name } : {}),
+          ...(avatarUrl ? { avatarUrl } : {}),
+          partnerApproval: PartnerApproval.PENDING,
+          rejectionReason: null,
+        },
+      });
+
+      await tx.$executeRaw`
+        INSERT INTO "PartnerVerification" ("id", "userId", "partnerKind", "profile", "address", "documents", "settlements", "status", "rejectionReason", "submittedAt", "reviewedAt", "reviewedById", "createdAt", "updatedAt")
+        VALUES (${randomUUID()}, ${session.userId}, ${input.partnerKind}, ${JSON.stringify(profile)}::jsonb, ${JSON.stringify(address)}::jsonb, ${JSON.stringify(documents)}::jsonb, ${JSON.stringify(settlements)}::jsonb, 'PENDING'::"PartnerApproval", NULL, ${now}, NULL, NULL, ${now}, ${now})
+        ON CONFLICT ("userId") DO UPDATE SET
+          "partnerKind" = EXCLUDED."partnerKind",
+          "profile" = EXCLUDED."profile",
+          "address" = EXCLUDED."address",
+          "documents" = EXCLUDED."documents",
+          "settlements" = EXCLUDED."settlements",
+          "status" = 'PENDING'::"PartnerApproval",
+          "rejectionReason" = NULL,
+          "submittedAt" = EXCLUDED."submittedAt",
+          "reviewedAt" = NULL,
+          "reviewedById" = NULL,
+          "updatedAt" = EXCLUDED."updatedAt"
+      `;
+
+      return updatedUser;
+    });
+
+    await this.notifyAdminsPartnerPending(session.userId, session.user.role as UserRole);
+    const verification = await this.getPartnerVerification(session.userId);
+
+    return { user: this.sessionService.toPublicUser(user), verification };
+  }
+
   async setOnline(session: SessionRecord, isOnline: boolean): Promise<PublicUser> {
     this.assertApprovedPartner(session);
     const user = await this.repository.setUserOnline(session.userId, isOnline);
@@ -324,16 +405,94 @@ export class UsersService {
     };
   }
 
-  async reviewPartner(userId: string, input: { approval: "APPROVED" | "REJECTED"; reason?: string }): Promise<PublicUser> {
+  async reviewPartner(
+    userId: string,
+    input: { approval: "APPROVED" | "REJECTED"; reason?: string },
+    reviewer?: SessionRecord,
+  ): Promise<PublicUser> {
     if (input.approval === "REJECTED" && !input.reason?.trim()) {
       throw new BadRequestException("Rejection reason is required");
     }
 
-    const user = await this.repository.setPartnerApproval(userId, input.approval, input.reason);
+    const reviewedAt = new Date();
+    const reason = input.approval === "REJECTED" ? input.reason?.trim() || "Rejected" : null;
+    const user = await this.repository.setPartnerApproval(
+      userId,
+      input.approval,
+      reason ?? undefined,
+    );
+
+    await this.prisma.$executeRaw`
+      UPDATE "PartnerVerification"
+      SET "status" = ${input.approval}::"PartnerApproval",
+          "rejectionReason" = ${reason},
+          "reviewedAt" = ${reviewedAt},
+          "reviewedById" = ${reviewer?.userId ?? null},
+          "updatedAt" = ${reviewedAt}
+      WHERE "userId" = ${userId}
+    `;
+
     await this.sessionService.revokeAllForUser(userId);
     return this.sessionService.toPublicUser(user);
   }
 
+  private assertPartnerKindAllowed(session: SessionRecord, partnerKind: string): void {
+    const allowed: Record<string, string[]> = {
+      [UserRole.RESTAURANT]: ["store"],
+      [UserRole.DELIVERY]: ["delivery", "home-services"],
+      [UserRole.DRIVER]: ["driver"],
+    };
+
+    if (!(allowed[session.user.role] ?? []).includes(partnerKind)) {
+      throw new ForbiddenException(
+        "Partner verification type does not match the authenticated role",
+      );
+    }
+  }
+
+  private stringFromRecord(record: Record<string, unknown>, key: string): string | undefined {
+    const value = record[key];
+    return typeof value === "string" && value.trim() ? value.trim() : undefined;
+  }
+
+  private serializePartnerVerification(row: PartnerVerificationRow) {
+    return {
+      id: row.id,
+      userId: row.userId,
+      partnerKind: row.partnerKind,
+      profile: row.profile,
+      address: row.address,
+      documents: row.documents,
+      settlements: row.settlements,
+      status: row.status,
+      rejectionReason: row.rejectionReason,
+      submittedAt: row.submittedAt?.toISOString() ?? null,
+      reviewedAt: row.reviewedAt?.toISOString() ?? null,
+      reviewedById: row.reviewedById,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  private async notifyAdminsPartnerPending(partnerId: string, role: UserRole): Promise<void> {
+    const admins = await this.prisma.user.findMany({
+      where: { role: { in: [UserRole.ADMIN, UserRole.SUPER_ADMIN] }, isBanned: false },
+      select: { id: true },
+    });
+
+    if (!admins.length) {
+      return;
+    }
+
+    await this.prisma.notification.createMany({
+      data: admins.map((admin) => ({
+        userId: admin.id,
+        title: "Partner verification pending",
+        body: String(role) + " partner " + partnerId + " submitted full verification for review.",
+        payload: { partnerId, role, source: "partner-verification" },
+      })),
+    });
+  }
 
   private assertPartnerRole(session: SessionRecord): void {
     if (!PARTNER_ROLES.has(session.user.role)) {
