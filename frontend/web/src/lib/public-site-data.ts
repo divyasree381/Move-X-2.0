@@ -262,7 +262,7 @@ export const publicOffers: PublicOffer[] = [
   {
     id: "home-service-starter",
     title: "Home service starter perk",
-    description: "A future credit preview for plumbing, electrical, and repair bookings.",
+    description: "A future credit preview for scheduled home-service bookings.",
     service: "Home services",
     imageUrl: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=900&q=80",
     plannedBenefit: "Planned benefit: starter service credit",

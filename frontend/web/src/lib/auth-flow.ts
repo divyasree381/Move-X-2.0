@@ -2,7 +2,7 @@ import type { OtpLoginRole } from "@/lib/api";
 
 export const PARTNER_LOGIN_TYPE_SESSION_KEY = "movex-partner-login-type";
 
-export type PartnerLoginType = "store-partner" | "delivery-partner" | "driver" | "electrician" | "home-repair" | "plumber";
+export type PartnerLoginType = "store-partner" | "delivery-partner" | "driver" | "home-services-partner";
 
 export type PartnerLoginConfig = {
   slug: PartnerLoginType;
@@ -13,7 +13,7 @@ export type PartnerLoginConfig = {
   serviceLine: string;
 };
 
-export const partnerLoginTypes = ["store-partner", "delivery-partner", "driver", "electrician", "home-repair", "plumber"] as const satisfies readonly PartnerLoginType[];
+export const partnerLoginTypes = ["store-partner", "delivery-partner", "driver", "home-services-partner"] as const satisfies readonly PartnerLoginType[];
 
 export const partnerLoginConfigs: PartnerLoginConfig[] = [
   {
@@ -41,26 +41,10 @@ export const partnerLoginConfigs: PartnerLoginConfig[] = [
     serviceLine: "Mobility",
   },
   {
-    slug: "electrician",
-    label: "Electrician",
-    shortLabel: "Electrician",
-    description: "Verified electrical service professionals for scheduled home jobs.",
-    backendRole: "DELIVERY",
-    serviceLine: "Home services",
-  },
-  {
-    slug: "home-repair",
-    label: "Home Repair",
-    shortLabel: "Repair",
-    description: "Repair professionals handling appliance and maintenance visits.",
-    backendRole: "DELIVERY",
-    serviceLine: "Home services",
-  },
-  {
-    slug: "plumber",
-    label: "Plumber",
-    shortLabel: "Plumber",
-    description: "Verified plumbing professionals for scheduled service requests.",
+    slug: "home-services-partner",
+    label: "Home Services Partner",
+    shortLabel: "Home services",
+    description: "One path for plumbing, electrical, cleaning, repair, and other home-service professionals.",
     backendRole: "DELIVERY",
     serviceLine: "Home services",
   },

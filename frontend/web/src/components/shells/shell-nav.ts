@@ -1,5 +1,5 @@
 import { PermissionAction, type UserRole, hasPermission } from "@movex/shared";
-import { BadgeIndianRupee, BarChart3, Bike, ClipboardList, FileClock, FileText, Flag, GitCompareArrows, Headphones, Home, Landmark, MapPinned, Package, PackageCheck, ReceiptText, Search, Settings, ShieldCheck, Store, Tags, UserRound, Users, Wallet } from "lucide-react";
+import { BadgeIndianRupee, BarChart3, Bike, ClipboardList, FileClock, FileText, Flag, GitCompareArrows, Headphones, Home, Landmark, MapPinned, Package, PackageCheck, PanelsTopLeft, ReceiptText, Search, Settings, ShieldCheck, Store, Tags, UserRound, Users, Wallet } from "lucide-react";
 import type { ComponentType } from "react";
 
 export type ShellNavItem = {
@@ -30,6 +30,7 @@ export const partnerNav: ShellNavItem[] = [
 
 export const opsNav: ShellNavItem[] = [
   { label: "Analytics", href: "/ops/analytics", icon: BarChart3, permission: PermissionAction.PlatformAnalyticsRead },
+  { label: "Homepage", href: "/ops/homepage", icon: PanelsTopLeft, permission: PermissionAction.PlatformHomepageManage },
   { label: "Feature Flags", href: "/ops/feature-flags", icon: Flag, permission: PermissionAction.PlatformFeatureFlagsManage },
   { label: "Search", href: "/ops/search", icon: Search, permission: PermissionAction.PlatformSearchRebuildManage },
   { label: "Users", href: "/ops/users", icon: Users, permission: PermissionAction.UsersRead },
