@@ -80,7 +80,7 @@ export function PartnerSelectionPage() {
               className="group rounded-lg border border-border bg-surface p-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
             >
               <span className="flex items-start justify-between gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                   <Icon className="size-5" aria-hidden={true} />
                 </span>
                 <ChevronRight className="size-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden={true} />
@@ -101,14 +101,14 @@ export function PartnerOtpLoginPage({ partner }: { partner: PartnerLoginConfig }
 
   return (
     <AuthFrame eyebrow="Partner OTP" title={`Continue as ${partner.label}`} description="Your partner type is selected before OTP, so the backend receives the correct auth role." backHref="/login/partner">
-      <div className="mb-5 rounded-lg border border-border bg-surface-muted p-4">
+      <div className="mb-3 rounded-md border border-border bg-surface-muted p-3">
         <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <Icon className="size-5" aria-hidden={true} />
           </span>
           <div>
             <p className="text-sm font-medium text-foreground">{partner.label}</p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">{partner.description}</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">{partner.description}</p>
           </div>
         </div>
       </div>
@@ -232,19 +232,21 @@ function OtpLoginFlow({ role, label, description, partnerType }: { role: OtpLogi
   };
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-lg border border-border bg-surface-muted p-4">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
-      </div>
+    <div className="space-y-3">
+      {!partnerType ? (
+        <div className="rounded-md border border-border bg-surface-muted p-3">
+          <p className="text-sm font-medium text-foreground">{label}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+        </div>
+      ) : null}
 
-      <form className="space-y-4" onSubmit={submitOtpRequest}>
+      <form className="space-y-3" onSubmit={submitOtpRequest}>
         <div className="space-y-1.5">
           <label className="text-sm font-medium" htmlFor="phone">Phone number</label>
-          <Input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" autoComplete="tel" className="min-h-12" />
+          <Input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" autoComplete="tel" className="min-h-11" />
         </div>
         <motion.div whileTap={canAnimate ? { scale: 0.98 } : undefined}>
-          <Button className="min-h-12 w-full" type="submit" disabled={isSubmitting || phone.trim().length < 5}>
+          <Button className="min-h-11 w-full" type="submit" disabled={isSubmitting || phone.trim().length < 5}>
             {isSubmitting ? "Sending..." : "Send OTP"}
           </Button>
         </motion.div>
@@ -258,12 +260,12 @@ function OtpLoginFlow({ role, label, description, partnerType }: { role: OtpLogi
             animate={{ opacity: 1, y: 0 }}
             exit={canAnimate ? { opacity: 0, y: -8 } : undefined}
             transition={{ duration: canAnimate ? 0.24 : 0 }}
-            className="space-y-4 rounded-lg border border-border bg-surface-muted p-4"
+            className="space-y-3 rounded-md border border-border bg-surface-muted p-3"
             onSubmit={submitOtpVerify}
           >
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="otp-code">OTP code</label>
-              <Input id="otp-code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="6 digits" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="min-h-12" disabled={isSubmitting || timeLeft === 0} />
+              <Input id="otp-code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="6 digits" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="min-h-11" disabled={isSubmitting || timeLeft === 0} />
             </div>
             {devCode ? <p className="text-sm text-muted-foreground">Local dev code: <span className="font-medium text-foreground">{devCode}</span></p> : null}
             
@@ -284,7 +286,7 @@ function OtpLoginFlow({ role, label, description, partnerType }: { role: OtpLogi
             )}
 
             <motion.div whileTap={canAnimate ? { scale: 0.98 } : undefined}>
-              <Button className="min-h-12 w-full" type="submit" disabled={isSubmitting || code.length !== 6 || timeLeft === 0}>
+              <Button className="min-h-11 w-full" type="submit" disabled={isSubmitting || code.length !== 6 || timeLeft === 0}>
                 {isSubmitting ? "Verifying..." : "Verify and continue"}
               </Button>
             </motion.div>
@@ -346,11 +348,11 @@ function StaffLoginFlow() {
       <form className="space-y-4" onSubmit={submitStaffLogin}>
         <div className="space-y-1.5">
           <label className="text-sm font-medium" htmlFor="staff-email">Email</label>
-          <Input id="staff-email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="admin@movex.local" autoComplete="email" className="min-h-12" />
+          <Input id="staff-email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="admin@movex.local" autoComplete="email" className="min-h-11" />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium" htmlFor="staff-password">Password</label>
-          <Input id="staff-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" type="password" autoComplete="current-password" className="min-h-12" />
+          <Input id="staff-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" type="password" autoComplete="current-password" className="min-h-11" />
         </div>
         <AnimatePresence initial={false}>
           {showMfaField ? (
@@ -363,7 +365,7 @@ function StaffLoginFlow() {
               className="space-y-1.5 rounded-md border border-border bg-surface-muted p-3"
             >
               <label className="text-sm font-medium" htmlFor="staff-mfa">Authenticator code</label>
-              <Input id="staff-mfa" value={mfaCode} onChange={(event) => setMfaCode(event.target.value)} placeholder="6-digit code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="min-h-12 bg-surface" />
+              <Input id="staff-mfa" value={mfaCode} onChange={(event) => setMfaCode(event.target.value)} placeholder="6-digit code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="min-h-11 bg-surface" />
               <p className="text-xs leading-5 text-muted-foreground">Required only for staff accounts with MFA enabled. Local setup can continue without it.</p>
             </motion.div>
           ) : (
@@ -373,7 +375,7 @@ function StaffLoginFlow() {
           )}
         </AnimatePresence>
         <motion.div whileTap={canAnimate ? { scale: 0.98 } : undefined}>
-          <Button className="min-h-12 w-full" type="submit" disabled={isSubmitting || !email || !password}>
+          <Button className="min-h-11 w-full" type="submit" disabled={isSubmitting || !email || !password}>
             {isSubmitting ? "Signing in..." : "Sign in to ops"}
           </Button>
         </motion.div>
@@ -419,16 +421,16 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
     <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
       <AnimatePresence>{showIntro && introReady && canAnimate ? <LoginIntro key="login-intro" /> : null}</AnimatePresence>
 
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl items-start px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+      <div className="mx-auto flex min-h-dvh w-full max-w-6xl items-center px-4 py-3 sm:px-5 sm:py-4 lg:px-6">
         <motion.div
           layout={canAnimate}
           initial={canAnimate ? { opacity: 0.96, scale: 0.985 } : false}
           animate={{ opacity: 1, scale: 1 }}
           transition={revealTransition}
-          className="grid w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)] lg:min-h-[min(44rem,calc(100vh-3rem))] lg:grid-cols-[minmax(0,0.95fr)_minmax(25rem,0.8fr)]"
+          className="grid w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)] lg:min-h-[min(38.5rem,calc(100dvh-1.5rem))] lg:grid-cols-[minmax(0,0.92fr)_minmax(24rem,0.8fr)]"
         >
-          <section className="relative flex min-h-[17rem] overflow-hidden bg-primary p-5 text-primary-foreground sm:min-h-[22rem] sm:p-8 lg:min-h-0">
-            <div className="relative z-10 flex w-full flex-col justify-between gap-10">
+          <section className="relative flex min-h-[14rem] overflow-hidden bg-primary p-5 text-primary-foreground sm:min-h-[18rem] sm:p-6 lg:min-h-0">
+            <div className="relative z-10 flex w-full flex-col justify-between gap-6">
               <div className="flex items-center justify-between gap-4">
                 <LogoLockup />
                 <Link href="/" className="hidden rounded-md border border-primary-foreground/20 px-3 py-2 text-sm font-medium text-primary-foreground/80 transition hover:bg-primary-foreground/10 hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/35 sm:inline-flex">
@@ -438,8 +440,8 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
 
               <div className="max-w-xl">
                 <p className="text-sm font-medium uppercase tracking-[0.16em] text-primary-foreground/70">One account. Every service.</p>
-                <h1 className="mt-3 max-w-[18.5rem] break-words text-2xl font-medium leading-[1.08] tracking-normal sm:mt-4 sm:max-w-lg sm:text-5xl">Sign in through the right door.</h1>
-                <p className="mt-4 max-w-[18.5rem] text-sm font-normal leading-6 text-primary-foreground/74 sm:mt-5 sm:text-base sm:leading-7">Customers, partners, and staff each get a focused route while the backend still authenticates with a locked role.</p>
+                <h1 className="mt-3 max-w-[18.5rem] break-words text-2xl font-medium leading-[1.08] tracking-normal sm:mt-4 sm:max-w-lg sm:text-4xl">Sign in through the right door.</h1>
+                <p className="mt-3 max-w-[18.5rem] text-sm font-normal leading-6 text-primary-foreground/74 sm:text-base sm:leading-7">Customers, partners, and staff each get a focused route while the backend authenticates with a locked role.</p>
               </div>
 
               <div className="hidden flex-wrap gap-2 sm:flex">
@@ -456,13 +458,13 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
             initial={canAnimate ? { opacity: 0, y: 18 } : false}
             animate={{ opacity: showIntro && canAnimate ? 0 : 1, y: showIntro && canAnimate ? 18 : 0 }}
             transition={canAnimate ? { duration: 0.46, delay: showIntro ? 0 : 0.08, ease: "easeOut" } : { duration: 0 }}
-            className="flex min-h-0 flex-col bg-surface/98 p-5 backdrop-blur sm:p-6 lg:p-8"
+            className="flex min-h-0 flex-col bg-surface/98 p-4 backdrop-blur sm:p-5 lg:p-6"
             aria-labelledby="login-title"
           >
             <motion.div className="flex min-h-0 flex-1 flex-col" initial={canAnimate ? "hidden" : false} animate={showIntro && canAnimate ? "hidden" : "show"} variants={{ hidden: {}, show: { transition: { staggerChildren: 0.065, delayChildren: 0.08 } } }}>
               <FormReveal canAnimate={canAnimate}>
                 {backHref ? (
-                  <Link href={backHref} className="mb-5 inline-flex items-center gap-2 rounded-md text-sm font-medium text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+                  <Link href={backHref} className="mb-3 inline-flex items-center gap-2 rounded-md text-sm font-medium text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
                     <ArrowLeft className="size-4" aria-hidden={true} /> Back
                   </Link>
                 ) : null}
@@ -470,18 +472,18 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
                   <div>
                     <p className="text-sm font-medium text-primary">{eyebrow}</p>
                     <h2 id="login-title" className="mt-1 text-2xl font-medium text-foreground">{title}</h2>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
                   </div>
                   <span className="hidden rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary sm:inline-flex">Secure</span>
                 </div>
               </FormReveal>
 
               <FormReveal canAnimate={canAnimate}>
-                <div className="mt-6 min-h-0">{children}</div>
+                <div className="mt-4 min-h-0">{children}</div>
               </FormReveal>
 
               <FormReveal canAnimate={canAnimate}>
-                <div className="mt-6 flex items-center gap-2 border-t border-border pt-5 text-sm text-muted-foreground lg:mt-auto">
+                <div className="mt-4 flex items-center gap-2 border-t border-border pt-4 text-xs text-muted-foreground lg:mt-auto">
                   <Headphones size={16} aria-hidden={true} />
                   <span>For local testing, keep the backend running on port 3001.</span>
                 </div>

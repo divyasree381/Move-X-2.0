@@ -265,6 +265,7 @@ model User {
   sessions                        Session[]
   partnerShifts                   PartnerShift[]
   partnerOnlineSessions           PartnerOnlineSession[]
+  partnerVerification             PartnerVerification?
   updatedFeatureFlags             FeatureFlag[]        @relation("FeatureFlagUpdater")
 
   @@index([role])
@@ -336,6 +337,30 @@ model PartnerOnlineSession {
   @@index([userId, startedAt])
   @@index([userId, endedAt])
 }
+
+model PartnerVerification {
+  id              String          @id @default(cuid())
+  userId          String          @unique
+  partnerKind     String
+  profile         Json            @default("{}")
+  address         Json            @default("{}")
+  documents       Json            @default("{}")
+  settlements     Json            @default("{}")
+  status          PartnerApproval @default(PENDING)
+  rejectionReason String?
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewedById    String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, submittedAt])
+  @@index([partnerKind, status])
+  @@index([reviewedById, reviewedAt])
+}
+
 model Session {
   id         String    @id @default(cuid())
   userId     String

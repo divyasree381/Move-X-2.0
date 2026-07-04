@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Query, Req } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Req,
+} from "@nestjs/common";
 import { ApiExtraModels } from "@nestjs/swagger";
 import { PermissionAction } from "@movex/shared";
 
@@ -12,6 +24,7 @@ import { PartnerLocationDto } from "./dto/location.dto";
 import { PartnerOpsQueryDto, PartnerRoutePlanDto, PartnerShiftDto } from "./dto/partner-ops.dto";
 import { PartnerOnlineDto } from "./dto/partner-online.dto";
 import { PartnerProfileDto } from "./dto/partner-profile.dto";
+import { PartnerVerificationDto } from "./dto/partner-verification.dto";
 import { PartnerReviewDto } from "./dto/partner-review.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import type { SessionRecord } from "./identity.types";
@@ -27,6 +40,7 @@ import { UsersService } from "./users.service";
   PartnerRoutePlanDto,
   PartnerShiftDto,
   PartnerProfileDto,
+  PartnerVerificationDto,
   PartnerReviewDto,
   UpdateAddressDto,
   UpdateProfileDto,
@@ -93,7 +107,11 @@ export class UsersController {
 
   @Patch("me/addresses/:addressId")
   @RequirePermission(PermissionAction.OwnAddressManage)
-  updateAddress(@Req() request: RequestWithUser, @Param("addressId") addressId: string, @Body() body: UpdateAddressDto) {
+  updateAddress(
+    @Req() request: RequestWithUser,
+    @Param("addressId") addressId: string,
+    @Body() body: UpdateAddressDto,
+  ) {
     return this.usersService.updateAddress(this.getSession(request), addressId, body);
   }
 
@@ -109,6 +127,17 @@ export class UsersController {
     return this.usersService.submitPartnerProfile(this.getSession(request), body);
   }
 
+  @Get("me/partner-verification")
+  @RequirePermission(PermissionAction.PartnerProfileSubmit)
+  myPartnerVerification(@Req() request: RequestWithUser) {
+    return this.usersService.getPartnerVerification(this.getSession(request).userId);
+  }
+
+  @Put("me/partner-verification")
+  @RequirePermission(PermissionAction.PartnerProfileSubmit)
+  submitPartnerVerification(@Req() request: RequestWithUser, @Body() body: PartnerVerificationDto) {
+    return this.usersService.submitPartnerVerification(this.getSession(request), body);
+  }
   @Post("me/online")
   @RequirePermission(PermissionAction.PartnerOnlineUpdate)
   setOnline(@Req() request: RequestWithUser, @Body() body: PartnerOnlineDto) {
@@ -174,10 +203,20 @@ export class UsersController {
     return this.usersService.listPendingPartners(query);
   }
 
+  @Get("admin/partners/:userId/verification")
+  @RequirePermission(PermissionAction.PartnersReadPending)
+  partnerVerificationForAdmin(@Param("userId") userId: string) {
+    return this.usersService.getPartnerVerification(userId);
+  }
+
   @Post("admin/partners/:userId/review")
   @RequirePermission(PermissionAction.PartnersReview)
-  reviewPartner(@Param("userId") userId: string, @Body() body: PartnerReviewDto) {
-    return this.usersService.reviewPartner(userId, body);
+  reviewPartner(
+    @Req() request: RequestWithUser,
+    @Param("userId") userId: string,
+    @Body() body: PartnerReviewDto,
+  ) {
+    return this.usersService.reviewPartner(userId, body, this.getSession(request));
   }
 
   private getSession(request: RequestWithUser): SessionRecord {
