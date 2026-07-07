@@ -43,7 +43,7 @@ export class HttpSmsProvider implements SmsProvider {
 
     try {
       const responseText = await new Promise<string>((resolve, reject) => {
-        const req = https.get(url.toString(), { rejectUnauthorized: false }, (res: IncomingMessage) => {
+        const req = https.get(url.toString(), (res: IncomingMessage) => {
           let data = '';
           res.on('data', (chunk: Buffer) => data += chunk.toString());
           res.on('end', () => {

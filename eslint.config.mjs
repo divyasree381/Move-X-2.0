@@ -13,6 +13,8 @@ export default tseslint.config(
       "**/coverage/**",
       "**/out/**",
       "**/next-env.d.ts",
+      "backend/api/*.js",
+      "*.js",
     ],
   },
   js.configs.recommended,

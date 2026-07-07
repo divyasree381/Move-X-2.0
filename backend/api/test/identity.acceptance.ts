@@ -167,6 +167,8 @@ class InMemoryIdentityRepository {
       partnerApproval: "NONE",
       profileCompleted: false,
       lastSeenAt: null,
+      lastLoginAt: null,
+      profileCompleted: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -264,6 +266,8 @@ class InMemoryIdentityRepository {
       partnerApproval: "NONE",
       profileCompleted: false,
       lastSeenAt: null,
+      lastLoginAt: null,
+      profileCompleted: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -294,6 +298,11 @@ class InMemoryIdentityRepository {
     user.partnerApproval = approval;
     user.rejectionReason = approval === "REJECTED" ? reason ?? "Rejected" : null;
     return user;
+  }
+
+  async updateUserLastLogin(userId: string, lastLoginAt: Date): Promise<void> {
+    const user = this.requireUser(userId);
+    user.lastLoginAt = lastLoginAt;
   }
 
   async setUserBanned(userId: string, isBanned: boolean, reason?: string): Promise<IdentityUser> {
@@ -517,7 +526,11 @@ async function main(): Promise<void> {
 
     let verifyResponse!: request.Response;
     const verifyLogs = await captureStdout(async () => {
-      verifyResponse = await verifyOtp(server, "9900000101", firstCode).expect(201);
+      verifyResponse = await verifyOtp(server, "9900000101", firstCode);
+      if (verifyResponse.status !== 201) {
+        console.error("VERIFY_OTP_FAILED:", verifyResponse.body);
+      }
+      assert.equal(verifyResponse.status, 201);
     });
     const sessionToken = getCookieValue(verifyResponse, sessionCookieName);
     assert.equal(verifyResponse.body.data.user.phoneE164, "+919900000101");

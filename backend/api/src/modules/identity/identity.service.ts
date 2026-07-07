@@ -76,7 +76,7 @@ export class IdentityService {
 
     return {
       message: GENERIC_OTP_MESSAGE,
-      // Removed devCode mapping so OTP is forced to be checked via mobile SMS
+      devCode: process.env.NODE_ENV !== "production" ? code : undefined,
     };
   }
 
