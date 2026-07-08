@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -19,10 +19,11 @@ export function RideDetailPage({ rideId }: { rideId: string }) {
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
   const [rating, setRating] = useState(5);
+  const [feedback, setFeedback] = useState("");
   const rideQuery = useQuery({ queryKey: ["ride", rideId], queryFn: () => getRide(rideId), refetchInterval: 30_000 });
   const ride = rideQuery.data;
   const ratingMutation = useMutation({
-    mutationFn: () => rateRide(rideId, rating),
+    mutationFn: () => rateRide(rideId, rating, feedback.trim() || undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ride", rideId] });
       queryClient.invalidateQueries({ queryKey: ["rides"] });
@@ -127,6 +128,14 @@ export function RideDetailPage({ rideId }: { rideId: string }) {
                       </button>
                     ))}
                   </div>
+                  <label className="block text-sm font-medium text-foreground" htmlFor="rating-feedback">Feedback</label>
+                  <textarea
+                    id="rating-feedback"
+                    value={feedback}
+                    onChange={(event) => setFeedback(event.target.value)}
+                    placeholder="Share what went well or what needs attention"
+                    className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
                   <Button type="button" className="w-full" disabled={ratingMutation.isPending} onClick={() => ratingMutation.mutate()}>Submit rating</Button>
                 </div>
               ) : null}

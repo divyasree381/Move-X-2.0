@@ -164,10 +164,10 @@ export function MapPickerClient({ value, onChange, showAdvancedControls = false 
 
         <div className="absolute left-3 top-3 flex flex-wrap gap-2 sm:left-4 sm:top-4">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/92 px-3 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur">
-            <Navigation className="size-4 text-primary" aria-hidden={true} />
+            <Navigation className="size-4 text-destructive" aria-hidden={true} />
             Move pin to refine
           </span>
-          <span className="hidden rounded-full border border-success/20 bg-success/10 px-3 py-2 text-xs font-medium text-success shadow-sm backdrop-blur sm:inline-flex">Exact location</span>
+          <span className="hidden rounded-full border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive shadow-sm backdrop-blur sm:inline-flex">Exact location</span>
         </div>
 
         <div className="absolute right-3 top-3 grid gap-2 sm:right-4 sm:top-4">
@@ -182,22 +182,22 @@ export function MapPickerClient({ value, onChange, showAdvancedControls = false 
         </div>
 
         <div className="pointer-events-none absolute inset-0 grid place-items-center" aria-hidden={true}>
-          <div className="h-24 w-px bg-primary/20" />
-          <div className="absolute h-px w-24 bg-primary/20" />
+          <div className="h-24 w-px bg-destructive/20" />
+          <div className="absolute h-px w-24 bg-destructive/20" />
         </div>
 
-        <button type="button" className="absolute grid size-12 -translate-x-1/2 -translate-y-full place-items-center rounded-full bg-primary text-primary-foreground shadow-xl ring-8 ring-primary/16 transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-8 focus-visible:ring-primary/24" style={markerPosition} aria-label="Selected marker">
+        <button type="button" className="absolute grid size-12 -translate-x-1/2 -translate-y-full place-items-center rounded-full bg-destructive text-background shadow-xl ring-8 ring-destructive/16 transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-8 focus-visible:ring-destructive/24" style={markerPosition} aria-label="Selected marker">
           <MapPin className="size-6 fill-current" aria-hidden={true} />
         </button>
 
         <div className="absolute inset-x-3 bottom-3 rounded-lg border border-border bg-surface/95 p-4 shadow-[var(--shadow-shell)] backdrop-blur sm:inset-x-4 sm:bottom-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">Selected pin</p>
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-destructive">Selected pin</p>
               <p className="mt-1 line-clamp-2 text-sm font-medium text-foreground">{current.address}</p>
               <p className="mt-1 text-xs text-muted-foreground" aria-live="polite">{status ?? "Tap or drag anywhere on the map to update the pin."}</p>
             </div>
-            <span className="hidden shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary sm:inline-flex">{current.source.replace("-", " ")}</span>
+            <span className="hidden shrink-0 rounded-full bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive sm:inline-flex">{current.source.replace("-", " ")}</span>
           </div>
 
           {showAdvancedControls && showAdvanced ? (

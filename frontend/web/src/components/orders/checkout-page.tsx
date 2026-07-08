@@ -8,7 +8,7 @@ import { ArrowLeft, CreditCard, FileUp, MapPin, ShieldCheck, Wallet, type Lucide
 
 import { MapPicker } from "@/components/location/map-picker";
 import { QueryState } from "@/providers/query-state";
-import { CancellationPolicyCard } from "@/components/trust";
+import { CancellationPolicyCard, ServiceDisclaimer } from "@/components/trust";
 import { Button, EmptyState, ErrorState, Input, StatusPill } from "@/components/ui";
 import { ApiError, checkoutOrder, getCart, uploadCartPrescription, type CheckoutAddress, type CheckoutResponse } from "@/lib/api";
 
@@ -190,6 +190,9 @@ export function CheckoutPage() {
                 </div>
               </div>
               <CancellationPolicyCard serviceType={cart.store?.type ?? "FOOD"} />
+              <div className="mt-3">
+                <ServiceDisclaimer serviceType={cart.store?.type ?? "FOOD"} compact />
+              </div>
               <Button type="button" className="mt-4 w-full" disabled={checkoutMutation.isPending || unavailableItems.length > 0 || (cart.store?.type === "PHARMACY" && !cart.prescription)} onClick={() => checkoutMutation.mutate()}>
                 {checkoutMutation.isPending ? "Placing order" : "Place order"}
               </Button>

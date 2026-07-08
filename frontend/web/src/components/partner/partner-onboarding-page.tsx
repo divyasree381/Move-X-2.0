@@ -943,7 +943,7 @@ function LocationStep({ form, updateForm }: { form: VerificationForm; updateForm
           </div>
           <div className="rounded-md border border-border bg-surface p-4">
             <div className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-destructive/10 text-destructive">
                 <MapPin className="size-5" aria-hidden={true} />
               </span>
               <div>
@@ -992,110 +992,191 @@ function DocumentsStep({
         title="Documents and identity checks"
         description="Upload document proof and enter the reference numbers admins need for approval, rejection, or resubmission."
       />
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <div className="grid gap-4">
-          {requirements.map((requirement) => (
-            <UploadBox
-              key={requirement.key}
-              id={`document-${requirement.key}`}
-              title={requirement.title}
-              description={requirement.description}
-              file={files[requirement.key]}
-              accept={requirement.accept ?? "image/*,.pdf"}
-              optional={requirement.optional}
-              onChange={(event) => handleFileChange(requirement.key, event)}
-              onRemove={() => removeFile(requirement.key)}
-            />
-          ))}
-        </div>
-        <div className="grid gap-4 rounded-md border border-border bg-surface-muted p-4">
-          <Field label="Aadhaar number" htmlFor="aadhaar-number">
-            <Input
-              id="aadhaar-number"
-              value={form.aadhaarNumber}
-              onChange={(event) => updateForm("aadhaarNumber", event.target.value)}
-              inputMode="numeric"
-              placeholder="Last-mile identity verification"
-            />
-          </Field>
-          <Field label="PAN number" htmlFor="pan-number">
-            <Input
-              id="pan-number"
-              value={form.panNumber}
-              onChange={(event) => updateForm("panNumber", event.target.value.toUpperCase())}
-              placeholder="ABCDE1234F"
-            />
-          </Field>
-          {partnerKind === "store" ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="FSSAI / license number" htmlFor="fssai-number">
-                <Input
-                  id="fssai-number"
-                  value={form.fssaiNumber}
-                  onChange={(event) => updateForm("fssaiNumber", event.target.value)}
-                />
-              </Field>
-              <Field label="GST number" htmlFor="gst-number">
-                <Input
-                  id="gst-number"
-                  value={form.gstNumber}
-                  onChange={(event) => updateForm("gstNumber", event.target.value.toUpperCase())}
-                />
-              </Field>
-            </div>
-          ) : null}
-          {partnerKind === "delivery" || partnerKind === "driver" ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Driving license number" htmlFor="license-number">
-                <Input
-                  id="license-number"
-                  value={form.licenseNumber}
-                  onChange={(event) =>
-                    updateForm("licenseNumber", event.target.value.toUpperCase())
-                  }
-                />
-              </Field>
-              <Field label="License expiry" htmlFor="document-expiry">
-                <Input
-                  id="document-expiry"
-                  type="date"
-                  value={form.documentExpiry}
-                  onChange={(event) => updateForm("documentExpiry", event.target.value)}
-                />
-              </Field>
-              <Field label="Vehicle RC number" htmlFor="rc-number">
-                <Input
-                  id="rc-number"
-                  value={form.vehicleRcNumber}
-                  onChange={(event) =>
-                    updateForm("vehicleRcNumber", event.target.value.toUpperCase())
-                  }
-                />
-              </Field>
-              <Field label="Insurance expiry" htmlFor="insurance-expiry">
-                <Input
-                  id="insurance-expiry"
-                  type="date"
-                  value={form.insuranceExpiry}
-                  onChange={(event) => updateForm("insuranceExpiry", event.target.value)}
-                />
-              </Field>
-            </div>
-          ) : null}
-          {partnerKind === "home-services" ? (
-            <Field label="Police verification / skill proof reference" htmlFor="police-ref">
-              <Input
-                id="police-ref"
-                value={form.policeVerificationRef}
-                onChange={(event) => updateForm("policeVerificationRef", event.target.value)}
-                placeholder="Reference number or certificate id"
-              />
-            </Field>
-          ) : null}
-        </div>
+      <div className="mt-6 grid gap-4">
+        {requirements.map((requirement) => (
+          <DocumentRequirementRow
+            key={requirement.key}
+            requirement={requirement}
+            file={files[requirement.key]}
+            form={form}
+            partnerKind={partnerKind}
+            updateForm={updateForm}
+            handleFileChange={handleFileChange}
+            removeFile={removeFile}
+          />
+        ))}
       </div>
     </section>
   );
+}
+
+function DocumentRequirementRow({
+  requirement,
+  file,
+  form,
+  partnerKind,
+  updateForm,
+  handleFileChange,
+  removeFile,
+}: {
+  requirement: DocumentRequirement;
+  file?: FileSnapshot;
+  form: VerificationForm;
+  partnerKind: PartnerKind;
+  updateForm: UpdateForm;
+  handleFileChange: FileChangeHandler;
+  removeFile: (key: DocumentKey) => void;
+}) {
+  return (
+    <div className="grid gap-4 rounded-lg border border-border bg-surface p-3 shadow-sm lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.9fr)] lg:p-4">
+      <UploadBox
+        id={`document-${requirement.key}`}
+        title={requirement.title}
+        description={requirement.description}
+        file={file}
+        accept={requirement.accept ?? "image/*,.pdf"}
+        optional={requirement.optional}
+        onChange={(event) => handleFileChange(requirement.key, event)}
+        onRemove={() => removeFile(requirement.key)}
+      />
+      <div className="grid content-start gap-3 rounded-md border border-border bg-surface-muted p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Reference details
+        </p>
+        <DocumentReferenceFields
+          requirementKey={requirement.key}
+          form={form}
+          partnerKind={partnerKind}
+          updateForm={updateForm}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DocumentReferenceFields({
+  requirementKey,
+  form,
+  partnerKind,
+  updateForm,
+}: {
+  requirementKey: DocumentKey;
+  form: VerificationForm;
+  partnerKind: PartnerKind;
+  updateForm: UpdateForm;
+}) {
+  if (requirementKey === "aadhaar") {
+    return (
+      <Field label="Aadhaar number" htmlFor="aadhaar-number">
+        <Input
+          id="aadhaar-number"
+          value={form.aadhaarNumber}
+          onChange={(event) => updateForm("aadhaarNumber", event.target.value)}
+          inputMode="numeric"
+          placeholder="Last-mile identity verification"
+        />
+      </Field>
+    );
+  }
+
+  if (requirementKey === "pan") {
+    return (
+      <Field label="PAN number" htmlFor="pan-number">
+        <Input
+          id="pan-number"
+          value={form.panNumber}
+          onChange={(event) => updateForm("panNumber", event.target.value.toUpperCase())}
+          placeholder="ABCDE1234F"
+        />
+      </Field>
+    );
+  }
+
+  if (requirementKey === "storeLicense") {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
+        <Field label="FSSAI / license number" htmlFor="fssai-number">
+          <Input
+            id="fssai-number"
+            value={form.fssaiNumber}
+            onChange={(event) => updateForm("fssaiNumber", event.target.value)}
+          />
+        </Field>
+        <Field label="GST number" htmlFor="gst-number">
+          <Input
+            id="gst-number"
+            value={form.gstNumber}
+            onChange={(event) => updateForm("gstNumber", event.target.value.toUpperCase())}
+          />
+        </Field>
+      </div>
+    );
+  }
+
+  if (requirementKey === "drivingLicense") {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
+        <Field label="Driving license number" htmlFor="license-number">
+          <Input
+            id="license-number"
+            value={form.licenseNumber}
+            onChange={(event) => updateForm("licenseNumber", event.target.value.toUpperCase())}
+          />
+        </Field>
+        <Field label="License expiry" htmlFor="document-expiry">
+          <Input
+            id="document-expiry"
+            type="date"
+            value={form.documentExpiry}
+            onChange={(event) => updateForm("documentExpiry", event.target.value)}
+          />
+        </Field>
+      </div>
+    );
+  }
+
+  if (requirementKey === "vehicleRc") {
+    return (
+      <Field label="Vehicle RC number" htmlFor="rc-number">
+        <Input
+          id="rc-number"
+          value={form.vehicleRcNumber}
+          onChange={(event) => updateForm("vehicleRcNumber", event.target.value.toUpperCase())}
+        />
+      </Field>
+    );
+  }
+
+  if (requirementKey === "vehicleInsurance") {
+    return (
+      <Field label="Insurance expiry" htmlFor="insurance-expiry">
+        <Input
+          id="insurance-expiry"
+          type="date"
+          value={form.insuranceExpiry}
+          onChange={(event) => updateForm("insuranceExpiry", event.target.value)}
+        />
+      </Field>
+    );
+  }
+
+  if (requirementKey === "policeVerification" || requirementKey === "skillCertificate") {
+    return (
+      <Field
+        label={partnerKind === "home-services" ? "Verification / skill reference" : "Reference number"}
+        htmlFor={`reference-${requirementKey}`}
+      >
+        <Input
+          id={`reference-${requirementKey}`}
+          value={form.policeVerificationRef}
+          onChange={(event) => updateForm("policeVerificationRef", event.target.value)}
+          placeholder="Reference number or certificate id"
+        />
+      </Field>
+    );
+  }
+
+  return <p className="text-sm leading-6 text-muted-foreground">Upload this document so admins can review it with the rest of the profile.</p>;
 }
 
 function SettlementReviewStep({

@@ -906,7 +906,7 @@ export function isPartnerAuthRole(role: AuthRole | string): role is Extract<Auth
 
 export function routeForAuthenticatedUser(user: Pick<AuthUser, "role" | "partnerApproval">) {
   if (user.role === "CUSTOMER") {
-    return "/customer";
+    return "/";
   }
 
   if (isPartnerAuthRole(user.role)) {
@@ -918,7 +918,7 @@ export function routeForAuthenticatedUser(user: Pick<AuthUser, "role" | "partner
 
 export function routeForRole(role: AuthRole | string) {
   if (role === "CUSTOMER") {
-    return "/customer";
+    return "/";
   }
 
   if (isPartnerAuthRole(role)) {

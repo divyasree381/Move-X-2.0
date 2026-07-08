@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import { Heart, Minus, PackageX, Plus, Search, ShoppingBag, SlidersHorizontal } from "lucide-react";
+import { Heart, Minus, PackageX, Plus, Search, ShoppingBag, SlidersHorizontal, Star } from "lucide-react";
 
 import { Button, EmptyState, Input, Skeleton, StatusPill, useToast } from "@/components/ui";
 import {
@@ -26,7 +26,15 @@ const CART_QUERY_KEY = ["cart"] as const;
 type SortMode = "recommended" | "price-asc" | "price-desc" | "popular";
 type DietaryFilter = "ALL" | "VEG" | "NON_VEG";
 
-export function StoreMenu({ items, isLoading = false, storeType }: { items: MarketplaceMenuItem[]; isLoading?: boolean; storeType?: StoreListItem["type"] }) {
+type StoreMenuProps = {
+  items: MarketplaceMenuItem[];
+  isLoading?: boolean;
+  storeType?: StoreListItem["type"];
+  storeRating?: string;
+  storeRatingCount?: number;
+};
+
+export function StoreMenu({ items, isLoading = false, storeType, storeRating, storeRatingCount }: StoreMenuProps) {
   const [selectedItem, setSelectedItem] = useState<MarketplaceMenuItem | null>(null);
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
@@ -77,6 +85,7 @@ export function StoreMenu({ items, isLoading = false, storeType }: { items: Mark
   const visibleItems = useMemo(() => filterAndSortItems(items, storeType, query, sortMode, dietaryFilter, availableOnly), [availableOnly, dietaryFilter, items, query, sortMode, storeType]);
   const grouped = useMemo(() => groupBySection(visibleItems), [visibleItems]);
   const resultLabel = `${visibleItems.length} item${visibleItems.length === 1 ? "" : "s"}`;
+  const ratingLabel = storeRating ? `${Number(storeRating).toFixed(1)} (${storeRatingCount ?? 0})` : null;
 
   if (isLoading) {
     return (
@@ -115,6 +124,7 @@ export function StoreMenu({ items, isLoading = false, storeType }: { items: Mark
           <FilterButton active={dietaryFilter === "VEG"} onClick={() => setDietaryFilter("VEG")}>Veg</FilterButton>
           <FilterButton active={dietaryFilter === "NON_VEG"} onClick={() => setDietaryFilter("NON_VEG")}>Non-veg</FilterButton>
           <FilterButton active={availableOnly} onClick={() => setAvailableOnly((value) => !value)}>Available only</FilterButton>
+          {ratingLabel ? <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning"><Star className="size-3.5 fill-current" aria-hidden="true" /> {ratingLabel}</span> : null}
           <span className="ml-auto text-sm font-medium text-muted-foreground">{resultLabel}</span>
         </div>
       </div>
@@ -124,52 +134,55 @@ export function StoreMenu({ items, isLoading = false, storeType }: { items: Mark
       ) : (
         grouped.map(([section, sectionItems]) => (
           <section key={section} aria-labelledby={`section-${section}`} className="space-y-3">
-            <h2 id={`section-${section}`} className="text-base font-semibold text-foreground">{section}</h2>
-            <div className="grid gap-3">
+            <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
+              <h2 id={`section-${section}`} className="text-lg font-semibold text-foreground">{section}</h2>
+              <span className="text-sm text-muted-foreground">{sectionItems.length} items</span>
+            </div>
+            <div className="grid gap-4">
               {sectionItems.map((item) => {
                 const outOfStock = item.stock === 0 || !item.available;
                 const quantity = cartQuantities.get(item.id) ?? 0;
                 const hasCustomizations = hasCustomizationGroups(item.customizations);
+                const lowStock = item.stock > 0 && item.stock <= 5;
 
                 return (
-                  <article key={item.id} className="grid grid-cols-[6rem_1fr] overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-md sm:grid-cols-[8rem_1fr]">
-                    <div className="relative min-h-32 bg-surface-muted">
-                      <Image src={item.imageUrl || ITEM_IMAGE_FALLBACK} alt="" fill sizes="128px" className="object-cover" unoptimized={!item.imageUrl} />
-                      {outOfStock ? <div className="absolute inset-0 bg-background/55 backdrop-blur-[1px]" aria-hidden="true" /> : null}
-                    </div>
-                    <div className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex min-w-0 flex-wrap items-center gap-2">
-                            <h3 className="text-sm font-semibold text-foreground sm:text-base">{item.name}</h3>
-                            <DietaryBadge type={resolveDietaryType(item, storeType)} />
-                            {item.tags.includes("popular") ? <StatusPill label="Popular" tone="success" /> : null}
-                          </div>
-                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground sm:text-sm">{item.description}</p>
-                        </div>
-                        {outOfStock ? <StatusPill label="Unavailable" tone="danger" /> : <StatusPill label={item.stock > 0 && item.stock <= 5 ? `${item.stock} left` : "Available"} tone={item.stock > 0 && item.stock <= 5 ? "warning" : "success"} />}
+                  <article key={item.id} className="grid gap-4 rounded-lg border border-border bg-surface p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md sm:grid-cols-[minmax(0,1fr)_10rem]">
+                    <div className="min-w-0 py-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <DietaryBadge type={resolveDietaryType(item, storeType)} />
+                        {item.tags.includes("popular") ? <StatusPill label="Bestseller" tone="success" /> : null}
+                        {lowStock ? <StatusPill label={`${item.stock} left`} tone="warning" /> : null}
                       </div>
-                      <div className="mt-auto flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <div className="text-base font-semibold text-foreground">Rs {Number(item.price).toFixed(0)}</div>
-                          {hasCustomizations ? <p className="mt-0.5 text-xs text-muted-foreground">Custom options available</p> : null}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Button type="button" variant="ghost" size="icon" aria-label={`Save ${item.name}`} disabled={favoriteMutation.isPending} onClick={() => favoriteMutation.mutate(item.id)}>
-                            <Heart className="size-4" aria-hidden="true" />
-                          </Button>
-                          {hasCustomizations ? (
-                            <Button type="button" variant="secondary" size="sm" disabled={outOfStock} onClick={() => setSelectedItem(item)}>Customize</Button>
-                          ) : null}
-                          <MenuCartControl
-                            item={item}
-                            quantity={quantity}
-                            disabled={outOfStock || addMutation.isPending || quantityMutation.isPending}
-                            onAdd={() => addMutation.mutate(item)}
-                            onDecrease={() => quantityMutation.mutate({ item, quantity: quantity - 1 })}
-                            onIncrease={() => quantityMutation.mutate({ item, quantity: quantity + 1 })}
-                          />
-                        </div>
+                      <h3 className="mt-3 text-base font-semibold leading-6 text-foreground">{item.name}</h3>
+                      <p className="mt-1 text-base font-semibold text-foreground">Rs {Number(item.price).toFixed(0)}</p>
+                      {ratingLabel ? (
+                        <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-success">
+                          <Star className="size-3.5 fill-current" aria-hidden="true" /> Store rated {ratingLabel}
+                        </p>
+                      ) : null}
+                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <Button type="button" variant="ghost" size="sm" aria-label={`Save ${item.name}`} disabled={favoriteMutation.isPending} onClick={() => favoriteMutation.mutate(item.id)}>
+                          <Heart className="size-4" aria-hidden="true" /> Save
+                        </Button>
+                        {hasCustomizations ? (
+                          <Button type="button" variant="secondary" size="sm" disabled={outOfStock} onClick={() => setSelectedItem(item)}>Customize</Button>
+                        ) : null}
+                        {outOfStock ? <StatusPill label="Unavailable" tone="danger" /> : null}
+                      </div>
+                    </div>
+                    <div className="relative min-h-40 overflow-hidden rounded-lg bg-surface-muted sm:min-h-36">
+                      <Image src={item.imageUrl || ITEM_IMAGE_FALLBACK} alt="" fill sizes="160px" className="object-cover" unoptimized={!item.imageUrl} />
+                      {outOfStock ? <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px]" aria-hidden="true" /> : null}
+                      <div className="absolute inset-x-3 bottom-3 flex justify-center">
+                        <MenuCartControl
+                          item={item}
+                          quantity={quantity}
+                          disabled={outOfStock || addMutation.isPending || quantityMutation.isPending}
+                          onAdd={() => addMutation.mutate(item)}
+                          onDecrease={() => quantityMutation.mutate({ item, quantity: quantity - 1 })}
+                          onIncrease={() => quantityMutation.mutate({ item, quantity: quantity + 1 })}
+                        />
                       </div>
                     </div>
                   </article>
@@ -189,12 +202,12 @@ function MenuCartControl({ item, quantity, disabled, onAdd, onDecrease, onIncrea
 
   if (quantity > 0) {
     return (
-      <div className="inline-flex min-h-10 items-center overflow-hidden rounded-md border border-primary/30 bg-primary/10 text-primary shadow-sm" aria-label={`${item.name} quantity ${quantity}`}>
-        <button type="button" className="grid size-10 place-items-center transition hover:bg-primary/15 disabled:opacity-50" onClick={onDecrease} disabled={disabled} aria-label={`Decrease ${item.name}`}>
+      <div className="inline-flex min-h-10 items-center overflow-hidden rounded-md bg-primary text-primary-foreground shadow-md" aria-label={`${item.name} quantity ${quantity}`}>
+        <button type="button" className="grid size-10 place-items-center transition hover:bg-primary-hover disabled:opacity-50" onClick={onDecrease} disabled={disabled} aria-label={`Decrease ${item.name}`}>
           <Minus className="size-4" aria-hidden="true" />
         </button>
-        <span className="min-w-9 px-2 text-center text-sm font-semibold" aria-live="polite">{quantity}</span>
-        <button type="button" className="grid size-10 place-items-center transition hover:bg-primary/15 disabled:opacity-50" onClick={onIncrease} disabled={disabled || maxed} aria-label={`Increase ${item.name}`}>
+        <span className="min-w-10 px-2 text-center text-sm font-semibold" aria-live="polite">{quantity}</span>
+        <button type="button" className="grid size-10 place-items-center transition hover:bg-primary-hover disabled:opacity-50" onClick={onIncrease} disabled={disabled || maxed} aria-label={`Increase ${item.name}`}>
           <Plus className="size-4" aria-hidden="true" />
         </button>
       </div>
@@ -202,7 +215,7 @@ function MenuCartControl({ item, quantity, disabled, onAdd, onDecrease, onIncrea
   }
 
   return (
-    <Button type="button" size="sm" disabled={disabled} onClick={onAdd}>
+    <Button type="button" size="sm" variant="secondary" className="min-w-24 border-primary/30 bg-surface text-primary shadow-md hover:bg-primary/10" disabled={disabled} onClick={onAdd}>
       {item.stock === 0 ? <PackageX className="size-4" aria-hidden="true" /> : <ShoppingBag className="size-4" aria-hidden="true" />}
       Add
     </Button>
@@ -331,4 +344,3 @@ function optimisticMenuQuantity(cart: CartResponse, item: MarketplaceMenuItem, q
     }),
   };
 }
-
