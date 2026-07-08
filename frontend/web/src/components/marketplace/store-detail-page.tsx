@@ -7,6 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Bike, Clock3, Heart, MapPin, ReceiptText, Search, Star, Truck, type LucideIcon } from "lucide-react";
 
 import { CartDrawer } from "@/components/orders";
+import { ServiceDisclaimer } from "@/components/trust";
 import { QueryState } from "@/providers/query-state";
 import { Button, StatusPill } from "@/components/ui";
 import { getCart, getStore, getStoreMenu, saveFavorite } from "@/lib/api";
@@ -75,8 +76,11 @@ export function StoreDetailPage({ storeId }: { storeId: string }) {
                 </div>
                 <div className="mt-4">
                   <QueryState isLoading={menuQuery.isLoading} isError={menuQuery.isError} error={menuQuery.error} onRetry={() => menuQuery.refetch()}>
-                    <StoreMenu items={menuQuery.data ?? []} storeType={store.type} />
+                    <StoreMenu items={menuQuery.data ?? []} storeType={store.type} storeRating={store.ratingAverage} storeRatingCount={store.ratingCount} />
                   </QueryState>
+                </div>
+                <div className="mt-4">
+                  <ServiceDisclaimer serviceType={store.type} />
                 </div>
               </section>
 

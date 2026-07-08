@@ -7,7 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Bike, Car, Clock3, IndianRupee, MapPin, Navigation, Wallet } from "lucide-react";
 
 import { LocationSearchInput } from "@/components/location/location-search-input";
-import { CancellationPolicyCard } from "@/components/trust";
+import { CancellationPolicyCard, ServiceDisclaimer } from "@/components/trust";
 import { Button, StatusPill } from "@/components/ui";
 import { createRide, estimateRide, type RideCreateResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -57,13 +57,15 @@ export function RideBookingPage() {
   });
   const backendFare = estimate.data?.vehicleType === vehicleType ? Number(estimate.data.estimatedFare) : null;
   const selectedFare = backendFare ?? selectedVehicle.price;
-  const routeLabel = `${routePreview.distanceKm.toFixed(1)} km • ${routePreview.durationMinutes} min`;
+  const routeDistanceKm = estimate.data ? Number(estimate.data.distanceKm) : routePreview.distanceKm;
+  const routeMinutes = estimate.data?.durationMinutes ?? routePreview.durationMinutes;
+  const routeLabel = `${routeDistanceKm.toFixed(1)} km - ${routeMinutes} min`;
 
   return (
     <div className="space-y-4">
       <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)]">
-        <div className="grid xl:min-h-[calc(100dvh-9rem)] xl:grid-cols-[27rem_minmax(0,1fr)]">
-          <aside className="relative z-20 order-2 flex flex-col border-t border-border bg-surface p-4 xl:order-1 xl:max-h-[calc(100dvh-9rem)] xl:overflow-y-auto xl:border-r xl:border-t-0">
+        <div className="grid xl:min-h-[calc(100dvh-9rem)] xl:grid-cols-[30rem_minmax(0,1fr)]">
+          <aside className="relative z-20 order-2 flex flex-col border-t border-border bg-surface p-4 xl:order-1 xl:border-r xl:border-t-0">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-ride">Mobility</p>
@@ -99,7 +101,7 @@ export function RideBookingPage() {
 
             <div className="mt-5 rounded-md border border-primary/20 bg-primary/10 p-3">
               <p className="flex items-center gap-2 text-sm font-semibold text-primary">
-                <Navigation className="size-4" aria-hidden="true" /> {routePreview.distanceKm.toFixed(1)} km • {routePreview.durationMinutes} min trip
+                <Navigation className="size-4" aria-hidden="true" /> {routeDistanceKm.toFixed(1)} km - {routeMinutes} min trip
               </p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">Pickup and drop stay in the fields; the map shows route pins, vehicle proximity, and movement.</p>
             </div>
@@ -136,6 +138,9 @@ export function RideBookingPage() {
 
             <div className="mt-5">
               <CancellationPolicyCard serviceType="RIDE" />
+              <div className="mt-3">
+                <ServiceDisclaimer serviceType="RIDE" compact />
+              </div>
             </div>
 
             <Button type="button" className="sticky bottom-3 z-20 mt-5 w-full shadow-[var(--shadow-shell)] xl:static xl:shadow-none" disabled={createMutation.isPending} onClick={() => createMutation.mutate()}>
@@ -144,8 +149,8 @@ export function RideBookingPage() {
             {createMutation.error ? <p role="status" className="mt-2 text-sm text-destructive">{createMutation.error instanceof Error ? createMutation.error.message : "Ride could not be created"}</p> : null}
           </aside>
 
-          <div className="relative order-1 min-h-[22rem] bg-surface-muted p-3 sm:min-h-[28rem] sm:p-4 xl:order-2 xl:min-h-[calc(100dvh-9rem)]">
-            <RideMap phase="booking" pickup={pickup} drop={drop} activePoint={activePoint} onActivePointChange={setActivePoint} routeLabel={routeLabel} />
+          <div className="relative order-1 min-h-[28rem] bg-surface-muted p-3 sm:min-h-[34rem] sm:p-4 xl:sticky xl:top-20 xl:order-2 xl:h-[calc(100dvh-6rem)] xl:min-h-0">
+            <RideMap phase="booking" pickup={pickup} drop={drop} activePoint={activePoint} onActivePointChange={setActivePoint} routeLabel={routeLabel} routePolyline={estimate.data?.polyline} />
           </div>
         </div>
       </section>

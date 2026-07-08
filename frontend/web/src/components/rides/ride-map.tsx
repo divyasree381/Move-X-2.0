@@ -18,6 +18,7 @@ type RideMapProps = {
   activePoint?: "pickup" | "drop";
   onActivePointChange?: (point: "pickup" | "drop") => void;
   routeLabel?: string;
+  routePolyline?: string | null;
 };
 
 type MapPosition = {
@@ -25,16 +26,22 @@ type MapPosition = {
   y: number;
 };
 
-export function RideMap({ ride, driverLocation, phase = "tracking", pickup, drop, activePoint = "pickup", onActivePointChange, routeLabel }: RideMapProps) {
+type RouteCoordinate = {
+  lat: number;
+  lng: number;
+};
+
+export function RideMap({ ride, driverLocation, phase = "tracking", pickup, drop, activePoint = "pickup", onActivePointChange, routeLabel, routePolyline }: RideMapProps) {
   const status = ride?.status ?? "ESTIMATE";
   const marker = driverMarkerStyle(driverLocation, status);
   const booking = phase === "booking";
-  const routeMap = booking && pickup && drop ? buildRouteMap(pickup, drop) : null;
+  const routeMap = booking && pickup && drop ? buildRouteMap(pickup, drop, routePolyline) : null;
   const pickupPosition = routeMap && pickup ? routeMap.project(pickup) : { x: 25, y: 68 };
   const dropPosition = routeMap && drop ? routeMap.project(drop) : { x: 76, y: 28 };
+  const routePath = routeMap ? buildSvgPath(routeMap.routePoints.map((point) => routeMap.project(point))) : "";
 
   return (
-    <section className="relative h-full min-h-[24rem] overflow-hidden rounded-lg border border-border bg-surface-muted shadow-[var(--shadow-shell)] sm:min-h-[30rem] xl:min-h-[32rem]" aria-label="Ride route map">
+    <section className="relative h-full min-h-[24rem] overflow-hidden rounded-lg border border-border bg-surface-muted shadow-[var(--shadow-shell)] sm:min-h-[30rem] xl:min-h-full" aria-label="Ride route map">
       {routeMap ? (
         <iframe title="Ride route map" className="absolute inset-0 h-full w-full border-0 opacity-95 saturate-[0.96]" src={routeMap.url} loading="lazy" tabIndex={-1} />
       ) : (
@@ -43,15 +50,15 @@ export function RideMap({ ride, driverLocation, phase = "tracking", pickup, drop
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(249,250,251,0.12)_0%,rgba(249,250,251,0)_42%,rgba(249,250,251,0.58)_100%)] dark:bg-[linear-gradient(180deg,rgba(11,15,13,0.24)_0%,rgba(11,15,13,0)_42%,rgba(11,15,13,0.72)_100%)]" aria-hidden="true" />
       <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2 sm:left-4 sm:top-4">
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/94 px-3 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur">
-          <Navigation className="size-4 text-primary" aria-hidden="true" /> Live map
+          <Navigation className="size-4 text-info" aria-hidden="true" /> Live map
         </span>
-        {booking ? <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-medium text-primary shadow-sm backdrop-blur">One map, two pins</span> : null}
+        {booking ? <span className="rounded-full border border-info/20 bg-info/10 px-3 py-2 text-xs font-medium text-info shadow-sm backdrop-blur">Road route, two pins</span> : null}
       </div>
-      <div className="relative z-10 h-full min-h-[24rem] p-4 sm:min-h-[30rem] xl:min-h-[32rem]">
-        {booking ? (
-          <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
-            <line x1={`${pickupPosition.x}%`} y1={`${pickupPosition.y}%`} x2={`${dropPosition.x}%`} y2={`${dropPosition.y}%`} stroke="rgba(6, 95, 70, 0.22)" strokeWidth="14" strokeLinecap="round" />
-            <line x1={`${pickupPosition.x}%`} y1={`${pickupPosition.y}%`} x2={`${dropPosition.x}%`} y2={`${dropPosition.y}%`} stroke="rgb(5, 150, 105)" strokeWidth="5" strokeLinecap="round" />
+      <div className="relative z-10 h-full min-h-[24rem] p-4 sm:min-h-[30rem] xl:min-h-full">
+        {booking && routePath ? (
+          <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path d={routePath} fill="none" stroke="var(--info)" strokeOpacity="0.2" strokeWidth="4.8" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+            <path d={routePath} fill="none" stroke="var(--info)" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
           </svg>
         ) : null}
         {booking ? <NearbyVehicles /> : null}
@@ -105,13 +112,12 @@ function RoutePin({ type, active, address, position, onClick }: { type: "pickup"
     >
       <span
         className={cn(
-          "relative grid size-12 place-items-center rounded-full border-2 bg-surface shadow-lg transition group-hover:-translate-y-0.5",
-          isPickup ? "border-primary text-primary" : "border-destructive text-destructive",
-          active ? "ring-4 ring-primary/18" : "",
+          "relative grid size-12 place-items-center rounded-full border-2 border-destructive bg-surface text-destructive shadow-lg transition group-hover:-translate-y-0.5",
+          active ? "ring-4 ring-destructive/18" : "",
         )}
       >
         <Icon className="size-6" aria-hidden="true" />
-        <span className={cn("absolute -bottom-2 size-4 rotate-45 border-b-2 border-r-2 bg-surface", isPickup ? "border-primary" : "border-destructive")} aria-hidden="true" />
+        <span className="absolute -bottom-2 size-4 rotate-45 border-b-2 border-r-2 border-destructive bg-surface" aria-hidden="true" />
       </span>
       <span className="pointer-events-none absolute left-1/2 top-full mt-3 hidden -translate-x-1/2 whitespace-nowrap rounded-full border border-border bg-surface/95 px-2.5 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur group-hover:block group-focus-visible:block">
         {label}
@@ -143,11 +149,14 @@ function NearbyVehicles() {
   );
 }
 
-function buildRouteMap(pickup: SelectedLocation, drop: SelectedLocation) {
-  const latMin = Math.min(pickup.lat, drop.lat);
-  const latMax = Math.max(pickup.lat, drop.lat);
-  const lngMin = Math.min(pickup.lng, drop.lng);
-  const lngMax = Math.max(pickup.lng, drop.lng);
+function buildRouteMap(pickup: SelectedLocation, drop: SelectedLocation, routePolyline?: string | null) {
+  const decodedRoute = routePolyline ? decodePolyline(routePolyline) : [];
+  const routePoints = decodedRoute.length >= 2 ? decodedRoute : buildFallbackRoutePoints(pickup, drop);
+  const allPoints = [pickup, drop, ...routePoints];
+  const latMin = Math.min(...allPoints.map((point) => point.lat));
+  const latMax = Math.max(...allPoints.map((point) => point.lat));
+  const lngMin = Math.min(...allPoints.map((point) => point.lng));
+  const lngMax = Math.max(...allPoints.map((point) => point.lng));
   const latPadding = Math.max(0.015, (latMax - latMin) * 0.45);
   const lngPadding = Math.max(0.015, (lngMax - lngMin) * 0.45);
   const bounds = {
@@ -162,8 +171,9 @@ function buildRouteMap(pickup: SelectedLocation, drop: SelectedLocation) {
   });
 
   return {
+    routePoints,
     url: `https://www.openstreetmap.org/export/embed.html?${params.toString()}`,
-    project(location: SelectedLocation): MapPosition {
+    project(location: RouteCoordinate): MapPosition {
       const xRange = bounds.east - bounds.west || 1;
       const yRange = bounds.north - bounds.south || 1;
       const rawX = ((location.lng - bounds.west) / xRange) * 100;
@@ -174,6 +184,75 @@ function buildRouteMap(pickup: SelectedLocation, drop: SelectedLocation) {
         y: clamp(rawY, 18, 84),
       };
     },
+  };
+}
+
+function buildFallbackRoutePoints(pickup: SelectedLocation, drop: SelectedLocation): RouteCoordinate[] {
+  const midLng = pickup.lng + (drop.lng - pickup.lng) * 0.45;
+  const bendLat = pickup.lat + (drop.lat - pickup.lat) * 0.35;
+  const secondBendLat = pickup.lat + (drop.lat - pickup.lat) * 0.74;
+
+  return [
+    { lat: pickup.lat, lng: pickup.lng },
+    { lat: bendLat, lng: midLng },
+    { lat: secondBendLat, lng: midLng + (drop.lng - pickup.lng) * 0.18 },
+    { lat: drop.lat, lng: drop.lng },
+  ];
+}
+
+function buildSvgPath(points: MapPosition[]) {
+  if (points.length === 0) {
+    return "";
+  }
+
+  return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+}
+
+function decodePolyline(polyline: string): RouteCoordinate[] {
+  const points: RouteCoordinate[] = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+
+  try {
+    while (index < polyline.length) {
+      const latitude = decodePolylineValue(polyline, index);
+      index = latitude.nextIndex;
+      lat += latitude.value;
+
+      const longitude = decodePolylineValue(polyline, index);
+      index = longitude.nextIndex;
+      lng += longitude.value;
+
+      points.push({ lat: lat / 1e5, lng: lng / 1e5 });
+    }
+  } catch {
+    return [];
+  }
+
+  return points;
+}
+
+function decodePolylineValue(polyline: string, startIndex: number) {
+  let result = 0;
+  let shift = 0;
+  let index = startIndex;
+  let byte = 0;
+
+  do {
+    if (index >= polyline.length) {
+      throw new Error("Invalid encoded polyline");
+    }
+
+    byte = polyline.charCodeAt(index) - 63;
+    result |= (byte & 0x1f) << shift;
+    shift += 5;
+    index += 1;
+  } while (byte >= 0x20);
+
+  return {
+    value: result & 1 ? ~(result >> 1) : result >> 1,
+    nextIndex: index,
   };
 }
 
