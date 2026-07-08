@@ -116,7 +116,7 @@ export function CartDrawer() {
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <Button type="button" variant="secondary" size="icon" aria-label={`Decrease ${item.name}`} disabled={item.quantity <= 1 || quantityMutation.isPending} onClick={() => quantityMutation.mutate({ menuItemId: item.menuItemId, quantity: item.quantity - 1 })}>
+                        <Button type="button" variant="secondary" size="icon" aria-label={`Decrease ${item.name}`} disabled={quantityMutation.isPending || removeMutation.isPending} onClick={() => (item.quantity <= 1 ? removeMutation.mutate(item.menuItemId) : quantityMutation.mutate({ menuItemId: item.menuItemId, quantity: item.quantity - 1 }))}>
                           <Minus className="size-4" aria-hidden="true" />
                         </Button>
                         <span className="w-8 text-center text-sm font-semibold" aria-live="polite">{item.quantity}</span>
@@ -180,7 +180,7 @@ export function CartDrawer() {
     {hasItems ? (
       <button
         type="button"
-        className="fixed inset-x-4 bottom-4 z-40 flex min-h-14 items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary px-4 text-left text-primary-foreground shadow-[var(--shadow-shell)] md:hidden"
+        className="fixed inset-x-4 bottom-4 z-40 flex min-h-14 items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary px-4 text-left text-primary-foreground shadow-[var(--shadow-shell)] transition hover:-translate-y-0.5 md:left-auto md:right-6 md:w-[22rem]"
         onClick={() => setOpen(true)}
         aria-label={`View cart with ${itemCount} items totaling Rs ${Number(cartTotal).toFixed(0)}`}
       >

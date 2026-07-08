@@ -16,12 +16,15 @@ type LocationState = {
   lng?: number;
 };
 
+type StoreSortMode = "recommended" | "rating" | "fastest" | "nearest" | "min-order";
+
 const quickPicks = ["Food", "Grocery", "Pharmacy", "Rides", "Courier", "Home Services"];
 
 export function CustomerDiscovery() {
   const [selectedType, setSelectedType] = useState<StoreListItem["type"] | undefined>();
   const [query, setQuery] = useState("");
   const [radiusKm, setRadiusKm] = useState(6);
+  const [storeSort, setStoreSort] = useState<StoreSortMode>("recommended");
   const [location, setLocation] = useState<LocationState>({ address: "Bengaluru, Karnataka", lat: 12.930656, lng: 77.638097 });
   const [addressInput, setAddressInput] = useState("Indiranagar, Bengaluru");
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -94,6 +97,7 @@ export function CustomerDiscovery() {
   }
 
   const stores = storesQuery.data?.items ?? [];
+  const sortedStores = useMemo(() => sortStores(stores, storeSort), [storeSort, stores]);
 
   return (
     <div className="space-y-5">
@@ -187,13 +191,28 @@ export function CustomerDiscovery() {
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Marketplace</p>
             <h2 id="stores-heading" className="mt-1 text-2xl font-black tracking-normal text-foreground">Stores near you</h2>
           </div>
-          <div className="grid gap-2 sm:grid-cols-[minmax(14rem,1fr)_9rem] lg:w-[32rem]">
+          <div className="grid gap-2 sm:grid-cols-[minmax(14rem,1fr)_10rem_9rem] lg:w-[42rem]">
             <label className="block text-sm font-semibold text-foreground" htmlFor="store-search">
               <span className="mb-1 flex items-center gap-2"><Search className="size-4 text-muted-foreground" aria-hidden={true} /> Search</span>
               <Input id="store-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Biryani, milk, pharmacy" />
             </label>
+            <label className="block text-sm font-semibold text-foreground" htmlFor="store-sort">
+              <span className="mb-1 flex items-center gap-2"><SlidersHorizontal className="size-4 text-muted-foreground" aria-hidden={true} /> Sort</span>
+              <select
+                id="store-sort"
+                value={storeSort}
+                onChange={(event) => setStoreSort(event.target.value as StoreSortMode)}
+                className="min-h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25"
+              >
+                <option value="recommended">Recommended</option>
+                <option value="rating">Top rated</option>
+                <option value="fastest">Fastest</option>
+                <option value="nearest">Nearest</option>
+                <option value="min-order">Low minimum</option>
+              </select>
+            </label>
             <label className="block text-sm font-semibold text-foreground" htmlFor="radius-filter">
-              <span className="mb-1 flex items-center gap-2"><SlidersHorizontal className="size-4 text-muted-foreground" aria-hidden={true} /> Radius</span>
+              <span className="mb-1 flex items-center gap-2"><MapPin className="size-4 text-muted-foreground" aria-hidden={true} /> Radius</span>
               <select
                 id="radius-filter"
                 value={radiusKm}
@@ -211,9 +230,9 @@ export function CustomerDiscovery() {
 
         <div className="mt-5">
           <QueryState isLoading={storesQuery.isLoading} isError={storesQuery.isError} error={storesQuery.error} onRetry={() => storesQuery.refetch()}>
-            {stores.length > 0 ? (
+            {sortedStores.length > 0 ? (
               <div className="grid gap-3 xl:grid-cols-2">
-                {stores.map((store) => <StoreCard key={store.id} store={store} />)}
+                {sortedStores.map((store) => <StoreCard key={store.id} store={store} />)}
               </div>
             ) : (
               <EmptyState title="No stores found" description="Try a wider radius, a different category, or a broader search term." />
@@ -225,6 +244,25 @@ export function CustomerDiscovery() {
       {storesQuery.isFetching && !storesQuery.isLoading ? <Skeleton className="h-1" /> : null}
     </div>
   );
+}
+
+function sortStores(stores: StoreListItem[], sortMode: StoreSortMode) {
+  return [...stores].sort((a, b) => {
+    if (sortMode === "rating") {
+      return Number(b.ratingAverage) - Number(a.ratingAverage) || b.ratingCount - a.ratingCount;
+    }
+    if (sortMode === "fastest") {
+      return a.etaMinutes - b.etaMinutes;
+    }
+    if (sortMode === "nearest") {
+      return (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY);
+    }
+    if (sortMode === "min-order") {
+      return Number(a.minOrder) - Number(b.minOrder);
+    }
+
+    return Number(b.ratingAverage) - Number(a.ratingAverage) || a.etaMinutes - b.etaMinutes;
+  });
 }
 
 function MiniMetric({ icon: Icon, label, value }: { icon: typeof Clock3; label: string; value: string }) {
