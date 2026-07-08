@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Clock3, PackageCheck, Star } from "lucide-react";
 
+import { ReviewTagPicker, formatTaggedFeedback } from "@/components/feedback/review-tag-picker";
 import { QueryState } from "@/providers/query-state";
 import { OpenDisputePanel } from "@/components/trust";
 import { Button, StatusPill } from "@/components/ui";
@@ -13,6 +14,7 @@ import { useRealtimeTopic } from "@/hooks/use-realtime-topic";
 import { RideMap } from "@/components/rides";
 
 const STATUS_STEPS = ["REQUESTED", "ASSIGNED", "ARRIVED", "IN_TRANSIT", "COMPLETED"];
+const COURIER_REVIEW_TAGS = ["Pickup speed", "Delivery care", "OTP handoff", "Communication", "Package handling"];
 
 export function CourierDetailPage({ courierId }: { courierId: string }) {
   const queryClient = useQueryClient();
@@ -20,13 +22,17 @@ export function CourierDetailPage({ courierId }: { courierId: string }) {
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
   const [rating, setRating] = useState(5);
   const [feedback, setFeedback] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const courierQuery = useQuery({ queryKey: ["courier", courierId], queryFn: () => getCourier(courierId), refetchInterval: 30_000 });
   const courier = courierQuery.data;
   const ratingMutation = useMutation({
-    mutationFn: () => rateCourier(courierId, rating, feedback.trim() || undefined),
+    mutationFn: () => rateCourier(courierId, rating, formatTaggedFeedback(feedback, selectedTags)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["courier", courierId] });
       queryClient.invalidateQueries({ queryKey: ["couriers"] });
+      setFeedback("");
+      setSelectedTags([]);
+      setRating(5);
     },
   });
 
@@ -89,13 +95,16 @@ export function CourierDetailPage({ courierId }: { courierId: string }) {
               <OpenDisputePanel referenceType="COURIER" referenceId={courier.id} />
               {courier.status === "COMPLETED" && !courier.rated ? (
                 <div className="mt-4 space-y-3">
+                  <p className="text-sm font-semibold text-foreground">Rate courier</p>
                   <div className="flex gap-1" role="radiogroup" aria-label="Courier rating">
                     {[1, 2, 3, 4, 5].map((value) => (
                       <button key={value} type="button" aria-pressed={rating === value} onClick={() => setRating(value)} className={value <= rating ? "text-warning" : "text-muted-foreground"}>
                         <Star className="size-5 fill-current" aria-hidden="true" />
+                        <span className="sr-only">{value} stars</span>
                       </button>
                     ))}
                   </div>
+                  <ReviewTagPicker tags={COURIER_REVIEW_TAGS} selectedTags={selectedTags} onChange={setSelectedTags} />
                   <label className="block text-sm font-medium text-foreground" htmlFor="rating-feedback">Feedback</label>
                   <textarea
                     id="rating-feedback"

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SelectedLocation } from "@movex/shared";
-import { ArrowLeft, CreditCard, FileUp, MapPin, ShieldCheck, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowLeft, BellOff, CreditCard, FileUp, MapPin, MessageSquareText, Mic, ShieldCheck, Wallet, type LucideIcon } from "lucide-react";
 
 import { MapPicker } from "@/components/location/map-picker";
 import { QueryState } from "@/providers/query-state";
@@ -25,6 +25,7 @@ export function CheckoutPage() {
   const [location, setLocation] = useState<SelectedLocation | null>(DEFAULT_LOCATION);
   const [addressLine, setAddressLine] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"WALLET" | "CASH" | "ONLINE">("ONLINE");
+  const [deliveryInstruction, setDeliveryInstruction] = useState("Avoid calling");
   const [idempotencyKey, setIdempotencyKey] = useState(() => createIdempotencyKey());
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResponse | null>(null);
@@ -113,6 +114,17 @@ export function CheckoutPage() {
                 </div>
                 <label className="mt-4 block text-sm font-medium text-foreground" htmlFor="address-line">Flat, floor, landmark</label>
                 <Input id="address-line" value={addressLine} onChange={(event) => setAddressLine(event.target.value)} placeholder="Apartment, street, landmark" className="mt-2" />
+                {!addressLine.trim() ? <p className="mt-3 rounded-md border border-warning/25 bg-warning/10 p-3 text-sm text-foreground" role="status">Add flat, floor, or landmark details so the partner can complete delivery without calling.</p> : null}
+              </section>
+
+              <section className="rounded-md border border-border bg-surface p-4" aria-labelledby="instructions-heading">
+                <h2 id="instructions-heading" className="text-base font-semibold text-foreground">Delivery instructions</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Choose one instruction for the partner. You can change it before placing the order.</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <InstructionOption icon={Mic} label="Record note" selected={deliveryInstruction} onSelect={setDeliveryInstruction} />
+                  <InstructionOption icon={MessageSquareText} label="Avoid calling" selected={deliveryInstruction} onSelect={setDeliveryInstruction} />
+                  <InstructionOption icon={BellOff} label="Do not ring bell" selected={deliveryInstruction} onSelect={setDeliveryInstruction} />
+                </div>
               </section>
 
 
@@ -193,9 +205,15 @@ export function CheckoutPage() {
               <div className="mt-3">
                 <ServiceDisclaimer serviceType={cart.store?.type ?? "FOOD"} compact />
               </div>
-              <Button type="button" className="mt-4 w-full" disabled={checkoutMutation.isPending || unavailableItems.length > 0 || (cart.store?.type === "PHARMACY" && !cart.prescription)} onClick={() => checkoutMutation.mutate()}>
-                {checkoutMutation.isPending ? "Placing order" : "Place order"}
-              </Button>
+              <div className="sticky bottom-3 z-20 mt-4 rounded-lg border border-primary/20 bg-surface p-3 shadow-[var(--shadow-shell)]">
+                <div className="mb-3 flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Pay using {paymentMethod}</span>
+                  <span className="text-lg font-black text-foreground">Rs {Number(cart.pricing.total).toFixed(0)}</span>
+                </div>
+                <Button type="button" className="w-full" disabled={checkoutMutation.isPending || unavailableItems.length > 0 || (cart.store?.type === "PHARMACY" && !cart.prescription)} onClick={() => checkoutMutation.mutate()}>
+                  {checkoutMutation.isPending ? "Placing order" : "Place order"}
+                </Button>
+              </div>
             </aside>
           </div>
         )}
@@ -204,6 +222,21 @@ export function CheckoutPage() {
   );
 }
 
+function InstructionOption({ icon: Icon, label, selected, onSelect }: { icon: LucideIcon; label: string; selected: string; onSelect: (value: string) => void }) {
+  const isSelected = selected === label;
+
+  return (
+    <button
+      type="button"
+      aria-pressed={isSelected}
+      className={isSelected ? "min-h-24 rounded-md border border-primary bg-primary/10 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" : "min-h-24 rounded-md border border-border bg-surface-muted p-3 text-left hover:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"}
+      onClick={() => onSelect(label)}
+    >
+      <Icon className={isSelected ? "size-5 text-primary" : "size-5 text-muted-foreground"} aria-hidden="true" />
+      <span className="mt-3 block text-sm font-semibold text-foreground">{label}</span>
+    </button>
+  );
+}
 function PaymentOption({
   label,
   value,

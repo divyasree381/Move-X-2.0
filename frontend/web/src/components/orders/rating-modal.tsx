@@ -4,20 +4,27 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 
+import { ReviewTagPicker, formatTaggedFeedback } from "@/components/feedback/review-tag-picker";
 import { Button, Dialog, DialogContent, Input } from "@/components/ui";
 import { rateOrder } from "@/lib/api";
+
+const ORDER_REVIEW_TAGS = ["Food quality", "Delivery speed", "Packaging", "Cleanliness", "Value for money"];
 
 export function RatingModal({ orderId, open, onOpenChange }: { orderId: string; open: boolean; onOpenChange: (open: boolean) => void }) {
   const queryClient = useQueryClient();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const mutation = useMutation({
-    mutationFn: () => rateOrder(orderId, rating, comment.trim() || undefined),
+    mutationFn: () => rateOrder(orderId, rating, formatTaggedFeedback(comment, selectedTags)),
     onMutate: () => setError(null),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order", orderId] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      setComment("");
+      setSelectedTags([]);
+      setRating(5);
       onOpenChange(false);
     },
     onError: (caught) => setError(caught instanceof Error ? caught.message : "Rating could not be saved"),
@@ -35,6 +42,7 @@ export function RatingModal({ orderId, open, onOpenChange }: { orderId: string; 
               </button>
             ))}
           </div>
+          <ReviewTagPicker tags={ORDER_REVIEW_TAGS} selectedTags={selectedTags} onChange={setSelectedTags} />
           <label className="block text-sm font-medium text-foreground" htmlFor="rating-comment">Comment</label>
           <Input id="rating-comment" value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Optional feedback" />
           {error ? <p className="text-sm text-destructive" role="status">{error}</p> : null}

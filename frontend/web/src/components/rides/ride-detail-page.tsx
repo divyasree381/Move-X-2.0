@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowLeft, Clock3, Star } from "lucide-react";
 
+import { ReviewTagPicker, formatTaggedFeedback } from "@/components/feedback/review-tag-picker";
 import { QueryState } from "@/providers/query-state";
 import { OpenDisputePanel } from "@/components/trust";
 import { Button, StatusPill } from "@/components/ui";
@@ -13,6 +14,7 @@ import { useRealtimeTopic } from "@/hooks/use-realtime-topic";
 import { RideMap } from "./ride-map";
 
 const RIDE_STEPS = ["REQUESTED", "ASSIGNED", "ARRIVED", "IN_RIDE", "COMPLETED"];
+const RIDE_REVIEW_TAGS = ["Driver behavior", "Safe ride", "Clean vehicle", "Route clarity", "On-time pickup"];
 
 export function RideDetailPage({ rideId }: { rideId: string }) {
   const queryClient = useQueryClient();
@@ -20,13 +22,17 @@ export function RideDetailPage({ rideId }: { rideId: string }) {
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
   const [rating, setRating] = useState(5);
   const [feedback, setFeedback] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const rideQuery = useQuery({ queryKey: ["ride", rideId], queryFn: () => getRide(rideId), refetchInterval: 30_000 });
   const ride = rideQuery.data;
   const ratingMutation = useMutation({
-    mutationFn: () => rateRide(rideId, rating, feedback.trim() || undefined),
+    mutationFn: () => rateRide(rideId, rating, formatTaggedFeedback(feedback, selectedTags)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ride", rideId] });
       queryClient.invalidateQueries({ queryKey: ["rides"] });
+      setFeedback("");
+      setSelectedTags([]);
+      setRating(5);
     },
   });
   const cancelMutation = useMutation({
@@ -128,6 +134,7 @@ export function RideDetailPage({ rideId }: { rideId: string }) {
                       </button>
                     ))}
                   </div>
+                  <ReviewTagPicker tags={RIDE_REVIEW_TAGS} selectedTags={selectedTags} onChange={setSelectedTags} />
                   <label className="block text-sm font-medium text-foreground" htmlFor="rating-feedback">Feedback</label>
                   <textarea
                     id="rating-feedback"

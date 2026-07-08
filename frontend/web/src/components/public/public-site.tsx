@@ -3,6 +3,7 @@ import { ArrowRight, Bike, Building2, CheckCircle2, ChevronRight, Clock3, Headph
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui";
+import { PublicHeaderActions } from "./public-header-actions";
 import { cn } from "@/lib/utils";
 import { dietaryLabels, resolveDietaryType, type DietaryType } from "@/lib/dietary";
 import { findPublicStore, heroImageUrl, isPublicStoreType, partnerTracks, publicOffers, publicServices, publicStores, rideOptions, storesByType, type PublicOffer, type PublicService, type PublicStore, type PublicStoreType } from "@/lib/public-site-data";
@@ -84,15 +85,7 @@ export function PublicSiteShell({ active, children }: { active?: PublicNavKey; c
               </Link>
             ))}
           </nav>
-
-          <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/login">Log in</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/customer">Get started</Link>
-            </Button>
-          </div>
+          <PublicHeaderActions />
         </div>
       </header>
 
