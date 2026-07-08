@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clock3, LocateFixed, MapPin, Search, ShieldCheck, SlidersHorizontal, WalletCards } from "lucide-react";
+import { Clock3, Home, LocateFixed, MapPin, Search, ShieldCheck, SlidersHorizontal, WalletCards } from "lucide-react";
 
 import { QueryState } from "@/providers/query-state";
 import { Button, EmptyState, Input, Skeleton, StatusPill } from "@/components/ui";
@@ -19,6 +19,17 @@ type LocationState = {
 type StoreSortMode = "recommended" | "rating" | "fastest" | "nearest" | "min-order";
 
 const quickPicks = ["Food", "Grocery", "Pharmacy", "Rides", "Courier", "Home Services"];
+const recentSearches = ["biryani", "milk", "medicine", "bike ride"];
+const popularSearches: Array<{ label: string; query: string; type?: StoreListItem["type"] }> = [
+  { label: "Dinner near me", query: "biryani", type: "FOOD" },
+  { label: "Daily staples", query: "milk", type: "GROCERY" },
+  { label: "Prescription-ready", query: "medicine", type: "PHARMACY" },
+  { label: "Fast stores", query: "", type: undefined },
+];
+const savedAddresses = [
+  { label: "Home", detail: "Indiranagar, Bengaluru", lat: 12.9784, lng: 77.6408 },
+  { label: "Work", detail: "MG Road, Bengaluru", lat: 12.9756, lng: 77.6068 },
+];
 
 export function CustomerDiscovery() {
   const [selectedType, setSelectedType] = useState<StoreListItem["type"] | undefined>();
@@ -96,6 +107,17 @@ export function CustomerDiscovery() {
     }
   }
 
+  function applySuggestedSearch(nextQuery: string, nextType?: StoreListItem["type"]) {
+    setQuery(nextQuery);
+    setSelectedType(nextType);
+  }
+
+  function applySavedAddress(address: (typeof savedAddresses)[number]) {
+    setAddressInput(address.detail);
+    setLocation({ address: address.detail, lat: address.lat, lng: address.lng });
+    setLocationError(null);
+  }
+
   const stores = storesQuery.data?.items ?? [];
   const sortedStores = useMemo(() => sortStores(stores, storeSort), [storeSort, stores]);
 
@@ -110,7 +132,7 @@ export function CustomerDiscovery() {
                 Search, order, ride, send.
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                One location powers stores, rides, courier pickup, and home services.
+                One pinned location powers stores, dishes, products, rides, courier pickup, and home services.
               </p>
             </div>
             <StatusPill label="Live in Bengaluru" tone="success" className="w-fit" />
@@ -124,7 +146,7 @@ export function CustomerDiscovery() {
                   id="super-search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search biryani, milk, medicines, stores"
+                  placeholder="Search stores, dishes, products, services"
                   className="min-h-12 bg-surface pl-10 text-base"
                 />
               </label>
@@ -140,7 +162,12 @@ export function CustomerDiscovery() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2" aria-label="Popular services">
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <SearchChips title="Recent searches" items={recentSearches.map((label) => ({ label, query: label }))} onPick={applySuggestedSearch} />
+            <SearchChips title="Popular now" items={popularSearches} onPick={applySuggestedSearch} />
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2" aria-label="Available services">
             {quickPicks.map((pick) => (
               <span key={pick} className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted-foreground">
                 {pick}
@@ -174,6 +201,24 @@ export function CustomerDiscovery() {
           </form>
 
           {locationError ? <p className="mt-3 text-sm text-destructive" role="status">{locationError}</p> : null}
+
+          <div className="mt-4 rounded-md border border-success/20 bg-success/10 p-3 text-sm text-foreground">
+            <p className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-success" aria-hidden={true} /> Serviceable in this area</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Food, grocery, pharmacy, rides, courier, and home-service slots can be checked from this pinned location.</p>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Saved addresses</p>
+            {savedAddresses.map((address) => (
+              <button key={address.label} type="button" className="flex min-h-12 w-full items-center gap-3 rounded-md border border-border bg-surface-muted px-3 text-left transition hover:border-primary/35 hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" onClick={() => applySavedAddress(address)}>
+                <Home className="size-4 text-primary" aria-hidden={true} />
+                <span>
+                  <span className="block text-sm font-semibold text-foreground">{address.label}</span>
+                  <span className="block text-xs text-muted-foreground">{address.detail}</span>
+                </span>
+              </button>
+            ))}
+          </div>
 
           <div className="mt-4 grid grid-cols-3 gap-2">
             <MiniMetric icon={Clock3} label="ETA" value="18m" />
@@ -242,6 +287,21 @@ export function CustomerDiscovery() {
       </section>
 
       {storesQuery.isFetching && !storesQuery.isLoading ? <Skeleton className="h-1" /> : null}
+    </div>
+  );
+}
+
+function SearchChips({ title, items, onPick }: { title: string; items: Array<{ label: string; query: string; type?: StoreListItem["type"] }>; onPick: (query: string, type?: StoreListItem["type"]) => void }) {
+  return (
+    <div>
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{title}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {items.map((item) => (
+          <button key={`${title}-${item.label}`} type="button" className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/35 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" onClick={() => onPick(item.query, item.type)}>
+            {item.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, CalendarClock, Home, Star } from "lucide-react";
 
+import { ReviewTagPicker, formatTaggedFeedback } from "@/components/feedback/review-tag-picker";
 import { QueryState } from "@/providers/query-state";
 import { OpenDisputePanel } from "@/components/trust";
 import { Button, StatusPill } from "@/components/ui";
@@ -13,6 +14,7 @@ import { useRealtimeTopic } from "@/hooks/use-realtime-topic";
 import { RideMap } from "@/components/rides";
 
 const STATUS_STEPS = ["REQUESTED", "ASSIGNED", "ARRIVED", "IN_SERVICE", "COMPLETED"];
+const HOME_SERVICE_REVIEW_TAGS = ["Service quality", "Cleanliness", "On time", "Professional behavior", "Pricing clarity"];
 
 export function HomeServiceDetailPage({ bookingId }: { bookingId: string }) {
   const queryClient = useQueryClient();
@@ -20,13 +22,17 @@ export function HomeServiceDetailPage({ bookingId }: { bookingId: string }) {
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
   const [rating, setRating] = useState(5);
   const [feedback, setFeedback] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const bookingQuery = useQuery({ queryKey: ["home-service", bookingId], queryFn: () => getHomeService(bookingId), refetchInterval: 30_000 });
   const booking = bookingQuery.data;
   const ratingMutation = useMutation({
-    mutationFn: () => rateHomeService(bookingId, rating, feedback.trim() || undefined),
+    mutationFn: () => rateHomeService(bookingId, rating, formatTaggedFeedback(feedback, selectedTags)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["home-service", bookingId] });
       queryClient.invalidateQueries({ queryKey: ["home-services"] });
+      setFeedback("");
+      setSelectedTags([]);
+      setRating(5);
     },
   });
 
@@ -89,13 +95,16 @@ export function HomeServiceDetailPage({ bookingId }: { bookingId: string }) {
               <OpenDisputePanel referenceType="HOME_SERVICE" referenceId={booking.id} />
               {booking.status === "COMPLETED" && !booking.rated ? (
                 <div className="mt-4 space-y-3">
+                  <p className="text-sm font-semibold text-foreground">Rate professional</p>
                   <div className="flex gap-1" role="radiogroup" aria-label="Home-service rating">
                     {[1, 2, 3, 4, 5].map((value) => (
                       <button key={value} type="button" aria-pressed={rating === value} onClick={() => setRating(value)} className={value <= rating ? "text-warning" : "text-muted-foreground"}>
                         <Star className="size-5 fill-current" aria-hidden="true" />
+                        <span className="sr-only">{value} stars</span>
                       </button>
                     ))}
                   </div>
+                  <ReviewTagPicker tags={HOME_SERVICE_REVIEW_TAGS} selectedTags={selectedTags} onChange={setSelectedTags} />
                   <label className="block text-sm font-medium text-foreground" htmlFor="rating-feedback">Feedback</label>
                   <textarea
                     id="rating-feedback"

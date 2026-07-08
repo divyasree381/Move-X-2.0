@@ -76,7 +76,7 @@ export function StoreDetailPage({ storeId }: { storeId: string }) {
                 </div>
                 <div className="mt-4">
                   <QueryState isLoading={menuQuery.isLoading} isError={menuQuery.isError} error={menuQuery.error} onRetry={() => menuQuery.refetch()}>
-                    <StoreMenu items={menuQuery.data ?? []} storeType={store.type} storeRating={store.ratingAverage} storeRatingCount={store.ratingCount} />
+                    <StoreMenu items={menuQuery.data ?? []} storeType={store.type} storeRating={store.ratingAverage} storeRatingCount={store.ratingCount} storeEtaMinutes={store.etaMinutes} />
                   </QueryState>
                 </div>
                 <div className="mt-4">

@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Clock3, Minus, Plus, ReceiptText, ShoppingBag, Ticket, Trash2 } from "lucide-react";
 
 import { Button, Drawer, DrawerContent, DrawerTrigger, EmptyState, Input, RetryButton, Skeleton, StatusPill } from "@/components/ui";
-import { ApiError, applyCartCoupon, clearCart, getCart, removeCartCoupon, removeCartItem, updateCartItemQty, type CartResponse } from "@/lib/api";
+import { ApiError, addCartItem, applyCartCoupon, clearCart, getCart, getStoreMenu, removeCartCoupon, removeCartItem, updateCartItemQty, type CartResponse, type MarketplaceMenuItem } from "@/lib/api";
 
 const CART_QUERY_KEY = ["cart"] as const;
 const CART_IMAGE_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Crect width='160' height='160' rx='20' fill='%23ecfdf5'/%3E%3Ccircle cx='112' cy='42' r='36' fill='%23a7f3d0'/%3E%3Crect x='34' y='64' width='92' height='54' rx='14' fill='%23059669' opacity='.2'/%3E%3Cpath d='M50 101h60v10H50zM60 80h42v10H60z' fill='%23059669'/%3E%3C/svg%3E";
@@ -66,11 +66,28 @@ export function CartDrawer() {
     onSuccess: (nextCart) => queryClient.setQueryData(CART_QUERY_KEY, nextCart),
   });
 
+  const addOnMutation = useMutation({
+    mutationFn: (item: MarketplaceMenuItem) => addCartItem({ menuItemId: item.id, quantity: 1, substitutionPreference: { allow: cart?.store?.type === "GROCERY" || cart?.store?.type === "PHARMACY" } }),
+    onSuccess: (nextCart) => queryClient.setQueryData(CART_QUERY_KEY, nextCart),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: CART_QUERY_KEY }),
+  });
+
+  const addOnsQuery = useQuery({
+    queryKey: ["cart-addons", cart?.store?.id],
+    queryFn: () => getStoreMenu(cart?.store?.id ?? ""),
+    enabled: Boolean(cart?.store?.id && cart.items.length > 0),
+    retry: false,
+  });
+
   const itemCount = useMemo(() => cart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0, [cart]);
   const hasItems = Boolean(cart && cart.items.length > 0);
   const cartTotal = cart?.pricing.total ?? "0";
   const etaMinutes = cart?.store?.etaMinutes ?? 18;
   const minimumRemaining = Number(cart?.pricing.minimumRemaining ?? 0);
+  const addOns = useMemo(() => {
+    const existing = new Set(cart?.items.map((item) => item.menuItemId) ?? []);
+    return (addOnsQuery.data ?? []).filter((item) => item.available && item.stock !== 0 && !existing.has(item.id)).slice(0, 4);
+  }, [addOnsQuery.data, cart?.items]);
 
   return (
     <>
@@ -145,6 +162,29 @@ export function CartDrawer() {
                     </article>
                   ))}
                 </div>
+
+                {addOns.length > 0 ? (
+                  <section className="rounded-lg border border-border bg-surface p-3" aria-labelledby="cart-addons-heading">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 id="cart-addons-heading" className="text-base font-semibold text-foreground">You might also like</h3>
+                      <span className="text-xs font-medium text-muted-foreground">Quick add-ons</span>
+                    </div>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      {addOns.map((item) => (
+                        <button key={item.id} type="button" className="grid grid-cols-[3.75rem_1fr_auto] items-center gap-3 rounded-md border border-border bg-surface-muted p-2 text-left transition hover:border-primary/35 hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" onClick={() => addOnMutation.mutate(item)} disabled={addOnMutation.isPending}>
+                          <span className="relative block size-14 overflow-hidden rounded-md bg-surface">
+                            <Image src={item.imageUrl || CART_IMAGE_FALLBACK} alt="" fill sizes="56px" className="object-cover" unoptimized={!item.imageUrl} />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-semibold text-foreground">{item.name}</span>
+                            <span className="block text-xs text-muted-foreground">Rs {Number(item.price).toFixed(0)}</span>
+                          </span>
+                          <span className="rounded-md border border-primary/30 bg-surface px-2 py-1 text-xs font-semibold text-primary">ADD</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
 
                 <form
                   className="rounded-lg border border-border bg-surface p-3"

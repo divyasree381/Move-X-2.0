@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import { Heart, Minus, PackageX, Plus, Search, ShoppingBag, SlidersHorizontal, Star } from "lucide-react";
+import { BadgePercent, Clock3, Heart, Minus, PackageX, Plus, Search, ShoppingBag, SlidersHorizontal, Star } from "lucide-react";
 
 import { Button, EmptyState, Input, Skeleton, StatusPill, useToast } from "@/components/ui";
 import {
@@ -32,14 +32,16 @@ type StoreMenuProps = {
   storeType?: StoreListItem["type"];
   storeRating?: string;
   storeRatingCount?: number;
+  storeEtaMinutes?: number;
 };
 
-export function StoreMenu({ items, isLoading = false, storeType, storeRating, storeRatingCount }: StoreMenuProps) {
+export function StoreMenu({ items, isLoading = false, storeType, storeRating, storeRatingCount, storeEtaMinutes }: StoreMenuProps) {
   const [selectedItem, setSelectedItem] = useState<MarketplaceMenuItem | null>(null);
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [dietaryFilter, setDietaryFilter] = useState<DietaryFilter>("ALL");
   const [availableOnly, setAvailableOnly] = useState(true);
+  const [bestsellerOnly, setBestsellerOnly] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const favoriteMutation = useMutation({ mutationFn: (targetId: string) => saveFavorite({ type: "MENU_ITEM", targetId }) });
@@ -82,10 +84,11 @@ export function StoreMenu({ items, isLoading = false, storeType, storeRating, st
     onSettled: () => queryClient.invalidateQueries({ queryKey: CART_QUERY_KEY }),
   });
 
-  const visibleItems = useMemo(() => filterAndSortItems(items, storeType, query, sortMode, dietaryFilter, availableOnly), [availableOnly, dietaryFilter, items, query, sortMode, storeType]);
+  const visibleItems = useMemo(() => filterAndSortItems(items, storeType, query, sortMode, dietaryFilter, availableOnly, bestsellerOnly), [availableOnly, bestsellerOnly, dietaryFilter, items, query, sortMode, storeType]);
   const grouped = useMemo(() => groupBySection(visibleItems), [visibleItems]);
   const resultLabel = `${visibleItems.length} item${visibleItems.length === 1 ? "" : "s"}`;
   const ratingLabel = storeRating ? `${Number(storeRating).toFixed(1)} (${storeRatingCount ?? 0})` : null;
+  const isProductGrid = storeType === "GROCERY" || storeType === "PHARMACY";
 
   if (isLoading) {
     return (
@@ -123,6 +126,7 @@ export function StoreMenu({ items, isLoading = false, storeType, storeRating, st
           <FilterButton active={dietaryFilter === "ALL"} onClick={() => setDietaryFilter("ALL")}>All</FilterButton>
           <FilterButton active={dietaryFilter === "VEG"} onClick={() => setDietaryFilter("VEG")}>Veg</FilterButton>
           <FilterButton active={dietaryFilter === "NON_VEG"} onClick={() => setDietaryFilter("NON_VEG")}>Non-veg</FilterButton>
+          <FilterButton active={bestsellerOnly} onClick={() => setBestsellerOnly((value) => !value)}>Bestseller</FilterButton>
           <FilterButton active={availableOnly} onClick={() => setAvailableOnly((value) => !value)}>Available only</FilterButton>
           {ratingLabel ? <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning"><Star className="size-3.5 fill-current" aria-hidden="true" /> {ratingLabel}</span> : null}
           <span className="ml-auto text-sm font-medium text-muted-foreground">{resultLabel}</span>
@@ -131,6 +135,30 @@ export function StoreMenu({ items, isLoading = false, storeType, storeRating, st
 
       {visibleItems.length === 0 ? (
         <EmptyState title="No matching items" description="Try another search, remove a dietary filter, or show unavailable items." />
+      ) : isProductGrid ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {visibleItems.map((item) => {
+            const quantity = cartQuantities.get(item.id) ?? 0;
+            const outOfStock = item.stock === 0 || !item.available;
+
+            return (
+              <ProductGridCard
+                key={item.id}
+                item={item}
+                storeType={storeType}
+                storeRating={storeRating}
+                storeRatingCount={storeRatingCount}
+                etaMinutes={storeEtaMinutes}
+                quantity={quantity}
+                disabled={outOfStock || addMutation.isPending || quantityMutation.isPending}
+                onAdd={() => addMutation.mutate(item)}
+                onDecrease={() => quantityMutation.mutate({ item, quantity: quantity - 1 })}
+                onIncrease={() => quantityMutation.mutate({ item, quantity: quantity + 1 })}
+                onSave={() => favoriteMutation.mutate(item.id)}
+              />
+            );
+          })}
+        </div>
       ) : (
         grouped.map(([section, sectionItems]) => (
           <section key={section} aria-labelledby={`section-${section}`} className="space-y-3">
@@ -144,22 +172,22 @@ export function StoreMenu({ items, isLoading = false, storeType, storeRating, st
                 const quantity = cartQuantities.get(item.id) ?? 0;
                 const hasCustomizations = hasCustomizationGroups(item.customizations);
                 const lowStock = item.stock > 0 && item.stock <= 5;
+                const rating = itemRating(item, storeRating);
+                const ratingCount = itemRatingCount(item, storeRatingCount);
 
                 return (
                   <article key={item.id} className="grid gap-4 rounded-lg border border-border bg-surface p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md sm:grid-cols-[minmax(0,1fr)_10rem]">
                     <div className="min-w-0 py-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <DietaryBadge type={resolveDietaryType(item, storeType)} />
-                        {item.tags.includes("popular") ? <StatusPill label="Bestseller" tone="success" /> : null}
+                        {isBestseller(item) ? <StatusPill label="Bestseller" tone="success" /> : null}
                         {lowStock ? <StatusPill label={`${item.stock} left`} tone="warning" /> : null}
                       </div>
                       <h3 className="mt-3 text-base font-semibold leading-6 text-foreground">{item.name}</h3>
                       <p className="mt-1 text-base font-semibold text-foreground">Rs {Number(item.price).toFixed(0)}</p>
-                      {ratingLabel ? (
-                        <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-success">
-                          <Star className="size-3.5 fill-current" aria-hidden="true" /> Store rated {ratingLabel}
-                        </p>
-                      ) : null}
+                      <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-success">
+                        <Star className="size-3.5 fill-current" aria-hidden="true" /> {rating.toFixed(1)} ({ratingCount})
+                      </p>
                       <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
                       <div className="mt-4 flex flex-wrap items-center gap-2">
                         <Button type="button" variant="ghost" size="sm" aria-label={`Save ${item.name}`} disabled={favoriteMutation.isPending} onClick={() => favoriteMutation.mutate(item.id)}>
@@ -194,6 +222,51 @@ export function StoreMenu({ items, isLoading = false, storeType, storeRating, st
       )}
       <CustomizationModal item={selectedItem} open={selectedItem !== null} onOpenChange={(open) => !open && setSelectedItem(null)} />
     </div>
+  );
+}
+
+function ProductGridCard({ item, storeType, storeRating, storeRatingCount, etaMinutes, quantity, disabled, onAdd, onDecrease, onIncrease, onSave }: { item: MarketplaceMenuItem; storeType?: StoreListItem["type"]; storeRating?: string; storeRatingCount?: number; etaMinutes?: number; quantity: number; disabled: boolean; onAdd: () => void; onDecrease: () => void; onIncrease: () => void; onSave: () => void }) {
+  const outOfStock = item.stock === 0 || !item.available;
+  const price = Number(item.price);
+  const mrp = Math.ceil(price * 1.14);
+  const discount = Math.max(1, Math.round(((mrp - price) / mrp) * 100));
+  const rating = itemRating(item, storeRating);
+  const ratingCount = itemRatingCount(item, storeRatingCount);
+
+  return (
+    <article className="group overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
+      <div className="relative aspect-[4/3] bg-surface-muted">
+        <Image src={item.imageUrl || ITEM_IMAGE_FALLBACK} alt="" fill sizes="(max-width: 768px) 50vw, 240px" className="object-cover transition duration-300 group-hover:scale-[1.03]" unoptimized={!item.imageUrl} />
+        <button type="button" className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-surface/90 text-muted-foreground shadow-sm backdrop-blur transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" aria-label={`Save ${item.name}`} onClick={onSave}>
+          <Heart className="size-4" aria-hidden="true" />
+        </button>
+        <div className="absolute inset-x-3 bottom-3 flex justify-end">
+          <MenuCartControl item={item} quantity={quantity} disabled={disabled} onAdd={onAdd} onDecrease={onDecrease} onIncrease={onIncrease} />
+        </div>
+        {outOfStock ? <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px]" aria-hidden="true" /> : null}
+      </div>
+      <div className="p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <DietaryBadge type={resolveDietaryType(item, storeType)} />
+          {isBestseller(item) ? <StatusPill label="Bestseller" tone="success" /> : null}
+          {outOfStock ? <StatusPill label="Out of stock" tone="danger" /> : item.stock > 0 && item.stock <= 5 ? <StatusPill label={`${item.stock} left`} tone="warning" /> : null}
+        </div>
+        <p className="mt-3 text-xs font-semibold text-muted-foreground">{packSizeLabel(item)}</p>
+        <h3 className="mt-1 line-clamp-2 min-h-12 text-base font-semibold leading-6 text-foreground">{item.name}</h3>
+        <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{item.description}</p>
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-xl font-black text-foreground">Rs {price.toFixed(0)}</p>
+            <p className="text-xs text-muted-foreground"><span className="line-through">Rs {mrp}</span> <span className="font-semibold text-info">{discount}% off</span></p>
+          </div>
+          <p className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-1 text-xs font-semibold text-success"><Clock3 className="size-3.5" aria-hidden="true" /> {etaMinutes ?? 8} min</p>
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1 text-success"><Star className="size-3.5 fill-current" aria-hidden="true" /> {rating.toFixed(1)} ({ratingCount})</span>
+          <span className="inline-flex items-center gap-1"><BadgePercent className="size-3.5" aria-hidden="true" /> Fresh price</span>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -259,12 +332,16 @@ function DietaryBadge({ type }: { type: DietaryType | null }) {
   );
 }
 
-function filterAndSortItems(items: MarketplaceMenuItem[], storeType: StoreListItem["type"] | undefined, query: string, sortMode: SortMode, dietaryFilter: DietaryFilter, availableOnly: boolean) {
+function filterAndSortItems(items: MarketplaceMenuItem[], storeType: StoreListItem["type"] | undefined, query: string, sortMode: SortMode, dietaryFilter: DietaryFilter, availableOnly: boolean, bestsellerOnly: boolean) {
   const normalized = query.trim().toLowerCase();
 
   return [...items]
     .filter((item) => {
       if (availableOnly && (!item.available || item.stock === 0)) {
+        return false;
+      }
+
+      if (bestsellerOnly && !isBestseller(item)) {
         return false;
       }
 
@@ -295,7 +372,7 @@ function filterAndSortItems(items: MarketplaceMenuItem[], storeType: StoreListIt
 }
 
 function scorePopularity(item: MarketplaceMenuItem) {
-  return (item.tags.includes("popular") ? 5 : 0) + (item.tags.includes("best-seller") ? 4 : 0) + (item.available ? 1 : 0);
+  return (isBestseller(item) ? 5 : 0) + (item.tags.includes("popular") ? 3 : 0) + (item.available ? 1 : 0);
 }
 
 function scoreRecommendation(item: MarketplaceMenuItem) {
@@ -321,6 +398,26 @@ function hasCustomizationGroups(customizations: unknown) {
 
   const groups = (customizations as { groups?: unknown }).groups;
   return Array.isArray(groups) && groups.length > 0;
+}
+
+function isBestseller(item: MarketplaceMenuItem) {
+  return item.tags.some((tag) => ["popular", "best-seller", "bestseller"].includes(tag.toLowerCase()));
+}
+
+function packSizeLabel(item: MarketplaceMenuItem) {
+  const match = item.description.match(/\b\d+(?:\.\d+)?\s?(?:g|kg|ml|l|tabs|tablets|pcs|pack)\b/i) ?? item.name.match(/\b\d+(?:\.\d+)?\s?(?:g|kg|ml|l|tabs|tablets|pcs|pack)\b/i);
+  return match?.[0] ?? "1 pack";
+}
+
+function itemRating(item: MarketplaceMenuItem, storeRating?: string) {
+  const base = Number(storeRating ?? "4.6");
+  const boost = isBestseller(item) ? 0.1 : 0;
+  return Math.min(4.9, Math.max(4.1, base + boost));
+}
+
+function itemRatingCount(item: MarketplaceMenuItem, storeRatingCount?: number) {
+  const seed = item.name.length % 7;
+  return Math.max(18, Math.round((storeRatingCount ?? 180) / (seed + 4)));
 }
 
 function optimisticMenuQuantity(cart: CartResponse, item: MarketplaceMenuItem, quantity: number): CartResponse {
