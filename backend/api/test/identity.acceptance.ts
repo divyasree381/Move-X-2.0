@@ -168,7 +168,6 @@ class InMemoryIdentityRepository {
       profileCompleted: false,
       lastSeenAt: null,
       lastLoginAt: null,
-      profileCompleted: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -267,7 +266,6 @@ class InMemoryIdentityRepository {
       profileCompleted: false,
       lastSeenAt: null,
       lastLoginAt: null,
-      profileCompleted: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

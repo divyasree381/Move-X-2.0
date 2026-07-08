@@ -17,9 +17,9 @@ const DEFAULT_PICKUP: SelectedLocation = { address: "Indiranagar, Bengaluru", la
 const DEFAULT_DROP: SelectedLocation = { address: "MG Road, Bengaluru", lat: 12.9756, lng: 77.6068, source: "map-click" };
 
 const VEHICLES = [
-  { value: "BIKE", label: "Bike", helper: "Fast solo rides", icon: Bike, arrivalMinutes: 3, fare: { base: 25, perKm: 8, perMinute: 1 } },
-  { value: "AUTO", label: "Auto", helper: "Everyday city trips", icon: Car, arrivalMinutes: 5, fare: { base: 35, perKm: 13, perMinute: 1.5 } },
-  { value: "CAB", label: "Cab", helper: "Comfort rides", icon: Car, arrivalMinutes: 7, fare: { base: 70, perKm: 19, perMinute: 2.5 } },
+  { value: "BIKE", label: "Bike", helper: "Fast solo rides", capacity: "1 rider", icon: Bike, arrivalMinutes: 3, fare: { base: 25, perKm: 8, perMinute: 1 } },
+  { value: "AUTO", label: "Auto", helper: "Everyday city trips", capacity: "3 seats", icon: Car, arrivalMinutes: 5, fare: { base: 35, perKm: 13, perMinute: 1.5 } },
+  { value: "CAB", label: "Cab", helper: "Comfort rides", capacity: "4 seats", icon: Car, arrivalMinutes: 7, fare: { base: 70, perKm: 19, perMinute: 2.5 } },
 ] as const;
 
 const PAYMENTS = ["CASH", "WALLET", "ONLINE"] as const;
@@ -57,13 +57,13 @@ export function RideBookingPage() {
   });
   const backendFare = estimate.data?.vehicleType === vehicleType ? Number(estimate.data.estimatedFare) : null;
   const selectedFare = backendFare ?? selectedVehicle.price;
-  const routeLabel = `${routePreview.distanceKm.toFixed(1)} km - ${routePreview.durationMinutes} min`;
+  const routeLabel = `${routePreview.distanceKm.toFixed(1)} km • ${routePreview.durationMinutes} min`;
 
   return (
     <div className="space-y-4">
       <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)]">
-        <div className="grid min-h-[42rem] xl:grid-cols-[28rem_1fr]">
-          <aside className="relative z-20 flex flex-col border-b border-border bg-surface p-4 xl:border-b-0 xl:border-r">
+        <div className="grid xl:min-h-[calc(100dvh-9rem)] xl:grid-cols-[27rem_minmax(0,1fr)]">
+          <aside className="relative z-20 order-2 flex flex-col border-t border-border bg-surface p-4 xl:order-1 xl:max-h-[calc(100dvh-9rem)] xl:overflow-y-auto xl:border-r xl:border-t-0">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-ride">Mobility</p>
@@ -97,20 +97,11 @@ export function RideBookingPage() {
               />
             </div>
 
-            <div className="mt-5 rounded-md border border-border bg-surface-muted p-3">
-              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Navigation className="size-4 text-primary" aria-hidden="true" /> Route preview
+            <div className="mt-5 rounded-md border border-primary/20 bg-primary/10 p-3">
+              <p className="flex items-center gap-2 text-sm font-semibold text-primary">
+                <Navigation className="size-4" aria-hidden="true" /> {routePreview.distanceKm.toFixed(1)} km • {routePreview.durationMinutes} min trip
               </p>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                <div className="rounded-md border border-border bg-surface p-3">
-                  <p className="text-muted-foreground">Distance</p>
-                  <p className="mt-1 text-lg font-semibold text-foreground">{routePreview.distanceKm.toFixed(1)} km</p>
-                </div>
-                <div className="rounded-md border border-border bg-surface p-3">
-                  <p className="text-muted-foreground">ETA</p>
-                  <p className="mt-1 text-lg font-semibold text-foreground">{routePreview.durationMinutes} min</p>
-                </div>
-              </div>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Pickup and drop stay in the fields; the map shows route pins, vehicle proximity, and movement.</p>
             </div>
 
             <div className="mt-5">
@@ -147,13 +138,13 @@ export function RideBookingPage() {
               <CancellationPolicyCard serviceType="RIDE" />
             </div>
 
-            <Button type="button" className="mt-5 w-full" disabled={createMutation.isPending} onClick={() => createMutation.mutate()}>
+            <Button type="button" className="sticky bottom-3 z-20 mt-5 w-full shadow-[var(--shadow-shell)] xl:static xl:shadow-none" disabled={createMutation.isPending} onClick={() => createMutation.mutate()}>
               {createMutation.isPending ? "Finding drivers" : `Book ${selectedVehicle.label.toLowerCase()}`}
             </Button>
             {createMutation.error ? <p role="status" className="mt-2 text-sm text-destructive">{createMutation.error instanceof Error ? createMutation.error.message : "Ride could not be created"}</p> : null}
           </aside>
 
-          <div className="relative min-h-[32rem] bg-surface-muted p-3 sm:p-4">
+          <div className="relative order-1 min-h-[22rem] bg-surface-muted p-3 sm:min-h-[28rem] sm:p-4 xl:order-2 xl:min-h-[calc(100dvh-9rem)]">
             <RideMap phase="booking" pickup={pickup} drop={drop} activePoint={activePoint} onActivePointChange={setActivePoint} routeLabel={routeLabel} />
           </div>
         </div>
@@ -204,12 +195,12 @@ function VehicleOptionCard({ vehicle, active, onClick }: { vehicle: (typeof VEHI
       <span>
         <span className="block font-semibold text-foreground">{vehicle.label}</span>
         <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-          <Clock3 className="size-3.5" aria-hidden="true" /> {vehicle.arrivalMinutes} min away - {vehicle.helper}
+          <Clock3 className="size-3.5" aria-hidden="true" /> {vehicle.arrivalMinutes} min pickup, {vehicle.capacity}, {vehicle.helper}
         </span>
       </span>
       <span className="text-right">
         <span className="block text-base font-semibold text-foreground">Rs {vehicle.price.toFixed(0)}</span>
-        <span className="text-xs text-muted-foreground">Preview</span>
+        <span className="text-xs text-muted-foreground">Fare estimate</span>
       </span>
     </button>
   );

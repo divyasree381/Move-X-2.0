@@ -285,11 +285,12 @@ export function PublicStoreDetailPage({ storeId }: { storeId: string }) {
 
         <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_20rem] lg:px-8">
           <div className="space-y-6">
-            <div className="grid gap-3 sm:grid-cols-4">
-              <Metric icon={Star} label="Rating" value={`${store.rating.toFixed(1)} (${store.ratingCount})`} />
-              <Metric icon={Clock3} label="ETA" value={`${store.etaMinutes} min`} />
-              <Metric icon={IndianRupee} label="Minimum" value={`Rs ${store.minOrder}`} />
-              <Metric icon={MapPin} label="Distance" value={`${store.distanceKm.toFixed(1)} km`} />
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <Metric icon={Star} label="Rated by customers" value={`${store.rating.toFixed(1)} (${store.ratingCount})`} />
+              <Metric icon={Clock3} label="Arrives in" value={`${store.etaMinutes}-${store.etaMinutes + 8} min`} />
+              <Metric icon={Truck} label="Delivery fee" value="Rs 29" />
+              <Metric icon={IndianRupee} label="Min order" value={`Rs ${store.minOrder}`} />
+              <Metric icon={MapPin} label="Store distance" value={`${store.distanceKm.toFixed(1)} km away`} />
             </div>
 
             {sections.map((section) => (
@@ -307,7 +308,12 @@ export function PublicStoreDetailPage({ storeId }: { storeId: string }) {
                           </div>
                           <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
                         </div>
-                        <p className="shrink-0 text-sm font-medium">{item.price === 0 ? "Review required" : `Rs ${item.price}`}</p>
+                        <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+                          <p className="text-sm font-medium">{item.price === 0 ? "Review required" : `Rs ${item.price}`}</p>
+                          <Button asChild size="sm" variant="secondary">
+                            <Link href={`/customer/stores/${store.id}`}>Add in app</Link>
+                          </Button>
+                        </div>
                       </div>
                     </article>
                   ))}
@@ -316,12 +322,18 @@ export function PublicStoreDetailPage({ storeId }: { storeId: string }) {
             ))}
           </div>
 
-          <aside className="h-fit rounded-lg border border-border bg-surface p-4 shadow-[var(--shadow-shell)]">
-            <h2 className="text-lg font-medium">Ready to order?</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Sign in to use the live cart, pricing, coupons, prescriptions, and OTP-tracked fulfillment.</p>
+          <aside className="h-fit rounded-lg border border-border bg-surface p-4 shadow-[var(--shadow-shell)] lg:sticky lg:top-24">
+            <p className="text-sm font-medium text-primary">Live ordering</p>
+            <h2 className="mt-1 text-xl font-medium">Build your cart in the customer app</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Browse the menu here, then add items with live cart pricing, coupons, prescription checks, and OTP-tracked delivery inside the customer flow.</p>
+            <div className="mt-4 grid gap-2 rounded-md border border-border bg-surface-muted p-3 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-2"><Clock3 className="size-4 text-primary" aria-hidden="true" /> Arrives in {store.etaMinutes}-{store.etaMinutes + 8} min</span>
+              <span className="inline-flex items-center gap-2"><IndianRupee className="size-4 text-primary" aria-hidden="true" /> Minimum order Rs {store.minOrder}</span>
+              <span className="inline-flex items-center gap-2"><MapPin className="size-4 text-primary" aria-hidden="true" /> Delivering near selected location</span>
+            </div>
             <div className="mt-4 grid gap-2">
-              <Button asChild><Link href={`/customer/stores/${store.id}`}>Open in customer app</Link></Button>
-              <Button asChild variant="secondary"><Link href="/login">Log in first</Link></Button>
+              <Button asChild><Link href={`/customer/stores/${store.id}`}>Start adding items</Link></Button>
+              <Button asChild variant="secondary"><Link href="/login/customer">Continue with customer login</Link></Button>
             </div>
           </aside>
         </section>
@@ -686,4 +698,3 @@ function AboutMetric({ value, label, description }: { value: string; label: stri
 export function resolvePublicStoreType(value: unknown): PublicStoreType | undefined {
   return isPublicStoreType(value) ? value : undefined;
 }
-

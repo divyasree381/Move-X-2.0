@@ -40,9 +40,9 @@ export function StoreCard({ store }: { store: StoreListItem }) {
         </div>
         <div className="mt-auto grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
           <Metric icon={Star} label="Rating" value={`${Number(store.ratingAverage).toFixed(1)} (${store.ratingCount})`} accent="text-warning" />
-          <Metric icon={Clock3} label="ETA" value={`${store.etaMinutes} min`} accent="text-primary" />
-          <Metric label="Minimum" value={`Rs ${Number(store.minOrder).toFixed(0)}`} />
-          {store.distanceKm !== undefined ? <Metric icon={MapPin} label="Distance" value={`${store.distanceKm.toFixed(1)} km`} /> : <Metric icon={MapPin} label="Radius" value={`${Number(store.deliveryRadiusKm).toFixed(0)} km`} />}
+          <Metric icon={Clock3} label="Arrives" value={`${store.etaMinutes}-${store.etaMinutes + 8} min`} accent="text-primary" />
+          <Metric label="Min order" value={`Rs ${Number(store.minOrder).toFixed(0)}`} />
+          {store.distanceKm !== undefined ? <Metric icon={MapPin} label="Nearby" value={`${store.distanceKm.toFixed(1)} km`} /> : <Metric icon={MapPin} label="Radius" value={`${Number(store.deliveryRadiusKm).toFixed(0)} km`} />}
         </div>
       </div>
     </Link>
