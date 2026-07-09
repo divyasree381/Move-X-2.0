@@ -92,7 +92,7 @@ export function LocationDemo() {
           </div>
 
           <div className="space-y-4 rounded-lg border border-border bg-background p-4">
-            <LocationSearchInput label={`${activeLabel} search`} value={activeLocation} onChange={updateActiveLocation} placeholder={`Search ${activeLabel.toLowerCase()} address`} bias={pickup ? { lat: pickup.lat, lng: pickup.lng } : undefined} />
+            <LocationSearchInput value={activeLocation} onChange={updateActiveLocation} placeholder={`Search ${activeLabel.toLowerCase()} address`} bias={pickup ? { lat: pickup.lat, lng: pickup.lng } : undefined} />
             <div>
               <p className="text-sm font-medium text-foreground">Saved places</p>
               <div className="mt-2 grid gap-2 sm:grid-cols-3 lg:grid-cols-1">

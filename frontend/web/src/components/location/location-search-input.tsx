@@ -1,24 +1,26 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { MapSuggestion, SelectedLocation } from "@movex/shared";
+import { Clock, Heart, Map as MapIcon, Plus } from "lucide-react";
 
 import { autocompleteLocations, geocodeAddress, getPlaceDetails } from "@/lib/api";
 
 type LocationSearchInputProps = {
-  label: string;
   value: SelectedLocation | null;
   onChange: (location: SelectedLocation) => void;
   placeholder?: string;
   bias?: { lat: number; lng: number; radiusMeters?: number };
 };
 
-export function LocationSearchInput({ label, value, onChange, placeholder, bias }: LocationSearchInputProps) {
+export function LocationSearchInput({ value, onChange, placeholder, bias }: LocationSearchInputProps) {
   const listId = useId();
   const [query, setQuery] = useState(value?.address ?? "");
   const [suggestions, setSuggestions] = useState<MapSuggestion[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     setQuery(value?.address ?? "");
@@ -61,18 +63,6 @@ export function LocationSearchInput({ label, value, onChange, placeholder, bias 
     };
   }, [bias, query, value?.address]);
 
-  const helperText = useMemo(() => {
-    if (error) {
-      return error;
-    }
-
-    if (value) {
-      return value.source === "gps" ? "GPS location selected" : "Location pin selected";
-    }
-
-    return isLoading ? "Searching nearby places..." : "Search, pick from suggestions, or use a typed address.";
-  }, [error, isLoading, value]);
-
   async function selectSuggestion(placeId: string) {
     setIsLoading(true);
     setError(null);
@@ -81,6 +71,7 @@ export function LocationSearchInput({ label, value, onChange, placeholder, bias 
       const selected = await getPlaceDetails(placeId);
       onChange(selected);
       setSuggestions([]);
+      setIsFocused(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load place details");
     } finally {
@@ -110,54 +101,91 @@ export function LocationSearchInput({ label, value, onChange, placeholder, bias 
   }
 
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground" htmlFor={listId}>
-        {label}
-      </label>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          id={listId}
-          className="min-h-12 flex-1 rounded-md border border-input bg-surface px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-          value={query}
-          placeholder={placeholder ?? "Search address"}
-          autoComplete="off"
-          aria-autocomplete="list"
-          aria-controls={`${listId}-suggestions`}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
+    <div className="relative">
+      <input
+        id={listId}
+        className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground focus:ring-0"
+        value={query}
+        placeholder={placeholder ?? "Where do you want to go?"}
+        autoComplete="off"
+        aria-autocomplete="list"
+        aria-controls={`${listId}-suggestions`}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => {
+          setTimeout(() => {
+            setIsFocused(false);
+            if (query.trim().length >= 3 && query !== value?.address) {
               void useTypedFallback();
             }
-          }}
-        />
-        <button
-          type="button"
-          className="min-h-12 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-muted-foreground sm:whitespace-nowrap"
-          disabled={query.trim().length < 3 || isLoading}
-          onClick={() => void useTypedFallback()}
-        >
-          Use typed
-        </button>
-      </div>
-      <p className={error ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{helperText}</p>
-      {suggestions.length > 0 ? (
+          }, 200);
+        }}
+        onChange={(event) => setQuery(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            void useTypedFallback();
+            event.currentTarget.blur();
+          }
+        }}
+      />
+      {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}
+      
+      {isFocused && query.trim().length < 2 && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-3 rounded-md border border-border bg-surface p-2 shadow-[var(--shadow-shell)]">
+          <div className="flex gap-2 p-1">
+            <button className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-border bg-surface-muted py-2 text-xs font-semibold text-foreground transition hover:bg-border">
+              <MapIcon className="size-3.5" /> Select on map
+            </button>
+            <button className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-border bg-surface-muted py-2 text-xs font-semibold text-foreground transition hover:bg-border">
+              <Plus className="size-3.5" /> Add stop
+            </button>
+          </div>
+          
+          <div className="mt-2 border-t border-border pt-2">
+            <button className="flex w-full items-center gap-3 px-2 py-2.5 text-left transition hover:bg-surface-muted rounded-md">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-muted">
+                <Heart className="size-3.5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-foreground">Home</p>
+                <p className="truncate text-xs text-muted-foreground">Add home address</p>
+              </div>
+            </button>
+            <button className="flex w-full items-center gap-3 px-2 py-2.5 text-left transition hover:bg-surface-muted rounded-md">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-muted">
+                <Clock className="size-3.5 text-muted-foreground" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-foreground">Kempegowda International Airport</p>
+                <p className="truncate text-xs text-muted-foreground">Bengaluru, Karnataka</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {suggestions.length > 0 && isFocused ? (
         <ul
           id={`${listId}-suggestions`}
-          className="overflow-hidden rounded-md border border-border bg-surface shadow-[var(--shadow-shell)]"
+          className="absolute left-0 right-0 top-full z-50 mt-3 overflow-hidden rounded-md border border-border bg-surface shadow-[var(--shadow-shell)]"
           role="listbox"
         >
           {suggestions.map((suggestion) => (
             <li key={suggestion.placeId} role="option" aria-selected="false">
               <button
                 type="button"
-                className="block w-full px-3 py-2 text-left text-sm transition hover:bg-primary/10 focus:bg-primary/10 focus:outline-none"
+                className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-surface-muted focus:bg-surface-muted focus:outline-none"
                 onClick={() => void selectSuggestion(suggestion.placeId)}
               >
-                <span className="block font-medium text-foreground">{suggestion.mainText}</span>
-                {suggestion.secondaryText ? (
-                  <span className="block text-muted-foreground">{suggestion.secondaryText}</span>
-                ) : null}
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-muted">
+                  <MapIcon className="size-3.5 text-muted-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-foreground">{suggestion.mainText}</span>
+                  {suggestion.secondaryText ? (
+                    <span className="block truncate text-xs text-muted-foreground">{suggestion.secondaryText}</span>
+                  ) : null}
+                </div>
               </button>
             </li>
           ))}

@@ -1,4 +1,5 @@
 import * as https from "https";
+import * as http from "http";
 import type { IncomingMessage } from "http";
 import { Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 
@@ -43,7 +44,8 @@ export class HttpSmsProvider implements SmsProvider {
 
     try {
       const responseText = await new Promise<string>((resolve, reject) => {
-        const req = https.get(url.toString(), (res: IncomingMessage) => {
+        const request = url.protocol === 'https:' ? https.request : http.request;
+        const req = request(url.toString(), { method: 'GET' }, (res: IncomingMessage) => {
           let data = '';
           res.on('data', (chunk: Buffer) => data += chunk.toString());
           res.on('end', () => {

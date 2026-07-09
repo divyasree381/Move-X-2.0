@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { RedisStoreModule } from "../../infrastructure/redis/redis-store.module";
-import { GoogleMapsProvider } from "./google-maps.provider";
+import { OpenSourceMapsProvider } from "./open-source-maps.provider";
 import { MapsController } from "./maps.controller";
 import { MAPS_PROVIDER } from "./maps-provider";
 import { MapsService } from "./maps.service";
@@ -11,10 +11,10 @@ import { MapsService } from "./maps.service";
   controllers: [MapsController],
   providers: [
     MapsService,
-    GoogleMapsProvider,
+    OpenSourceMapsProvider,
     {
       provide: MAPS_PROVIDER,
-      useExisting: GoogleMapsProvider,
+      useExisting: OpenSourceMapsProvider,
     },
   ],
   exports: [MapsService, MAPS_PROVIDER],
