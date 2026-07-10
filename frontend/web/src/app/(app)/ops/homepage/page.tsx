@@ -1,6 +1,5 @@
-import { OpsHomepagePage } from "@/components/ops";
-import { OpsConsoleShell } from "@/components/shells";
+import { notFound } from "next/navigation";
 
 export default function OpsHomepageRoute() {
-  return <OpsConsoleShell><OpsHomepagePage /></OpsConsoleShell>;
+  notFound();
 }

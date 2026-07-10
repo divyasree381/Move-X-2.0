@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Bike, Clock3, Heart, MapPin, ReceiptText, Search, Star, Truck, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Bike, Clock3, Heart, MapPin, ReceiptText, Search, Star, Truck, type LucideIcon,
+} from "lucide-react";
 
 import { CartDrawer } from "@/components/orders";
 import { ServiceDisclaimer } from "@/components/trust";
@@ -17,11 +18,14 @@ const DETAIL_IMAGE_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.or
 
 export function StoreDetailPage({ storeId }: { storeId: string }) {
   const storeQuery = useQuery({ queryKey: ["store", storeId], queryFn: () => getStore(storeId) });
-  const favoriteMutation = useMutation({ mutationFn: () => saveFavorite({ type: "STORE", targetId: storeId }) });
-  const menuQuery = useQuery({ queryKey: ["store-menu", storeId], queryFn: () => getStoreMenu(storeId) });
+  const favoriteMutation = useMutation({ mutationFn: () => saveFavorite({ type: "STORE", targetId: storeId }),
+  });
+  const menuQuery = useQuery({ queryKey: ["store-menu", storeId], queryFn: () => getStoreMenu(storeId),
+  });
   const cartQuery = useQuery({ queryKey: ["cart"], queryFn: getCart, retry: false });
   const store = storeQuery.data;
-  const itemCount = useMemo(() => cartQuery.data?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0, [cartQuery.data]);
+  const itemCount = useMemo(() => cartQuery.data?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0, [cartQuery.data],
+  );
   const arrivalWindow = store ? `${store.etaMinutes}-${store.etaMinutes + 8} min` : "--";
   const distanceLabel = store?.distanceKm ? `${store.distanceKm.toFixed(1)} km away` : `${Number(store?.deliveryRadiusKm ?? 0).toFixed(0)} km delivery radius`;
 
@@ -68,9 +72,10 @@ export function StoreDetailPage({ storeId }: { storeId: string }) {
               <section className="rounded-lg border border-border bg-surface p-4 shadow-sm" aria-labelledby="menu-heading">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium text-primary">Live catalog</p>
+                    <p className="text-sm font-medium text-primary">Store catalog</p>
                     <h2 id="menu-heading" className="mt-1 text-2xl font-semibold text-foreground">Search, sort, and add items</h2>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">Cart prices are shown for convenience; checkout still recomputes everything server-side.</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      Prices and availability are confirmed again when you place the order.</p>
                   </div>
                   <StatusPill label={`${menuQuery.data?.length ?? 0} products`} tone="info" />
                 </div>
@@ -98,7 +103,8 @@ export function StoreDetailPage({ storeId }: { storeId: string }) {
                 </div>
                 <div className="mt-4 grid gap-2 text-sm">
                   <span className="inline-flex items-center gap-2 text-muted-foreground"><Bike className="size-4 text-primary" aria-hidden="true" /> Delivery partner assigned after checkout</span>
-                  <span className="inline-flex items-center gap-2 text-muted-foreground"><Search className="size-4 text-primary" aria-hidden="true" /> Coupons and prescription checks stay validated by backend</span>
+                  <span className="inline-flex items-center gap-2 text-muted-foreground"><Search className="size-4 text-primary" aria-hidden="true" /> Coupons and prescription requirements are checked at checkout
+                  </span>
                 </div>
                 {itemCount > 0 ? (
                   <Button asChild className="mt-4 w-full">
@@ -118,7 +124,9 @@ export function StoreDetailPage({ storeId }: { storeId: string }) {
   );
 }
 
-function CommerceMetric({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: string; value: string; tone: string }) {
+function CommerceMetric({ icon: Icon, label, value, tone,
+}: { icon: LucideIcon; label: string; value: string; tone: string;
+}) {
   return (
     <div className="rounded-md border border-border bg-surface-muted p-3">
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground"><Icon className={`size-4 ${tone}`} aria-hidden="true" /> {label}</p>

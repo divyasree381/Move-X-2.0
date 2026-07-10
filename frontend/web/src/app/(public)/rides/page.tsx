@@ -1,5 +1,5 @@
-import { PublicRidesPage } from "@/components/public/public-site";
+import { redirect } from "next/navigation";
 
 export default function RidesRoute() {
-  return <PublicRidesPage />;
+  redirect("/customer/rides");
 }

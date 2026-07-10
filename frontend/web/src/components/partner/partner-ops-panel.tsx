@@ -2,25 +2,29 @@
 
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, Clock3, IndianRupee, Route, WalletCards } from "lucide-react";
+import { CalendarClock, Clock3, IndianRupee, WalletCards } from "lucide-react";
 
 import { Button, EmptyState, Input, StatusPill } from "@/components/ui";
-import { cancelPartnerShift, createPartnerShift, partnerOpsSummary, type PartnerPeriodSummary, type PartnerShift } from "@/lib/api";
+import { cancelPartnerShift, createPartnerShift, partnerOpsSummary, type PartnerPeriodSummary, type PartnerShift,
+} from "@/lib/api";
 
 export function PartnerOpsPanel({ isOnline }: { isOnline: boolean }) {
   const queryClient = useQueryClient();
   const [startsAt, setStartsAt] = useState(defaultShiftStart());
   const [endsAt, setEndsAt] = useState(defaultShiftEnd());
   const [note, setNote] = useState("");
-  const ops = useQuery({ queryKey: ["partner-ops"], queryFn: () => partnerOpsSummary(), refetchInterval: isOnline ? 30_000 : 90_000 });
+  const ops = useQuery({ queryKey: ["partner-ops"], queryFn: () => partnerOpsSummary(), refetchInterval: isOnline ? 30_000 : 90_000,
+  });
   const createShift = useMutation({
-    mutationFn: () => createPartnerShift({ startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString(), note: note.trim() || undefined }),
+    mutationFn: () => createPartnerShift({ startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString(), note: note.trim() || undefined,
+      }),
     onSuccess: () => {
       setNote("");
       queryClient.invalidateQueries({ queryKey: ["partner-ops"] });
     },
   });
-  const cancelShift = useMutation({ mutationFn: cancelPartnerShift, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["partner-ops"] }) });
+  const cancelShift = useMutation({ mutationFn: cancelPartnerShift, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["partner-ops"] }),
+  });
   const data = ops.data;
 
   return (
@@ -30,24 +34,23 @@ export function PartnerOpsPanel({ isOnline }: { isOnline: boolean }) {
           <p className="text-sm font-semibold text-delivery">Operations</p>
           <h2 id="partner-ops-heading" className="text-base font-semibold text-foreground">Earnings and availability</h2>
         </div>
-        <StatusPill label={data?.routePlan.mode ?? "STUB"} tone="info" />
-      </div>
+        </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-4">
-        <Metric icon={<IndianRupee className="size-4" aria-hidden="true" />} label="Today ledger net" value={money(data?.daily.ledger.net)} sub={`${data?.daily.ledger.entryCount ?? 0} entries`} />
-        <Metric icon={<WalletCards className="size-4" aria-hidden="true" />} label="Unsettled" value={money(data?.daily.ledger.unsettled)} sub="Ledger-backed" />
+        <Metric icon={<IndianRupee className="size-4" aria-hidden="true" />} label="Today earnings" value={money(data?.daily.ledger.net)} sub={`${data?.daily.ledger.entryCount ?? 0} transactions`} />
+        <Metric icon={<WalletCards className="size-4" aria-hidden="true" />} label="Pending payout" value={money(data?.daily.ledger.unsettled)} sub="Awaiting payout" />
         <Metric icon={<Clock3 className="size-4" aria-hidden="true" />} label="Online today" value={formatDuration(data?.daily.online.seconds ?? 0)} sub={`${data?.daily.online.sessions.length ?? 0} sessions`} />
-        <Metric icon={<IndianRupee className="size-4" aria-hidden="true" />} label="Week ledger net" value={money(data?.weekly.ledger.net)} sub="Ledger-reconciled" />
+        <Metric icon={<IndianRupee className="size-4" aria-hidden="true" />} label="Week earnings" value={money(data?.weekly.ledger.net)} sub="After adjustments" />
       </div>
 
       {data ? (
-        <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_22rem]">
+        <div className="mt-4">
           <LedgerReconcile summary={data.daily} />
           <OnlineSessions summary={data.daily} />
         </div>
       ) : null}
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_22rem]">
+      <div className="mt-4">
         <section className="rounded-md border border-border bg-surface-muted p-3" aria-labelledby="shift-heading">
           <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarClock className="size-4 text-brand" aria-hidden="true" /><h3 id="shift-heading">Shift schedule</h3></div>
           <div className="mt-3 grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
@@ -57,24 +60,22 @@ export function PartnerOpsPanel({ isOnline }: { isOnline: boolean }) {
             <Button type="button" disabled={createShift.isPending || !startsAt || !endsAt} onClick={() => createShift.mutate()}>Add shift</Button>
           </div>
           <div className="mt-3 grid gap-2">
-            {(data?.shifts ?? []).length > 0 ? (data?.shifts ?? []).map((shift) => <ShiftRow key={shift.id} shift={shift} onCancel={() => cancelShift.mutate(shift.id)} disabled={cancelShift.isPending} />) : <EmptyState title="No shifts scheduled" description="Add availability windows so queues can respect your planned work time." />}
+            {(data?.shifts ?? []).length > 0 ? (
+              (data?.shifts ?? []).map((shift) => (
+                <ShiftRow key={shift.id} shift={shift} onCancel={() => cancelShift.mutate(shift.id)} disabled={cancelShift.isPending} />))
+            ) : (
+              <EmptyState title="No shifts scheduled" description="Add availability windows so queues can respect your planned work time." />
+            )}
           </div>
-        </section>
-
-        <section className="rounded-md border border-border bg-surface-muted p-3" aria-labelledby="route-heading">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Route className="size-4 text-ride" aria-hidden="true" /><h3 id="route-heading">Batching hooks</h3></div>
-          <p className="mt-2 text-sm text-muted-foreground">Objective: {data?.routePlan.objective ?? "ETA"}</p>
-          <p className="mt-1 text-sm text-muted-foreground">Max stops: {data?.routePlan.maxStops ?? 6}</p>
-          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            {(data?.routePlan.notes ?? ["Route optimization stub is ready."]).map((item) => <li key={item}>{item}</li>)}
-          </ul>
         </section>
       </div>
     </section>
   );
 }
 
-function Metric({ icon, label, value, sub }: { icon: ReactNode; label: string; value: string; sub: string }) {
+function Metric({ icon, label, value, sub,
+}: { icon: ReactNode; label: string; value: string; sub: string;
+}) {
   return (
     <div className="rounded-md border border-border bg-surface-muted p-3">
       <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">{icon} {label}</p>
@@ -88,13 +89,12 @@ function LedgerReconcile({ summary }: { summary: PartnerPeriodSummary }) {
   return (
     <div className="rounded-md border border-border bg-surface-muted p-3 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-semibold text-foreground">Ledger reconciliation</p>
-        <StatusPill label={`${summary.ledger.entryCount} entries`} tone="info" />
+        <p className="font-semibold text-foreground">Earnings breakdown</p>
+        <StatusPill label={`${summary.ledger.entryCount} transactions`} tone="info" />
       </div>
-      <p className="mt-2 text-muted-foreground">{summary.ledger.formula}</p>
       <div className="mt-3 grid gap-2 sm:grid-cols-3">
         <span>Credits: {money(summary.ledger.grossCredits)}</span>
-        <span>Debits: {money(summary.ledger.debits)}</span>
+        <span>Deductions: {money(summary.ledger.debits)}</span>
         <span>Payouts: {money(summary.payouts.total)}</span>
       </div>
     </div>
@@ -110,22 +110,31 @@ function OnlineSessions({ summary }: { summary: PartnerPeriodSummary }) {
         <StatusPill label={formatDuration(summary.online.seconds)} tone="success" />
       </div>
       <div className="mt-3 grid gap-2">
-        {sessions.length > 0 ? sessions.map((session) => (
+        {sessions.length > 0 ? (
+          sessions.map((session) => (
           <div key={session.id} className="rounded-md border border-border bg-surface px-3 py-2">
-            <p className="font-medium text-foreground">{new Date(session.startedAt).toLocaleTimeString()} to {session.endedAt ? new Date(session.endedAt).toLocaleTimeString() : "now"}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Last location update: {session.lastHeartbeatAt ? new Date(session.lastHeartbeatAt).toLocaleTimeString() : "not received"}</p>
+            <p className="font-medium text-foreground">{new Date(session.startedAt).toLocaleTimeString()} to {" "}
+                {session.endedAt ? new Date(session.endedAt).toLocaleTimeString() : "now"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Last location update: {" "}
+                {session.lastHeartbeatAt ? new Date(session.lastHeartbeatAt).toLocaleTimeString() : "not received"}</p>
           </div>
-        )) : <EmptyState title="No online sessions today" description="Go online to start tracking availability time." />}
+        ))
+        ) : (
+          <EmptyState title="No online sessions today" description="Go online to start tracking availability time." />
+        )}
       </div>
     </div>
   );
 }
 
-function ShiftRow({ shift, onCancel, disabled }: { shift: PartnerShift; onCancel: () => void; disabled?: boolean }) {
+function ShiftRow({ shift, onCancel, disabled,
+}: { shift: PartnerShift; onCancel: () => void; disabled?: boolean;
+}) {
   return (
     <article className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-surface p-3 text-sm">
       <div>
-        <p className="font-semibold text-foreground">{new Date(shift.startsAt).toLocaleString()} to {new Date(shift.endsAt).toLocaleTimeString()}</p>
+        <p className="font-semibold text-foreground">{new Date(shift.startsAt).toLocaleString()} to {" "}
+          {new Date(shift.endsAt).toLocaleTimeString()}</p>
         <p className="mt-1 text-muted-foreground">{shift.note ?? "Availability window"}</p>
       </div>
       <div className="flex items-center gap-2">

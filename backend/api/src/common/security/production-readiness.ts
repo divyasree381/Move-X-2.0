@@ -1,4 +1,4 @@
-﻿import { getAllowedOrigins } from "../utils/origin.util";
+import { getAllowedOrigins } from "../utils/origin.util";
 
 const LOCAL_ORIGIN_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d+)?$/i;
 
@@ -23,6 +23,8 @@ export function validateProductionReadiness(): void {
   requireEnv(errors, "AUTH_HASH_SECRET");
   requireEnv(errors, "CONFIG_SECRET_KEY");
   requireEnv(errors, "MFA_SECRET_KEY");
+  requireEnv(errors, "OTP_HASH_SALT");
+  requireEnv(errors, "ORDER_OTP_HASH_SALT");
   requireEnv(errors, "RAZORPAY_KEY_ID");
   requireEnv(errors, "RAZORPAY_KEY_SECRET");
   requireEnv(errors, "RAZORPAY_WEBHOOK_SECRET");
@@ -35,7 +37,17 @@ export function validateProductionReadiness(): void {
     errors.push("SMS_PROVIDER=mock is not allowed in production.");
   }
   requireEnv(errors, "SMS_GATEWAY_URL");
-  requireEnv(errors, "SMS_GATEWAY_API_KEY");
+  if (!process.env.SMS_GATEWAY_API_KEY && !process.env.SMS_GATEWAY_SECRET) {
+    errors.push("SMS_GATEWAY_API_KEY is required in production.");
+  }
+
+  const mapsProvider = (process.env.MAPS_PROVIDER ?? "open-source").trim().toLowerCase();
+  if (!new Set(["open-source", "google"]).has(mapsProvider)) {
+    errors.push(`Unsupported MAPS_PROVIDER: ${mapsProvider}`);
+  }
+  if (mapsProvider === "google") {
+    requireEnv(errors, "GOOGLE_MAPS_API_KEY");
+  }
 
   if ((process.env.PAYMENT_PROVIDER ?? "mock") === "mock") {
     errors.push("PAYMENT_PROVIDER=mock is not allowed in production.");
@@ -55,4 +67,3 @@ function requireEnv(errors: string[], key: string): void {
     errors.push(`${key} is required in production.`);
   }
 }
-

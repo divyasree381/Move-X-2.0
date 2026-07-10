@@ -28,7 +28,8 @@ type Coordinates = {
   lng: number;
 };
 
-export function MapPickerClient({ value, onChange, showAdvancedControls = false }: MapPickerClientProps) {
+export function MapPickerClient({ value, onChange, showAdvancedControls = false,
+}: MapPickerClientProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const current = value ?? DEFAULT_LOCATION;
   const [draftCoordinates, setDraftCoordinates] = useState<Coordinates | null>(null);
@@ -155,11 +156,12 @@ export function MapPickerClient({ value, onChange, showAdvancedControls = false 
           event.currentTarget.releasePointerCapture(event.pointerId);
 
           if (coordinates) {
-            void commitCoordinates(coordinates.lat, coordinates.lng, hasMoved ? "marker-drag" : "map-click");
+            void commitCoordinates(coordinates.lat, coordinates.lng, hasMoved ? "marker-drag" : "map-click",
+            );
           }
         }}
       >
-        <iframe title="Map preview" className="pointer-events-none absolute inset-0 h-full w-full border-0 opacity-80 saturate-[0.88]" src={mapPreviewUrl} loading="lazy" tabIndex={-1} />
+        <iframe title="Location map" className="pointer-events-none absolute inset-0 h-full w-full border-0 opacity-80 saturate-[0.88]" src={mapPreviewUrl} loading="lazy" tabIndex={-1} />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(249,250,251,0.34)_0%,rgba(249,250,251,0)_32%,rgba(249,250,251,0.78)_100%)] dark:bg-[linear-gradient(180deg,rgba(11,15,13,0.4)_0%,rgba(11,15,13,0)_35%,rgba(11,15,13,0.86)_100%)]" aria-hidden={true} />
 
         <div className="absolute left-3 top-3 flex flex-wrap gap-2 sm:left-4 sm:top-4">
@@ -220,4 +222,3 @@ export function MapPickerClient({ value, onChange, showAdvancedControls = false 
     </div>
   );
 }
-

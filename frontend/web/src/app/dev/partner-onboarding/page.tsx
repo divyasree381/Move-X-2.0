@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { PartnerOnboardingPage } from "@/components/partner";
 import { getPartnerLoginConfig, isPartnerLoginType, type PartnerLoginType } from "@/lib/auth-flow";
 import type { AuthUser } from "@/lib/api";
@@ -6,7 +7,9 @@ type DevPartnerOnboardingPageProps = {
   searchParams: Promise<{ type?: string }>;
 };
 
-export default async function DevPartnerOnboardingPage({ searchParams }: DevPartnerOnboardingPageProps) {
+export default async function DevPartnerOnboardingPage({ searchParams,
+}: DevPartnerOnboardingPageProps) {
+  if (process.env.NODE_ENV === "production") notFound();
   const params = await searchParams;
   const partnerType: PartnerLoginType = isPartnerLoginType(params.type) ? params.type : "store-partner";
   const partner = getPartnerLoginConfig(partnerType);

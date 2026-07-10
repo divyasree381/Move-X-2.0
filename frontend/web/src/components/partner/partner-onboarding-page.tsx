@@ -948,7 +948,7 @@ function LocationStep({ form, updateForm }: { form: VerificationForm; updateForm
               </span>
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  {form.location ? "Location pin selected" : "Location pin preview"}
+                  {form.location ? "Location pin selected" : "Choose a location pin"}
                 </p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
                   {selectedLocation.address}
@@ -1176,7 +1176,9 @@ function DocumentReferenceFields({
     );
   }
 
-  return <p className="text-sm leading-6 text-muted-foreground">Upload this document so admins can review it with the rest of the profile.</p>;
+  return (
+    <p className="text-sm leading-6 text-muted-foreground">Upload this document so admins can review it with the rest of the profile.</p>
+  );
 }
 
 function SettlementReviewStep({
@@ -1410,8 +1412,7 @@ function LiveCapturePanel({
         <div>
           <p className="text-sm font-medium text-foreground">Live partner photo</p>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            Capture a live selfie for liveness review. It stays local until the verification API is
-            connected.
+            Use good lighting and keep your face clearly visible for identity verification.
           </p>
         </div>
       </div>

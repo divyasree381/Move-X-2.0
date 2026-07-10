@@ -93,6 +93,8 @@ async function main(): Promise<void> {
       AUTH_HASH_SECRET: "prod-auth-secret",
       CONFIG_SECRET_KEY: "prod-config-secret",
       MFA_SECRET_KEY: "prod-mfa-secret",
+      OTP_HASH_SALT: "prod-ride-otp-salt",
+      ORDER_OTP_HASH_SALT: "prod-order-otp-salt",
       RAZORPAY_KEY_ID: "rzp_live_key",
       RAZORPAY_KEY_SECRET: "rzp_live_secret",
       RAZORPAY_WEBHOOK_SECRET: "webhook-secret",
@@ -145,5 +147,3 @@ async function main(): Promise<void> {
 }
 
 void main();
-
-

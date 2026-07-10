@@ -418,6 +418,7 @@ type TestContext = {
   app: INestApplication;
   repository: InMemoryIdentityRepository;
   redisStore: TestRedisStoreService;
+  smsProvider: TestSmsProvider;
 };
 
 async function createApp(): Promise<TestContext> {
@@ -449,7 +450,7 @@ async function createApp(): Promise<TestContext> {
   setupApp(app);
   await app.init();
 
-  return { app, repository, redisStore };
+  return { app, repository, redisStore, smsProvider };
 }
 
 function requestOtp(server: App, phone: string, role: OtpLoginRole = "CUSTOMER") {
@@ -460,9 +461,9 @@ function verifyOtp(server: App, phone: string, code: string, role: OtpLoginRole 
   return request(server).post("/api/v1/auth/otp/verify").send({ phone, role, code });
 }
 
-function getDevCode(response: request.Response): string {
-  const code = response.body.data?.devCode;
-  assert.equal(typeof code, "string");
+function getSentOtp(context: TestContext): string {
+  const code = context.smsProvider.sentMessages.at(-1)?.code;
+  assert(code, "Expected the test SMS provider to receive an OTP");
   assert.match(code, /^\d{6}$/);
   return code;
 }
@@ -519,7 +520,8 @@ async function main(): Promise<void> {
   try {
     const firstRequest = await requestOtp(server, "99000 00101");
     assert.equal(firstRequest.body.data.message, "If the OTP can be sent, it will arrive shortly.");
-    const firstCode = getDevCode(firstRequest);
+    assert.equal(firstRequest.body.data?.devCode, undefined);
+    const firstCode = getSentOtp(context);
     assertStorageDoesNotContain(context, firstCode);
 
     let verifyResponse!: request.Response;
@@ -540,8 +542,8 @@ async function main(): Promise<void> {
 
     await verifyOtp(server, "9900000101", firstCode).expect(401);
 
-    const secondRequest = await requestOtp(server, "+91 99000 00101");
-    const secondCode = getDevCode(secondRequest);
+    await requestOtp(server, "+91 99000 00101");
+    const secondCode = getSentOtp(context);
     await verifyOtp(server, "919900000101", secondCode).expect(201);
     assert.equal(context.repository.users.length, 1);
 
@@ -563,15 +565,15 @@ async function main(): Promise<void> {
       .expect(201);
     await request(server).get("/api/v1/auth/me").set("Cookie", `${sessionCookieName}=${sessionToken}`).expect(401);
 
-    const expiredRequest = await requestOtp(server, "9900000102");
-    const expiredCode = getDevCode(expiredRequest);
+    await requestOtp(server, "9900000102");
+    const expiredCode = getSentOtp(context);
     const expiredOtpKey = Object.keys(context.redisStore.dumpMemoryForTesting()).find((key) => key.startsWith("identity:otp:latest:") && key.includes("+919900000102"));
     assert(expiredOtpKey);
     context.redisStore.expireMemoryKeyForTesting(expiredOtpKey);
     await verifyOtp(server, "9900000102", expiredCode).expect(401);
 
-    const limitedRequest = await requestOtp(server, "9900000103");
-    const limitedCode = getDevCode(limitedRequest);
+    await requestOtp(server, "9900000103");
+    const limitedCode = getSentOtp(context);
     const wrongCode = limitedCode === "000000" ? "111111" : "000000";
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -649,8 +651,8 @@ async function main(): Promise<void> {
       .send({ email: "ops@movex.test", password: "OpsPassword123" })
       .expect(401);
 
-    const partnerOtpRequest = await requestOtp(server, "9900000201", "DRIVER");
-    const partnerCode = getDevCode(partnerOtpRequest);
+    await requestOtp(server, "9900000201", "DRIVER");
+    const partnerCode = getSentOtp(context);
     const partnerVerifyResponse = await verifyOtp(server, "9900000201", partnerCode, "DRIVER").expect(201);
     const partnerToken = getCookieValue(partnerVerifyResponse, sessionCookieName);
     const partnerId = partnerVerifyResponse.body.data.user.id;

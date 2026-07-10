@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { MapTravelMode, RouteSummary as RouteSummaryType, SelectedLocation } from "@movex/shared";
+import type { MapTravelMode, RouteSummary as RouteSummaryType, SelectedLocation,
+} from "@movex/shared";
 import { AlertCircle, Clock3, Route, type LucideIcon } from "lucide-react";
 
 import { getRoute } from "@/lib/api";
@@ -57,15 +58,21 @@ export function RouteSummary({ from, to, mode = "DRIVE" }: RouteSummaryProps) {
   }, [route]);
 
   if (!from || !to) {
-    return <RouteState icon={Route} title="Set both locations" description="Pickup and drop are needed before MoveX can preview distance and ETA." />;
+    return (
+      <RouteState icon={Route} title="Set both locations" description="Choose pickup and drop to calculate distance and ETA." />
+    );
   }
 
   if (status === "loading") {
-    return <RouteState icon={Clock3} title="Calculating route" description="Checking distance, ETA, and the best service path." pulse />;
+    return (
+      <RouteState icon={Clock3} title="Calculating route" description="Checking distance, ETA, and the best service path." pulse />
+    );
   }
 
   if (status === "error") {
-    return <RouteState icon={AlertCircle} title="Route preview unavailable" description="You can still continue with typed addresses. ETA will refresh when maps are available." tone="warning" />;
+    return (
+      <RouteState icon={AlertCircle} title="Route temporarily unavailable" description="You can still continue with typed addresses. ETA will refresh when maps are available." tone="warning" />
+    );
   }
 
   if (!display) {
@@ -86,7 +93,9 @@ export function RouteSummary({ from, to, mode = "DRIVE" }: RouteSummaryProps) {
   );
 }
 
-function RouteState({ icon: Icon, title, description, tone = "muted", pulse = false }: { icon: LucideIcon; title: string; description: string; tone?: "muted" | "warning"; pulse?: boolean }) {
+function RouteState({ icon: Icon, title, description, tone = "muted", pulse = false,
+}: { icon: LucideIcon; title: string; description: string; tone?: "muted" | "warning"; pulse?: boolean;
+}) {
   return (
     <div className={tone === "warning" ? "rounded-lg border border-warning/30 bg-warning/10 p-4 text-warning" : "rounded-lg border border-border bg-surface-muted p-4 text-muted-foreground"}>
       <div className="flex items-start gap-3">
@@ -101,4 +110,3 @@ function RouteState({ icon: Icon, title, description, tone = "muted", pulse = fa
     </div>
   );
 }
-

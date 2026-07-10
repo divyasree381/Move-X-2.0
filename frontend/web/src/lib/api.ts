@@ -898,6 +898,10 @@ export function logout() {
   return fetchApi<{ message: string }>("/auth/logout", { method: "POST", skipRefresh: true });
 }
 
+export function logoutAllSessions() {
+  return fetchApi<{ message: string }>("/auth/logout-all", { method: "POST", skipRefresh: true });
+}
+
 const PARTNER_AUTH_ROLES = ["RESTAURANT", "DELIVERY", "DRIVER"] as const;
 
 export function isPartnerAuthRole(role: AuthRole | string): role is Extract<AuthRole, "RESTAURANT" | "DELIVERY" | "DRIVER"> {
@@ -931,6 +935,45 @@ export type CurrentUser = AuthUserResponse;
 
 export function currentUser() {
   return fetchApi<CurrentUser>("/auth/me");
+}
+
+export type CustomerAddress = {
+  id: string;
+  userId: string;
+  line: string;
+  city: string;
+  state: string;
+  pincode: string;
+  lat: number | string;
+  lng: number | string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CustomerAddressInput = Pick<CustomerAddress, "line" | "city" | "state" | "pincode" | "isDefault"> & {
+  lat: number;
+  lng: number;
+};
+
+export function updateCustomerProfile(input: { name?: string; email?: string; avatarUrl?: string }) {
+  return fetchApi<AuthUser>("/users/me", { method: "PATCH", body: JSON.stringify(input) });
+}
+
+export function listCustomerAddresses() {
+  return fetchApi<CustomerAddress[]>("/users/me/addresses");
+}
+
+export function createCustomerAddress(input: CustomerAddressInput) {
+  return fetchApi<CustomerAddress>("/users/me/addresses", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function updateCustomerAddress(addressId: string, input: Partial<CustomerAddressInput>) {
+  return fetchApi<CustomerAddress>(`/users/me/addresses/${encodeURIComponent(addressId)}`, { method: "PATCH", body: JSON.stringify(input) });
+}
+
+export function deleteCustomerAddress(addressId: string) {
+  return fetchApi<{ deleted: true }>(`/users/me/addresses/${encodeURIComponent(addressId)}`, { method: "DELETE" });
 }
 
 export function submitPartnerProfile(input: { name?: string; avatarUrl?: string }) {

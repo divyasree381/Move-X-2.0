@@ -4,17 +4,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, Bike, Building2, ChevronRight, Headphones, Home, ShieldCheck, Store, Truck, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Bike, Building2, ChevronRight,
+  Home, ShieldCheck, Store, Truck, UserRound, type LucideIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PARTNER_LOGIN_TYPE_SESSION_KEY, partnerLoginConfigs, type PartnerLoginConfig } from "@/lib/auth-flow";
-import { adminLogin, requestOtpLogin, routeForAuthenticatedUser, type OtpLoginRole, verifyOtpLogin } from "@/lib/api";
+import { PARTNER_LOGIN_TYPE_SESSION_KEY, partnerLoginConfigs, type PartnerLoginConfig,
+} from "@/lib/auth-flow";
+import { adminLogin, requestOtpLogin, routeForAuthenticatedUser, type OtpLoginRole, verifyOtpLogin,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const INTRO_SESSION_KEY = "movex-login-intro-seen";
+const SHOW_DEVELOPMENT_OTP = process.env.NODE_ENV === "development";
 const serviceChips = ["Food", "Grocery", "Pharmacy", "Rides", "Courier", "Home"];
-const trustChips = ["OTP secure", "HttpOnly sessions", "Role locked"];
+const trustChips = ["OTP secure", "Private sessions", "Role-protected"];
 
 const partnerIcons: Record<PartnerLoginConfig["slug"], LucideIcon> = {
   "store-partner": Store,
@@ -50,10 +55,10 @@ const gatewayOptions = [
 export function LoginPage() {
   return (
     <AuthFrame eyebrow="Welcome to MoveX" title="Choose how you want to sign in" description="A cleaner entry point for customers, partners, and operations teams.">
-      <div className="grid gap-3">
-        {gatewayOptions.map((option) => <AuthOptionCard key={option.href} {...option} />)}
+      <div className="grid gap-2.5">
+        {gatewayOptions.map((option) => (
+          <AuthOptionCard key={option.href} {...option} />))}
       </div>
-      <p className="mt-5 text-sm leading-6 text-muted-foreground">Pick one path. We keep the auth role fixed for the rest of the flow, so OTP verification stays clean and role-based.</p>
     </AuthFrame>
   );
 }
@@ -100,7 +105,7 @@ export function PartnerOtpLoginPage({ partner }: { partner: PartnerLoginConfig }
   const Icon = partnerIcons[partner.slug];
 
   return (
-    <AuthFrame eyebrow="Partner OTP" title={`Continue as ${partner.label}`} description="Your partner type is selected before OTP, so the backend receives the correct auth role." backHref="/login/partner">
+    <AuthFrame eyebrow="Partner OTP" title={`Continue as ${partner.label}`} description="Continue securely with the partner account type you selected." backHref="/login/partner">
       <div className="mb-3 rounded-md border border-border bg-surface-muted p-3">
         <div className="flex items-start gap-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
@@ -125,7 +130,9 @@ export function StaffLoginPage() {
   );
 }
 
-function OtpLoginFlow({ role, label, description, partnerType }: { role: OtpLoginRole; label: string; description: string; partnerType?: PartnerLoginConfig["slug"] }) {
+function OtpLoginFlow({ role, label, description, partnerType,
+}: { role: OtpLoginRole; label: string; description: string; partnerType?: PartnerLoginConfig["slug"];
+}) {
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
   const canAnimate = !prefersReducedMotion;
@@ -172,9 +179,10 @@ function OtpLoginFlow({ role, label, description, partnerType }: { role: OtpLogi
 
       const result = await requestOtpLogin({ phone, role });
       setOtpRequested(true);
-      setDevCode(result.devCode ?? null);
-      setStatus(result.devCode ? `Development OTP: ${result.devCode}` : result.message);
-      setCode(result.devCode ?? "");
+      const developmentCode = SHOW_DEVELOPMENT_OTP ? (result.devCode ?? null) : null;
+      setDevCode(developmentCode);
+      setStatus(developmentCode ? "Your one-time code is ready." : result.message);
+      setCode(developmentCode ?? "");
       setTimeLeft(300);
       setIsTimerActive(true);
     } catch (caught) {
@@ -214,8 +222,10 @@ function OtpLoginFlow({ role, label, description, partnerType }: { role: OtpLogi
 
     try {
       const result = await requestOtpLogin({ phone, role });
-      setDevCode(result.devCode ?? null);
-      setStatus(result.devCode ? `Development OTP: ${result.devCode}` : "A new OTP has been sent.");
+      const developmentCode = SHOW_DEVELOPMENT_OTP ? (result.devCode ?? null) : null;
+      setDevCode(developmentCode);
+      setStatus(developmentCode ? "Your new one-time code is ready." : "A new OTP has been sent.");
+      setCode(developmentCode ?? "");
       setTimeLeft(300);
       setIsTimerActive(true);
     } catch (caught) {
@@ -267,7 +277,10 @@ function OtpLoginFlow({ role, label, description, partnerType }: { role: OtpLogi
               <label className="text-sm font-medium" htmlFor="otp-code">OTP code</label>
               <Input id="otp-code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="6 digits" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="min-h-11" disabled={isSubmitting || timeLeft === 0} />
             </div>
-            {devCode ? <p className="text-sm text-muted-foreground">Local dev code: <span className="font-medium text-foreground">{devCode}</span></p> : null}
+            {SHOW_DEVELOPMENT_OTP && devCode ? (
+              <p className="text-sm text-muted-foreground">
+                One-time code: <span className="font-medium text-foreground">{devCode}</span></p>
+            ) : null}
             
             {timeLeft > 0 ? (
               <p className={`text-sm transition-colors duration-300 ${timeLeft <= 30 ? "text-destructive animate-pulse" : "text-muted-foreground"}`}>
@@ -318,7 +331,8 @@ function StaffLoginFlow() {
     setIsSubmitting(true);
 
     try {
-      const result = await adminLogin({ email, password, mfaCode: showMfaField && mfaCode ? mfaCode : undefined });
+      const result = await adminLogin({ email, password, mfaCode: showMfaField && mfaCode ? mfaCode : undefined,
+      });
       router.replace(routeForAuthenticatedUser(result.user));
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not sign in.";
@@ -348,7 +362,7 @@ function StaffLoginFlow() {
       <form className="space-y-4" onSubmit={submitStaffLogin}>
         <div className="space-y-1.5">
           <label className="text-sm font-medium" htmlFor="staff-email">Email</label>
-          <Input id="staff-email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="admin@movex.local" autoComplete="email" className="min-h-11" />
+          <Input id="staff-email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@company.com" autoComplete="email" className="min-h-11" />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium" htmlFor="staff-password">Password</label>
@@ -386,7 +400,9 @@ function StaffLoginFlow() {
   );
 }
 
-function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebrow: string; title: string; description: string; backHref?: string; children: ReactNode }) {
+function AuthFrame({ eyebrow, title, description, backHref, children,
+}: { eyebrow: string; title: string; description: string; backHref?: string; children: ReactNode;
+}) {
   const prefersReducedMotion = useReducedMotion();
   const [showIntro, setShowIntro] = useState(true);
   const [introReady, setIntroReady] = useState(false);
@@ -418,18 +434,18 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
   }, [prefersReducedMotion]);
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
+    <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground lg:h-dvh lg:min-h-0 lg:overflow-hidden">
       <AnimatePresence>{showIntro && introReady && canAnimate ? <LoginIntro key="login-intro" /> : null}</AnimatePresence>
 
-      <div className="mx-auto flex min-h-dvh w-full max-w-6xl items-center px-4 py-3 sm:px-5 sm:py-4 lg:px-6">
+      <div className="mx-auto flex min-h-dvh w-full max-w-[72rem] items-center px-4 py-3 sm:px-5 sm:py-4 lg:h-dvh lg:min-h-0 lg:px-6 lg:py-6">
         <motion.div
           layout={canAnimate}
           initial={canAnimate ? { opacity: 0.96, scale: 0.985 } : false}
           animate={{ opacity: 1, scale: 1 }}
           transition={revealTransition}
-          className="grid w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)] lg:min-h-[min(38.5rem,calc(100dvh-1.5rem))] lg:grid-cols-[minmax(0,0.92fr)_minmax(24rem,0.8fr)]"
+          className="grid w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)] lg:h-[min(42rem,calc(100dvh-3rem))] lg:grid-cols-[minmax(0,0.78fr)_minmax(26rem,1fr)]"
         >
-          <section className="relative flex min-h-[14rem] overflow-hidden bg-primary p-5 text-primary-foreground sm:min-h-[18rem] sm:p-6 lg:min-h-0">
+          <section className="relative flex min-h-[12rem] overflow-hidden bg-primary p-5 text-primary-foreground sm:min-h-[15rem] sm:p-6 lg:min-h-0 lg:p-8">
             <div className="relative z-10 flex w-full flex-col justify-between gap-6">
               <div className="flex items-center justify-between gap-4">
                 <LogoLockup />
@@ -438,13 +454,14 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
                 </Link>
               </div>
 
-              <div className="max-w-xl">
+              <div className="max-w-md">
                 <p className="text-sm font-medium uppercase tracking-[0.16em] text-primary-foreground/70">One account. Every service.</p>
-                <h1 className="mt-3 max-w-[18.5rem] break-words text-2xl font-medium leading-[1.08] tracking-normal sm:mt-4 sm:max-w-lg sm:text-4xl">Sign in through the right door.</h1>
-                <p className="mt-3 max-w-[18.5rem] text-sm font-normal leading-6 text-primary-foreground/74 sm:text-base sm:leading-7">Customers, partners, and staff each get a focused route while the backend authenticates with a locked role.</p>
+                <h1 className="mt-3 max-w-[18.5rem] break-words text-2xl font-medium leading-[1.1] tracking-normal sm:max-w-md sm:text-3xl lg:text-4xl">Sign in through the right door.</h1>
+                <p className="mt-3 max-w-sm text-sm font-normal leading-6 text-primary-foreground/74 sm:text-base">Customers, partners, and staff each get a secure sign-in path designed around what
+                  they need to do.</p>
               </div>
 
-              <div className="hidden flex-wrap gap-2 sm:flex">
+              <div className="hidden flex-wrap gap-2 lg:flex">
                 {trustChips.map((chip) => (
                   <span key={chip} className="rounded-full border border-primary-foreground/18 bg-primary-foreground/10 px-3 py-1.5 text-xs font-medium text-primary-foreground/82">
                     {chip}
@@ -456,12 +473,14 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
 
           <motion.section
             initial={canAnimate ? { opacity: 0, y: 18 } : false}
-            animate={{ opacity: showIntro && canAnimate ? 0 : 1, y: showIntro && canAnimate ? 18 : 0 }}
+            animate={{ opacity: showIntro && canAnimate ? 0 : 1, y: showIntro && canAnimate ? 18 : 0,
+            }}
             transition={canAnimate ? { duration: 0.46, delay: showIntro ? 0 : 0.08, ease: "easeOut" } : { duration: 0 }}
-            className="flex min-h-0 flex-col bg-surface/98 p-4 backdrop-blur sm:p-5 lg:p-6"
+            className="flex min-h-0 flex-col overflow-y-auto bg-surface/98 p-4 backdrop-blur sm:p-5 lg:p-6"
             aria-labelledby="login-title"
           >
-            <motion.div className="flex min-h-0 flex-1 flex-col" initial={canAnimate ? "hidden" : false} animate={showIntro && canAnimate ? "hidden" : "show"} variants={{ hidden: {}, show: { transition: { staggerChildren: 0.065, delayChildren: 0.08 } } }}>
+            <motion.div className="flex min-h-0 flex-1 flex-col" initial={canAnimate ? "hidden" : false} animate={showIntro && canAnimate ? "hidden" : "show"} variants={{ hidden: {}, show: { transition: { staggerChildren: 0.065, delayChildren: 0.08 } },
+              }}>
               <FormReveal canAnimate={canAnimate}>
                 {backHref ? (
                   <Link href={backHref} className="mb-3 inline-flex items-center gap-2 rounded-md text-sm font-medium text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
@@ -479,16 +498,10 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
               </FormReveal>
 
               <FormReveal canAnimate={canAnimate}>
-                <div className="mt-4 min-h-0">{children}</div>
+                <div className="mt-3 min-h-0">{children}</div>
               </FormReveal>
 
-              <FormReveal canAnimate={canAnimate}>
-                <div className="mt-4 flex items-center gap-2 border-t border-border pt-4 text-xs text-muted-foreground lg:mt-auto">
-                  <Headphones size={16} aria-hidden={true} />
-                  <span>For local testing, keep the backend running on port 3001.</span>
-                </div>
-              </FormReveal>
-            </motion.div>
+              </motion.div>
           </motion.section>
         </motion.div>
       </div>
@@ -496,17 +509,19 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
   );
 }
 
-function AuthOptionCard({ href, label, description, icon: Icon, tone }: { href: string; label: string; description: string; icon: LucideIcon; tone: string }) {
+function AuthOptionCard({ href, label, description, icon: Icon, tone,
+}: { href: string; label: string; description: string; icon: LucideIcon; tone: string;
+}) {
   return (
-    <Link href={href} className="group rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
-      <span className="flex items-start justify-between gap-4">
-        <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-md", tone)}>
-          <Icon className="size-5" aria-hidden={true} />
-        </span>
-        <ChevronRight className="mt-1 size-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden={true} />
+    <Link href={href} className="group flex min-h-[6.5rem] items-center gap-4 rounded-lg border border-border bg-surface p-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+      <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-md", tone)}>
+        <Icon className="size-5" aria-hidden={true} />
       </span>
-      <span className="mt-5 block text-lg font-medium text-foreground">{label}</span>
-      <span className="mt-2 block text-sm leading-6 text-muted-foreground">{description}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-base font-medium text-foreground">{label}</span>
+        <span className="mt-1 block text-sm leading-5 text-muted-foreground">{description}</span>
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden={true} />
     </Link>
   );
 }
@@ -514,8 +529,12 @@ function AuthOptionCard({ href, label, description, icon: Icon, tone }: { href: 
 function StatusMessages({ status, error }: { status: string | null; error: string | null }) {
   return (
     <div className="min-h-11" aria-live="polite">
-      {status ? <p className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">{status}</p> : null}
-      {error ? <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p> : null}
+      {status ? (
+        <p className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">{status}</p>
+      ) : null}
+      {error ? (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+      ) : null}
     </div>
   );
 }
@@ -533,7 +552,8 @@ function LoginIntro() {
         <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.28, ease: "easeOut" }} className="mt-2 text-base font-normal text-primary-foreground/76">
           One account. Every service.
         </motion.p>
-        <motion.div initial="hidden" animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.065, delayChildren: 0.34 } } }} className="mt-8 flex max-w-lg flex-wrap justify-center gap-2">
+        <motion.div initial="hidden" animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.065, delayChildren: 0.34 } },
+          }} className="mt-8 flex max-w-lg flex-wrap justify-center gap-2">
           {serviceChips.map((chip) => (
             <motion.span key={chip} variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.22, ease: "easeOut" }} className="rounded-full border border-primary-foreground/18 bg-primary-foreground/10 px-3 py-1.5 text-xs font-medium text-primary-foreground/78">
               {chip}
@@ -564,4 +584,3 @@ function FormReveal({ canAnimate, children }: { canAnimate: boolean; children: R
     </motion.div>
   );
 }
-
