@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Inject, Injectable, Logger, ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, ForbiddenException, Inject, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { AdminType } from "@prisma/client";
 import { canPasswordLogin, PERMISSION_MATRIX } from "@movex/shared";
 import { randomInt } from "node:crypto";
@@ -65,18 +65,18 @@ export class IdentityService {
 
     this.logger.log(`OTP generated and stored for ${phoneE164}`);
 
-    try {
-      this.logger.log(`Sending SMS API request for ${phoneE164}...`);
-      await this.smsProvider.sendOtp({ phoneE164, code, purpose: "LOGIN" });
-      this.logger.log(`SMS API request sent successfully to ${phoneE164}`);
-    } catch (error: unknown) {
-      this.logger.error(`Failed to send SMS to ${phoneE164}. Exact error:`, error);
-      throw new ServiceUnavailableException(`Failed to send OTP SMS. Details: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    this.logger.log(`Sending SMS API request for ${phoneE164}...`);
+    this.smsProvider.sendOtp({ phoneE164, code, purpose: "LOGIN" })
+      .then(() => {
+        this.logger.log(`SMS API request sent successfully to ${phoneE164}`);
+      })
+      .catch((error: unknown) => {
+        this.logger.error(`Failed to send SMS to ${phoneE164}. Exact error:`, error);
+      });
 
     return {
       message: GENERIC_OTP_MESSAGE,
-      devCode: process.env.NODE_ENV !== "production" ? code : undefined,
+      // devCode: process.env.NODE_ENV !== "production" ? code : undefined,
     };
   }
 

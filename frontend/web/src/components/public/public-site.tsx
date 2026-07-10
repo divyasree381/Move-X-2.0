@@ -279,7 +279,7 @@ export function PublicStoreDetailPage({ storeId }: { storeId: string }) {
         <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_20rem] lg:px-8">
           <div className="space-y-6">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <Metric icon={Star} label="Rated by customers" value={`${store.rating.toFixed(1)} (${store.ratingCount})`} />
+              <Metric icon={Star} label="Rated by customers" value={`${store.rating.toFixed(1)} (${store.ratingCount})`} accent={store.rating > 3.0 ? "text-success" : "text-warning"} />
               <Metric icon={Clock3} label="Arrives in" value={`${store.etaMinutes}-${store.etaMinutes + 8} min`} />
               <Metric icon={Truck} label="Delivery fee" value="Rs 29" />
               <Metric icon={IndianRupee} label="Min order" value={`Rs ${store.minOrder}`} />
@@ -304,7 +304,7 @@ export function PublicStoreDetailPage({ storeId }: { storeId: string }) {
                         <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
                           <p className="text-sm font-medium">{item.price === 0 ? "Review required" : `Rs ${item.price}`}</p>
                           <Button asChild size="sm" variant="secondary">
-                            <Link href={`/customer/stores/${store.id}`}>Add in app</Link>
+                            <Link href={`/customer/stores/${store.id}`}>Add to cart</Link>
                           </Button>
                         </div>
                       </div>
@@ -564,7 +564,7 @@ function PublicStoreCard({ store, compact = false }: { store: PublicStore; compa
             <h3 className="truncate text-lg font-medium">{store.name}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{store.area}, {store.city}</p>
           </div>
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-warning/10 px-2 py-1 text-xs font-medium text-warning"><Star className="size-3.5" aria-hidden={true} /> {store.rating.toFixed(1)}</span>
+          <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-medium", store.rating > 3.0 ? "bg-success/10 text-success" : "bg-warning/10 text-warning")}><Star className="size-3.5" aria-hidden={true} /> {store.rating.toFixed(1)}</span>
         </div>
         <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{store.description}</p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -640,12 +640,12 @@ function RideFarePanel() {
   );
 }
 
-function Metric({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+function Metric({ icon: Icon, label, value, accent }: { icon: LucideIcon; label: string; value: string; accent?: string }) {
   return (
     <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
-      <Icon className="size-5 text-primary" aria-hidden={true} />
+      <Icon className={cn("size-5", accent || "text-primary")} aria-hidden={true} />
       <p className="mt-3 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-medium">{value}</p>
+      <p className={cn("mt-1 text-sm font-medium", accent)}>{value}</p>
     </div>
   );
 }

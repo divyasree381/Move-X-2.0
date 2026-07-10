@@ -811,6 +811,11 @@ export class RidesService {
     const config = DEFAULT_FARE_CONFIG[vehicleType];
     const surgeMultiplier = await this.getSurgeMultiplier(vehicleType);
     const distanceKm = new Prisma.Decimal(route.distanceMeters).div(1000);
+    
+    if (distanceKm.greaterThan(100)) {
+      throw new BadRequestException(`Route exceeds maximum intra-city distance limit of 100km (calculated: ${distanceKm.toFixed(1)}km)`);
+    }
+
     const durationMinutesDecimal = new Prisma.Decimal(route.durationSeconds).div(60);
     const estimatedFare = config.base.plus(distanceKm.mul(config.perKm)).plus(durationMinutesDecimal.mul(config.perMinute)).mul(surgeMultiplier).toDecimalPlaces(2);
 

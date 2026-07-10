@@ -81,7 +81,7 @@ const seedUsers = [
 
 const stores = [
   {
-    id: "seed-store-biryani-house",
+    id: "6a3a59a44ede828279fd9b49",
     ownerId: "seed-user-restaurant",
     type: StoreType.FOOD,
     name: "Biryani House",
@@ -102,7 +102,7 @@ const stores = [
     },
   },
   {
-    id: "seed-store-daily-mart",
+    id: "6a40cb3cd49a0ba302b898ad",
     ownerId: "seed-user-restaurant",
     type: StoreType.GROCERY,
     name: "Daily Mart",
@@ -123,7 +123,7 @@ const stores = [
     },
   },
   {
-    id: "seed-store-care-pharmacy",
+    id: "6a40cb3bca115798d41a280d",
     ownerId: "seed-user-restaurant",
     type: StoreType.PHARMACY,
     name: "Care Pharmacy",
@@ -148,7 +148,7 @@ const stores = [
 const menuItems = [
   {
     id: "seed-menu-chicken-biryani",
-    storeId: "seed-store-biryani-house",
+    storeId: "6a3a59a44ede828279fd9b49",
     section: "Biryani",
     name: "Chicken Biryani",
     description: "Aromatic basmati rice with slow-cooked chicken.",
@@ -161,7 +161,7 @@ const menuItems = [
   },
   {
     id: "seed-menu-paneer-tikka",
-    storeId: "seed-store-biryani-house",
+    storeId: "6a3a59a44ede828279fd9b49",
     section: "Starters",
     name: "Paneer Tikka",
     description: "Charred paneer cubes with peppers and onions.",
@@ -171,7 +171,7 @@ const menuItems = [
   },
   {
     id: "seed-menu-basmati-rice",
-    storeId: "seed-store-daily-mart",
+    storeId: "6a40cb3cd49a0ba302b898ad",
     section: "Staples",
     name: "Basmati Rice 1kg",
     description: "Premium aged basmati rice pack.",
@@ -181,7 +181,7 @@ const menuItems = [
   },
   {
     id: "seed-menu-toned-milk",
-    storeId: "seed-store-daily-mart",
+    storeId: "6a40cb3cd49a0ba302b898ad",
     section: "Dairy",
     name: "Toned Milk 1L",
     description: "Fresh toned milk pouch.",
@@ -191,7 +191,7 @@ const menuItems = [
   },
   {
     id: "seed-menu-paracetamol",
-    storeId: "seed-store-care-pharmacy",
+    storeId: "6a40cb3bca115798d41a280d",
     section: "OTC",
     name: "Paracetamol 500mg Strip",
     description: "Fever and pain relief tablets.",
@@ -201,7 +201,7 @@ const menuItems = [
   },
   {
     id: "seed-menu-vitamin-d3",
-    storeId: "seed-store-care-pharmacy",
+    storeId: "6a40cb3bca115798d41a280d",
     section: "Wellness",
     name: "Vitamin D3 Capsules",
     description: "Weekly vitamin D3 supplement pack.",

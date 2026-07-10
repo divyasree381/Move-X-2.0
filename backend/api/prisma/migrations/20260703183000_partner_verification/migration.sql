@@ -1,4 +1,4 @@
-﻿CREATE TABLE "PartnerVerification" (
+CREATE TABLE "PartnerVerification" (
   "id" TEXT NOT NULL,
   "userId" TEXT NOT NULL,
   "partnerKind" TEXT NOT NULL,
