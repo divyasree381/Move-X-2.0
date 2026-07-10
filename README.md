@@ -188,7 +188,7 @@ Short version:
 pnpm install
 docker compose up -d
 Copy-Item backend/api/.env.example backend/api/.env
-Copy-Item frontend/web/.env.example frontend/web/.env
+Copy-Item frontend/web/.env.example frontend/web/.env.local
 Copy-Item backend/workers/.env.example backend/workers/.env
 pnpm --filter @movex/api db:generate
 pnpm --filter @movex/api db:migrate
@@ -258,7 +258,7 @@ Local env files are copied from examples:
 
 ```text
 backend/api/.env.example      -> backend/api/.env
-frontend/web/.env.example     -> frontend/web/.env
+frontend/web/.env.example     -> frontend/web/.env.local
 backend/workers/.env.example  -> backend/workers/.env
 ```
 
@@ -275,14 +275,17 @@ AUTH_HASH_SECRET=replace-with-a-long-random-secret
 CONFIG_SECRET_KEY=replace-with-32-byte-config-secret
 MFA_SECRET_KEY=replace-with-32-byte-mfa-secret
 ADMIN_BOOTSTRAP_TOKEN=replace-with-one-time-setup-token
+MAPS_PROVIDER=open-source
 ```
 
 Important local frontend env values:
 
 ```env
-NEXT_PUBLIC_APP_NAME=MoveX
 NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api/v1
+NEXT_PUBLIC_CSRF_COOKIE_NAME=movex_csrf
 ```
+
+For the complete variable reference, provider matrix, and optional tuning defaults, see [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md).
 
 ## Core Backend Modules
 
@@ -396,7 +399,7 @@ Required provider credentials:
 
 ```env
 # SMS
-SMS_PROVIDER=msg91
+SMS_PROVIDER=http
 SMS_GATEWAY_URL=...
 SMS_GATEWAY_API_KEY=...
 

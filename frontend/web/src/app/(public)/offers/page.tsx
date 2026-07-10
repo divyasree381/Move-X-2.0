@@ -1,5 +1,5 @@
-import { PublicOffersPage } from "@/components/public/public-site";
+import { redirect } from "next/navigation";
 
 export default function OffersRoute() {
-  return <PublicOffersPage />;
+  redirect("/");
 }

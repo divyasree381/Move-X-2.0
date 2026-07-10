@@ -4,20 +4,26 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MapSuggestion, SelectedLocation } from "@movex/shared";
 import { useMutation, useQueries } from "@tanstack/react-query";
-import { ArrowLeft, Banknote, Bike, CarFront, CarTaxiFront, Check, ChevronDown, CircleCheck, Clock, CreditCard, Heart, LoaderCircle, LocateFixed, MapIcon, MapPin, Navigation, Pencil, Search, ShieldCheck, UserRound, UsersRound, Wallet } from "lucide-react";
+import { ArrowLeft, Banknote, Bike, CarFront, CarTaxiFront, Check, ChevronDown, CircleCheck, Clock, CreditCard, Heart, LoaderCircle, LocateFixed, MapIcon, MapPin, Navigation, Pencil, Search, ShieldCheck, UserRound, UsersRound, Wallet,
+} from "lucide-react";
 
 import { CancellationPolicyCard, ServiceDisclaimer } from "@/components/trust";
 import { Button, StatusPill } from "@/components/ui";
-import { autocompleteLocations, createRide, estimateRide, geocodeAddress, reverseGeocode, type RideCreateResponse, type RideEstimate } from "@/lib/api";
+import { autocompleteLocations, createRide, estimateRide, geocodeAddress, reverseGeocode, type RideCreateResponse, type RideEstimate,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { RideMap } from "./ride-map";
 
-const DEFAULT_PICKUP: SelectedLocation = { address: "Indiranagar, Bengaluru", lat: 12.9784, lng: 77.6408, source: "gps" };
+const DEFAULT_PICKUP: SelectedLocation = { address: "Indiranagar, Bengaluru", lat: 12.9784, lng: 77.6408, source: "gps",
+};
 
 const VEHICLES = [
-  { value: "BIKE", label: "Bike", helper: "Quickest through traffic", capacity: "1 rider", icon: Bike, tone: "bg-ride-soft text-ride", badge: "Fast pickup" },
-  { value: "AUTO", label: "Auto", helper: "Easy everyday travel", capacity: "3 seats", icon: CarTaxiFront, tone: "bg-warning/10 text-warning", badge: "Popular" },
-  { value: "CAB", label: "Cab", helper: "Air-conditioned comfort", capacity: "4 seats", icon: CarFront, tone: "bg-info/10 text-info", badge: "Comfort" },
+  { value: "BIKE", label: "Bike", helper: "Quickest through traffic", capacity: "1 rider", icon: Bike, tone: "bg-ride-soft text-ride", badge: "Fast pickup",
+  },
+  { value: "AUTO", label: "Auto", helper: "Easy everyday travel", capacity: "3 seats", icon: CarTaxiFront, tone: "bg-warning/10 text-warning", badge: "Popular",
+  },
+  { value: "CAB", label: "Cab", helper: "Air-conditioned comfort", capacity: "4 seats", icon: CarFront, tone: "bg-info/10 text-info", badge: "Comfort",
+  },
 ] as const;
 
 const PAYMENTS = [
@@ -32,7 +38,8 @@ const SAVED_DESTINATIONS = [
   { label: "Airport", address: "Kempegowda International Airport, Bengaluru", icon: Clock },
 ] as const;
 
-const currencyFormatter = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+const currencyFormatter = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0,
+});
 
 type ActivePoint = "pickup" | "drop";
 type VehicleType = (typeof VEHICLES)[number]["value"];
@@ -70,14 +77,15 @@ export function RideBookingPage() {
   const routeLabel = routeEstimate
     ? `${Number(routeEstimate.distanceKm).toFixed(1)} km - ${routeEstimate.durationMinutes} min trip`
     : step === 3
-      ? estimates.some((estimate) => estimate.isFetching) ? "Calculating the road route..." : "Live route unavailable"
+      ? estimates.some((estimate) => estimate.isFetching) ? "Calculating the road route..." : "Route temporarily unavailable"
       : "Set your destination";
 
-  const estimateInput = useMemo(() => drop ? { pickup, drop, vehicleType } : null, [drop, pickup, vehicleType]);
+  const estimateInput = useMemo(() => (drop ? { pickup, drop, vehicleType } : null), [drop, pickup, vehicleType],
+  );
 
   const createMutation = useMutation({
     mutationFn: () => {
-      if (!estimateInput || !selectedEstimate?.data) throw new Error("Live route pricing is required before booking.");
+      if (!estimateInput || !selectedEstimate?.data) throw new Error("Choose a ride option with an available fare before booking.");
       return createRide({ ...estimateInput, paymentMethod });
     },
     onSuccess: setCreated,
@@ -114,7 +122,8 @@ export function RideBookingPage() {
   function updatePinCenter(lat: number, lng: number) {
     const requestId = reverseLookupId.current + 1;
     reverseLookupId.current = requestId;
-    const nextLocation: SelectedLocation = { address: "Finding exact address...", lat, lng, source: "marker-drag" };
+    const nextLocation: SelectedLocation = { address: "Finding exact address...", lat, lng, source: "marker-drag",
+    };
 
     setPinDraft(nextLocation);
     setPinAddressBusy(true);
@@ -186,10 +195,18 @@ export function RideBookingPage() {
         step === 4 && "max-h-[22rem] lg:bottom-4 lg:max-h-[24rem]",
       )} aria-label="Ride booking">
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border lg:hidden" aria-hidden="true" />
-        {step === 1 ? <PlanTripPanel pickup={pickup} locationBusy={locationBusy} locationError={locationError} onEditPickup={() => editPoint("pickup")} onPinPickup={() => beginPinning("pickup", pickup)} onChooseDestination={() => editPoint("drop")} onChooseSaved={(address) => void chooseSavedDestination(address)} /> : null}
-        {step === 2 ? <SearchStep pickup={pickup} drop={drop} activePoint={activePoint} onBack={() => setStep(1)} onSelectLocation={beginPinning} onEditPickup={() => setActivePoint("pickup")} onEditDrop={() => setActivePoint("drop")} /> : null}
-        {step === 3 ? <RideOptionsPanel pickup={pickup} drop={drop!} vehicleType={vehicleType} paymentMethod={paymentMethod} estimates={estimates} selectedFare={selectedFare} isBooking={createMutation.isPending} bookingError={createMutation.error} onBack={() => setStep(2)} onEditPoint={editPoint} onVehicleChange={setVehicleType} onPaymentChange={setPaymentMethod} onBook={() => createMutation.mutate()} /> : null}
-        {step === 4 && pinMode && pinDraft ? <PinLocationPanel point={pinMode} location={pinDraft} addressBusy={pinAddressBusy} error={locationError} onBack={cancelPinning} onConfirm={confirmPinnedLocation} /> : null}
+        {step === 1 ? (
+          <PlanTripPanel pickup={pickup} locationBusy={locationBusy} locationError={locationError} onEditPickup={() => editPoint("pickup")} onPinPickup={() => beginPinning("pickup", pickup)} onChooseDestination={() => editPoint("drop")} onChooseSaved={(address) => void chooseSavedDestination(address)} />
+        ) : null}
+        {step === 2 ? (
+          <SearchStep pickup={pickup} drop={drop} activePoint={activePoint} onBack={() => setStep(1)} onSelectLocation={beginPinning} onEditPickup={() => setActivePoint("pickup")} onEditDrop={() => setActivePoint("drop")} />
+        ) : null}
+        {step === 3 ? (
+          <RideOptionsPanel pickup={pickup} drop={drop!} vehicleType={vehicleType} paymentMethod={paymentMethod} estimates={estimates} selectedFare={selectedFare} isBooking={createMutation.isPending} bookingError={createMutation.error} onBack={() => setStep(2)} onEditPoint={editPoint} onVehicleChange={setVehicleType} onPaymentChange={setPaymentMethod} onBook={() => createMutation.mutate()} />
+        ) : null}
+        {step === 4 && pinMode && pinDraft ? (
+          <PinLocationPanel point={pinMode} location={pinDraft} addressBusy={pinAddressBusy} error={locationError} onBack={cancelPinning} onConfirm={confirmPinnedLocation} />
+        ) : null}
       </aside>
 
       {created ? (
@@ -208,7 +225,8 @@ export function RideBookingPage() {
     </div>
   );
 }
-function PlanTripPanel({ pickup, locationBusy, locationError, onEditPickup, onPinPickup, onChooseDestination, onChooseSaved }: {
+function PlanTripPanel({ pickup, locationBusy, locationError, onEditPickup, onPinPickup, onChooseDestination, onChooseSaved,
+}: {
   pickup: SelectedLocation;
   locationBusy: boolean;
   locationError: string | null;
@@ -248,7 +266,9 @@ function PlanTripPanel({ pickup, locationBusy, locationError, onEditPickup, onPi
             })}
           </div>
         </div>
-        {locationError ? <p className="mt-3 text-sm text-destructive" role="status">{locationError}</p> : null}
+        {locationError ? (
+          <p className="mt-3 text-sm text-destructive" role="status">{locationError}</p>
+        ) : null}
       </div>
 
       <div className="border-t border-border bg-surface-muted px-5 py-3">
@@ -261,7 +281,8 @@ function PlanTripPanel({ pickup, locationBusy, locationError, onEditPickup, onPi
   );
 }
 
-function LocationFields({ pickup, drop, onEditPickup, onEditDrop, prominentDrop = false }: {
+function LocationFields({ pickup, drop, onEditPickup, onEditDrop, prominentDrop = false,
+}: {
   pickup: SelectedLocation;
   drop: SelectedLocation | null;
   onEditPickup: () => void;
@@ -277,15 +298,18 @@ function LocationFields({ pickup, drop, onEditPickup, onEditDrop, prominentDrop 
         <Pencil className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </button>
       <div className="my-1 ml-7 border-t border-border" />
-      <button type="button" className={cn("relative flex min-h-12 w-full items-center gap-3 rounded-md px-1 text-left hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30", prominentDrop && "bg-surface-muted")} onClick={onEditDrop}>
+      <button type="button" className={cn("relative flex min-h-12 w-full items-center gap-3 rounded-md px-1 text-left hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30", prominentDrop && "bg-surface-muted",
+        )} onClick={onEditDrop}>
         <MapPin className="z-10 size-4 shrink-0 text-destructive" fill="currentColor" aria-hidden="true" />
-        <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-muted-foreground">Destination</span><span className={cn("block truncate font-semibold", drop ? "text-sm text-foreground" : "text-base text-muted-foreground")}>{drop?.address ?? "Search destination"}</span></span>
+        <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-muted-foreground">Destination</span><span className={cn("block truncate font-semibold", drop ? "text-sm text-foreground" : "text-base text-muted-foreground",
+            )}>{drop?.address ?? "Search destination"}</span></span>
         <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </button>
     </div>
   );
 }
-function SearchStep({ pickup, drop, activePoint, onBack, onSelectLocation, onEditPickup, onEditDrop }: {
+function SearchStep({ pickup, drop, activePoint, onBack, onSelectLocation, onEditPickup, onEditDrop,
+}: {
   pickup: SelectedLocation;
   drop: SelectedLocation | null;
   activePoint: ActivePoint;
@@ -347,7 +371,8 @@ function SearchStep({ pickup, drop, activePoint, onBack, onSelectLocation, onEdi
 
   async function selectCurrentLocation() {
     if (!("geolocation" in navigator)) {
-      setSearchError("Location access is not available in this browser. Search for your pickup instead.");
+      setSearchError("Location access is not available in this browser. Search for your pickup instead.",
+      );
       return;
     }
 
@@ -355,7 +380,8 @@ function SearchStep({ pickup, drop, activePoint, onBack, onSelectLocation, onEdi
     setSearchError(null);
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000 });
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000,
+        });
       });
       const { latitude: lat, longitude: lng } = position.coords;
       let address = "Current location";
@@ -366,7 +392,8 @@ function SearchStep({ pickup, drop, activePoint, onBack, onSelectLocation, onEdi
       }
       onSelectLocation("pickup", { address, lat, lng, source: "gps" });
     } catch {
-      setSearchError("We could not access your current location. Check browser permission or search manually.");
+      setSearchError("We could not access your current location. Check browser permission or search manually.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -409,7 +436,9 @@ function SearchStep({ pickup, drop, activePoint, onBack, onSelectLocation, onEdi
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4" aria-live="polite">
-        {isLoading ? <div className="flex items-center gap-3 rounded-lg bg-surface-muted p-4 text-sm text-muted-foreground"><span className="size-4 animate-spin rounded-full border-2 border-border border-t-primary" aria-hidden="true" />Finding locations...</div> : null}
+        {isLoading ? (
+          <div className="flex items-center gap-3 rounded-lg bg-surface-muted p-4 text-sm text-muted-foreground"><span className="size-4 animate-spin rounded-full border-2 border-border border-t-primary" aria-hidden="true" />Finding locations...</div>
+        ) : null}
 
         {!isLoading && suggestions.length > 0 ? (
           <ul className="divide-y divide-border">
@@ -417,7 +446,9 @@ function SearchStep({ pickup, drop, activePoint, onBack, onSelectLocation, onEdi
               <li key={suggestion.placeId}>
                 <button type="button" className="flex min-h-16 w-full items-center gap-3 rounded-md px-2 text-left hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" onClick={() => void selectAddress(suggestion.description)}>
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-muted text-muted-foreground"><MapIcon className="size-4" aria-hidden="true" /></span>
-                  <span className="min-w-0"><span className="block truncate text-sm font-semibold text-foreground">{suggestion.mainText}</span>{suggestion.secondaryText ? <span className="block truncate text-xs text-muted-foreground">{suggestion.secondaryText}</span> : null}</span>
+                  <span className="min-w-0"><span className="block truncate text-sm font-semibold text-foreground">{suggestion.mainText}</span>{suggestion.secondaryText ? (
+                      <span className="block truncate text-xs text-muted-foreground">{suggestion.secondaryText}</span>
+                    ) : null}</span>
                 </button>
               </li>
             ))}
@@ -445,12 +476,15 @@ function SearchStep({ pickup, drop, activePoint, onBack, onSelectLocation, onEdi
             </div>
           </div>
         ) : null}
-        {searchError ? <p className="mt-3 rounded-md border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive" role="status">{searchError}</p> : null}
+        {searchError ? (
+          <p className="mt-3 rounded-md border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive" role="status">{searchError}</p>
+        ) : null}
       </div>
     </div>
   );
 }
-function PinLocationPanel({ point, location, addressBusy, error, onBack, onConfirm }: {
+function PinLocationPanel({ point, location, addressBusy, error, onBack, onConfirm,
+}: {
   point: ActivePoint;
   location: SelectedLocation;
   addressBusy: boolean;
@@ -478,25 +512,33 @@ function PinLocationPanel({ point, location, addressBusy, error, onBack, onConfi
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         <div className="flex items-start gap-3 rounded-lg border border-border bg-surface-muted p-3" aria-live="polite" aria-busy={addressBusy}>
           <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-destructive/10 text-destructive">
-            {addressBusy ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <MapPin className="size-4 fill-current" aria-hidden="true" />}
+            {addressBusy ? (
+              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <MapPin className="size-4 fill-current" aria-hidden="true" />
+            )}
           </span>
           <span className="min-w-0">
             <span className="block text-xs font-medium text-muted-foreground">{addressBusy ? "Finding address" : pickup ? "Pickup point" : "Destination point"}</span>
             <span className="mt-0.5 block text-sm font-semibold leading-5 text-foreground">{location.address}</span>
           </span>
         </div>
-        {error ? <p className="mt-2 text-xs leading-5 text-warning" role="status">{error}</p> : null}
+        {error ? (
+          <p className="mt-2 text-xs leading-5 text-warning" role="status">{error}</p>
+        ) : null}
       </div>
 
       <div className="border-t border-border bg-surface p-4">
         <Button type="button" className="w-full text-base" disabled={addressBusy} onClick={onConfirm}>
-          <Check className="size-4" aria-hidden="true" /> Confirm {pickup ? "Pickup" : "Destination"}
+          <Check className="size-4" aria-hidden="true" /> Confirm {" "}
+          {pickup ? "Pickup" : "Destination"}
         </Button>
       </div>
     </div>
   );
 }
-function RideOptionsPanel({ pickup, drop, vehicleType, paymentMethod, estimates, selectedFare, isBooking, bookingError, onBack, onEditPoint, onVehicleChange, onPaymentChange, onBook }: {
+function RideOptionsPanel({ pickup, drop, vehicleType, paymentMethod, estimates, selectedFare, isBooking, bookingError, onBack, onEditPoint, onVehicleChange, onPaymentChange, onBook,
+}: {
   pickup: SelectedLocation;
   drop: SelectedLocation;
   vehicleType: VehicleType;
@@ -538,7 +580,8 @@ function RideOptionsPanel({ pickup, drop, vehicleType, paymentMethod, estimates,
               const Icon = payment.icon;
               const active = paymentMethod === payment.value;
               return (
-                <button key={payment.value} type="button" aria-pressed={active} className={cn("flex min-h-11 items-center justify-center gap-2 rounded-md border px-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30", active ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-muted-foreground hover:bg-surface-muted")} onClick={() => onPaymentChange(payment.value)}>
+                <button key={payment.value} type="button" aria-pressed={active} className={cn("flex min-h-11 items-center justify-center gap-2 rounded-md border px-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30", active ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-muted-foreground hover:bg-surface-muted",
+                  )} onClick={() => onPaymentChange(payment.value)}>
                   <Icon className="size-4" aria-hidden="true" />{payment.label}
                 </button>
               );
@@ -554,20 +597,24 @@ function RideOptionsPanel({ pickup, drop, vehicleType, paymentMethod, estimates,
           <div className="space-y-3 border-t border-border p-3"><CancellationPolicyCard serviceType="RIDE" /><ServiceDisclaimer serviceType="RIDE" compact /></div>
         </details>
 
-        {bookingError ? <p className="mt-4 rounded-md border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive" role="status">{bookingError.message || "The ride could not be booked. Check your connection and try again."}</p> : null}
+        {bookingError ? (
+          <p className="mt-4 rounded-md border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive" role="status">{bookingError.message || "The ride could not be booked. Check your connection and try again."}</p>
+        ) : null}
       </div>
 
       <div className="absolute inset-x-0 bottom-0 z-10 border-t border-border bg-surface p-4 shadow-[0_-10px_24px_rgb(17,24,39,0.10)]">
         <Button type="button" className="w-full text-base" disabled={isBooking || selectedFare === null} onClick={onBook}>
           {isBooking ? `Finding ${selectedVehicle.label} Drivers...` : selectedFare === null ? `Checking ${selectedVehicle.label} Fare...` : `Book ${selectedVehicle.label} - ${currencyFormatter.format(selectedFare)}`}
         </Button>
-        <p className="mt-2 text-center text-xs text-muted-foreground">Final fare is confirmed server-side before matching.</p>
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Your final fare is confirmed before a driver is assigned.</p>
       </div>
     </div>
   );
 }
 
-function VehicleOptionCard({ vehicle, estimate, loading, unavailable, active, onClick }: {
+function VehicleOptionCard({ vehicle, estimate, loading, unavailable, active, onClick,
+}: {
   vehicle: (typeof VEHICLES)[number];
   estimate?: RideEstimate;
   loading: boolean;
@@ -577,21 +624,35 @@ function VehicleOptionCard({ vehicle, estimate, loading, unavailable, active, on
 }) {
   const Icon = vehicle.icon;
   return (
-    <button type="button" aria-pressed={active} disabled={unavailable} onClick={onClick} className={cn("flex min-h-20 w-full items-center gap-3 rounded-lg border bg-surface p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-55", active ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:border-primary/45 hover:bg-surface-muted")}>
-      <span className={cn("relative flex size-14 shrink-0 items-center justify-center rounded-lg", vehicle.tone)}>
+    <button type="button" aria-pressed={active} disabled={unavailable} onClick={onClick} className={cn("flex min-h-20 w-full items-center gap-3 rounded-lg border bg-surface p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-55", active ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:border-primary/45 hover:bg-surface-muted",
+      )}>
+      <span className={cn("relative flex size-14 shrink-0 items-center justify-center rounded-lg", vehicle.tone,
+        )}>
         <Icon className="size-8" strokeWidth={1.8} aria-hidden="true" />
-        {active ? <CircleCheck className="absolute -right-1 -top-1 size-5 rounded-full bg-surface text-primary" fill="currentColor" aria-hidden="true" /> : null}
+        {active ? (
+          <CircleCheck className="absolute -right-1 -top-1 size-5 rounded-full bg-surface text-primary" fill="currentColor" aria-hidden="true" />
+        ) : null}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-2"><span className="text-base font-bold text-foreground">{vehicle.label}</span><span className="rounded-full bg-surface-muted px-2 py-0.5 text-[0.68rem] font-semibold text-muted-foreground">{vehicle.badge}</span></span>
         <span className="mt-0.5 block truncate text-xs text-muted-foreground">{vehicle.helper}</span>
-        <span className="mt-1 flex items-center gap-2 text-xs font-medium text-muted-foreground"><UsersRound className="size-3.5" aria-hidden="true" />{vehicle.capacity}{estimate ? <><span aria-hidden="true">/</span><Clock className="size-3.5" aria-hidden="true" />{estimate.durationMinutes} min trip</> : null}</span>
+        <span className="mt-1 flex items-center gap-2 text-xs font-medium text-muted-foreground"><UsersRound className="size-3.5" aria-hidden="true" />{vehicle.capacity}{estimate ? (
+            <><span aria-hidden="true">/</span><Clock className="size-3.5" aria-hidden="true" />{estimate.durationMinutes} min trip</>
+          ) : null}</span>
       </span>
       <span className="shrink-0 text-right">
-        {loading ? <span className="text-xs font-semibold text-muted-foreground">Checking...</span> : null}
-        {!loading && estimate ? <span className="block text-lg font-bold tabular-nums text-foreground">{currencyFormatter.format(Number(estimate.estimatedFare))}</span> : null}
-        {!loading && unavailable ? <span className="text-xs font-semibold text-destructive">Unavailable</span> : null}
-        {!loading && !estimate && !unavailable ? <span className="text-xs text-muted-foreground">Select route</span> : null}
+        {loading ? (
+          <span className="text-xs font-semibold text-muted-foreground">Checking...</span>
+        ) : null}
+        {!loading && estimate ? (
+          <span className="block text-lg font-bold tabular-nums text-foreground">{currencyFormatter.format(Number(estimate.estimatedFare))}</span>
+        ) : null}
+        {!loading && unavailable ? (
+          <span className="text-xs font-semibold text-destructive">Unavailable</span>
+        ) : null}
+        {!loading && !estimate && !unavailable ? (
+          <span className="text-xs text-muted-foreground">Select route</span>
+        ) : null}
       </span>
     </button>
   );

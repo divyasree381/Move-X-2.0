@@ -17,12 +17,12 @@ export class HttpSmsProvider implements SmsProvider {
 
   async sendSms(input: SendSmsInput): Promise<void> {
     const baseUrl = process.env.SMS_GATEWAY_URL || "https://43.252.88.250/index.php/smsapi/httpapi/";
-    const secret = process.env.SMS_GATEWAY_SECRET;
+    const secret = process.env.SMS_GATEWAY_API_KEY ?? process.env.SMS_GATEWAY_SECRET;
     const sender = process.env.SMS_GATEWAY_SENDER || "NIGHAI";
     const tempid = process.env.SMS_GATEWAY_TEMPID || "1207174264191607433";
 
     if (!secret) {
-      this.logger.error("SMS_GATEWAY_SECRET is not configured in .env");
+      this.logger.error("SMS_GATEWAY_API_KEY is not configured");
       throw new ServiceUnavailableException("SMS gateway is not configured");
     }
 

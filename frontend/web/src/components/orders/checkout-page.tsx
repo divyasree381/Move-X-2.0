@@ -4,13 +4,17 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SelectedLocation } from "@movex/shared";
-import { ArrowLeft, BellOff, CreditCard, FileUp, MapPin, MessageSquareText, Mic, ShieldCheck, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowLeft, BellOff, CreditCard, FileUp, MapPin, MessageSquareText, Mic, ShieldCheck, Wallet, type LucideIcon,
+} from "lucide-react";
 
 import { MapPicker } from "@/components/location/map-picker";
 import { QueryState } from "@/providers/query-state";
 import { CancellationPolicyCard, ServiceDisclaimer } from "@/components/trust";
 import { Button, EmptyState, ErrorState, Input, StatusPill } from "@/components/ui";
-import { ApiError, checkoutOrder, getCart, uploadCartPrescription, type CheckoutAddress, type CheckoutResponse } from "@/lib/api";
+import { ApiError, checkoutOrder, getCart, uploadCartPrescription, type CheckoutAddress, type CheckoutResponse,
+} from "@/lib/api";
+
+const SHOW_DEVELOPMENT_HANDOFF_CODES = process.env.NODE_ENV === "development";
 
 const DEFAULT_LOCATION: SelectedLocation = {
   address: "Bengaluru, Karnataka, India",
@@ -51,14 +55,16 @@ export function CheckoutPage() {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
-    onError: (error) => setCheckoutError(error instanceof ApiError || error instanceof Error ? error.message : "Checkout failed"),
+    onError: (error) => setCheckoutError(error instanceof ApiError || error instanceof Error ? error.message : "Checkout failed",
+      ),
   });
 
 
   const prescriptionMutation = useMutation({
     mutationFn: async (file: File) => {
       const contentBase64 = await fileToBase64(file);
-      return uploadCartPrescription({ fileName: file.name, contentType: file.type || "application/octet-stream", contentBase64, note: prescriptionNote.trim() || undefined });
+      return uploadCartPrescription({ fileName: file.name, contentType: file.type || "application/octet-stream", contentBase64, note: prescriptionNote.trim() || undefined,
+      });
     },
     onMutate: () => setPrescriptionError(null),
     onSuccess: (nextCart) => {
@@ -69,7 +75,8 @@ export function CheckoutPage() {
   });
   const cart = cartQuery.data;
   const hasItems = Boolean(cart?.items.length);
-  const unavailableItems = useMemo(() => cart?.items.filter((item) => !item.available) ?? [], [cart]);
+  const unavailableItems = useMemo(() => cart?.items.filter((item) => !item.available) ?? [], [cart],
+  );
 
   return (
     <div className="space-y-4">
@@ -87,10 +94,11 @@ export function CheckoutPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               {checkoutResult.paymentRequired ? "Online payment is ready for the payment step." : "Your order has been confirmed."}
             </p>
-            {checkoutResult.devOtps ? (
+            {SHOW_DEVELOPMENT_HANDOFF_CODES && checkoutResult.devOtps ? (
               <div className="mt-4 rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
-                <p className="font-semibold">Dev handoff OTPs</p>
-                <p className="mt-1 text-muted-foreground">Pickup: {checkoutResult.devOtps.pickup} | Delivery: {checkoutResult.devOtps.delivery}</p>
+                <p className="font-semibold">Handoff codes</p>
+                <p className="mt-1 text-muted-foreground">Pickup: {checkoutResult.devOtps.pickup} | Delivery: {" "}
+                  {checkoutResult.devOtps.delivery}</p>
               </div>
             ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
@@ -114,7 +122,9 @@ export function CheckoutPage() {
                 </div>
                 <label className="mt-4 block text-sm font-medium text-foreground" htmlFor="address-line">Flat, floor, landmark</label>
                 <Input id="address-line" value={addressLine} onChange={(event) => setAddressLine(event.target.value)} placeholder="Apartment, street, landmark" className="mt-2" />
-                {!addressLine.trim() ? <p className="mt-3 rounded-md border border-warning/25 bg-warning/10 p-3 text-sm text-foreground" role="status">Add flat, floor, or landmark details so the partner can complete delivery without calling.</p> : null}
+                {!addressLine.trim() ? (
+                  <p className="mt-3 rounded-md border border-warning/25 bg-warning/10 p-3 text-sm text-foreground" role="status">Add flat, floor, or landmark details so the partner can complete delivery without calling.</p>
+                ) : null}
               </section>
 
               <section className="rounded-md border border-border bg-surface p-4" aria-labelledby="instructions-heading">
@@ -155,21 +165,32 @@ export function CheckoutPage() {
                       />
                     </label>
                   </div>
-                  {cart.prescription ? <p className="mt-3 text-sm text-muted-foreground">{cart.prescription.files.length} file{cart.prescription.files.length === 1 ? "" : "s"} uploaded. Status: {cart.prescription.status}</p> : <p className="mt-3 text-sm text-warning">Prescription required for pharmacy checkout.</p>}
-                  {prescriptionError ? <p className="mt-2 text-sm text-destructive" role="status">{prescriptionError}</p> : null}
+                  {cart.prescription ? (
+                    <p className="mt-3 text-sm text-muted-foreground">{cart.prescription.files.length} file{cart.prescription.files.length === 1 ? "" : "s"} uploaded. Status: {" "}
+                      {cart.prescription.status}</p>
+                  ) : (
+                    <p className="mt-3 text-sm text-warning">Prescription required for pharmacy checkout.</p>
+                  )}
+                  {prescriptionError ? (
+                    <p className="mt-2 text-sm text-destructive" role="status">{prescriptionError}</p>
+                  ) : null}
                 </section>
               ) : null}
               <section className="rounded-md border border-border bg-surface p-4" aria-labelledby="payment-heading">
                 <h2 id="payment-heading" className="text-base font-semibold text-foreground">Payment</h2>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
                   <PaymentOption label="Online" value="ONLINE" selected={paymentMethod} onSelect={setPaymentMethod} icon={CreditCard} description="Pay after order creation" />
-                  <PaymentOption label="Wallet" value="WALLET" selected={paymentMethod} onSelect={setPaymentMethod} icon={Wallet} description="Uses ledger balance" />
+                  <PaymentOption label="Wallet" value="WALLET" selected={paymentMethod} onSelect={setPaymentMethod} icon={Wallet} description="Pay from your MoveX balance" />
                   <PaymentOption label="Cash" value="CASH" selected={paymentMethod} onSelect={setPaymentMethod} icon={ShieldCheck} description="Pay on delivery" />
                 </div>
               </section>
 
-              {unavailableItems.length > 0 ? <ErrorState title="Some items changed" description="Remove unavailable items from the cart before checkout." /> : null}
-              {checkoutError ? <ErrorState title="Checkout needs attention" description={checkoutError} action={<Button type="button" variant="secondary" onClick={() => checkoutMutation.mutate()}>Try again</Button>} /> : null}
+              {unavailableItems.length > 0 ? (
+                <ErrorState title="Some items changed" description="Remove unavailable items from the cart before checkout." />
+              ) : null}
+              {checkoutError ? (
+                <ErrorState title="Checkout needs attention" description={checkoutError} action={<Button type="button" variant="secondary" onClick={() => checkoutMutation.mutate()}>Try again</Button>} />
+              ) : null}
             </div>
 
             <aside className="h-fit rounded-md border border-border bg-surface p-4" aria-labelledby="summary-heading">
@@ -222,7 +243,9 @@ export function CheckoutPage() {
   );
 }
 
-function InstructionOption({ icon: Icon, label, selected, onSelect }: { icon: LucideIcon; label: string; selected: string; onSelect: (value: string) => void }) {
+function InstructionOption({ icon: Icon, label, selected, onSelect,
+}: { icon: LucideIcon; label: string; selected: string; onSelect: (value: string) => void;
+}) {
   const isSelected = selected === label;
 
   return (
@@ -271,7 +294,9 @@ function PaymentOption({
 function estimatedPoints(total: string) {
   return Math.max(0, Math.round(Number(total) * 0.02));
 }
-function SummaryRow({ label, value, prefix = "", strong = false }: { label: string; value: string; prefix?: string; strong?: boolean }) {
+function SummaryRow({ label, value, prefix = "", strong = false,
+}: { label: string; value: string; prefix?: string; strong?: boolean;
+}) {
   return (
     <div className={strong ? "flex items-center justify-between font-semibold text-foreground" : "flex items-center justify-between text-muted-foreground"}>
       <span>{label}</span>
@@ -303,7 +328,7 @@ function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => {
       const result = String(reader.result ?? "");
-      resolve(result.includes(",") ? result.split(",").pop() ?? "" : result);
+      resolve(result.includes(",") ? (result.split(",").pop() ?? "") : result);
     };
     reader.onerror = () => reject(reader.error ?? new Error("Could not read file"));
     reader.readAsDataURL(file);

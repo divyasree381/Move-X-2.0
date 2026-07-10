@@ -60,7 +60,7 @@ PowerShell:
 
 ```powershell
 Copy-Item backend/api/.env.example backend/api/.env
-Copy-Item frontend/web/.env.example frontend/web/.env
+Copy-Item frontend/web/.env.example frontend/web/.env.local
 Copy-Item backend/workers/.env.example backend/workers/.env
 ```
 
@@ -68,7 +68,7 @@ macOS/Linux:
 
 ```bash
 cp backend/api/.env.example backend/api/.env
-cp frontend/web/.env.example frontend/web/.env
+cp frontend/web/.env.example frontend/web/.env.local
 cp backend/workers/.env.example backend/workers/.env
 ```
 
@@ -173,6 +173,8 @@ pnpm openapi:generate
 
 For a fully functional real website, replace mocks with real services and production-safe configuration.
 
+The complete provider and variable reference is in [`ENVIRONMENT.md`](ENVIRONMENT.md).
+
 ### Backend Infrastructure
 
 You need:
@@ -195,6 +197,8 @@ SESSION_COOKIE_NAME=__Host-movex_session
 AUTH_HASH_SECRET=long-random-secret
 CONFIG_SECRET_KEY=long-random-secret
 MFA_SECRET_KEY=long-random-secret
+OTP_HASH_SALT=long-random-ride-otp-salt
+ORDER_OTP_HASH_SALT=long-random-order-otp-salt
 ```
 
 ### SMS / OTP
@@ -202,7 +206,7 @@ MFA_SECRET_KEY=long-random-secret
 Local development uses `SMS_PROVIDER=mock`. Production needs a real SMS gateway:
 
 ```env
-SMS_PROVIDER=msg91
+SMS_PROVIDER=http
 SMS_GATEWAY_URL=https://your-sms-provider-endpoint
 SMS_GATEWAY_API_KEY=your-real-sms-key
 ```

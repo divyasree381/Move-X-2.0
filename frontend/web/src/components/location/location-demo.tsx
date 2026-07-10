@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import type { SelectedLocation } from "@movex/shared";
-import { Bike, BriefcaseBusiness, Home, MapPin, Package, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
+import { Bike, BriefcaseBusiness, Home, MapPin, Package, ShieldCheck, Sparkles, type LucideIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -26,8 +27,11 @@ const DEFAULT_DROP: SelectedLocation = {
   source: "autocomplete",
 };
 
-const savedPlaces: Array<{ label: string; helper: string; icon: LucideIcon; location: SelectedLocation }> = [
-  { label: "Home", helper: "Koramangala", icon: Home, location: { address: "Koramangala, Bengaluru", lat: 12.9352, lng: 77.6245, source: "autocomplete" } },
+const savedPlaces: Array<{ label: string; helper: string; icon: LucideIcon; location: SelectedLocation;
+}> = [
+  { label: "Home", helper: "Koramangala", icon: Home, location: { address: "Koramangala, Bengaluru", lat: 12.9352, lng: 77.6245, source: "autocomplete",
+    },
+  },
   { label: "Work", helper: "Indiranagar", icon: BriefcaseBusiness, location: DEFAULT_PICKUP },
   { label: "Pickup hub", helper: "MG Road", icon: Package, location: DEFAULT_DROP },
 ];
@@ -46,7 +50,8 @@ export function LocationDemo() {
   const activeLocation = activePoint === "pickup" ? pickup : drop;
   const activeLabel = activePoint === "pickup" ? "Pickup" : "Drop";
 
-  const activeAddress = useMemo(() => activeLocation?.address ?? `Set ${activeLabel.toLowerCase()} location`, [activeLabel, activeLocation?.address]);
+  const activeAddress = useMemo(() => activeLocation?.address ?? `Set ${activeLabel.toLowerCase()} location`, [activeLabel, activeLocation?.address],
+  );
 
   function updateActiveLocation(location: SelectedLocation) {
     if (activePoint === "pickup") {
@@ -74,7 +79,8 @@ export function LocationDemo() {
               <button
                 key={point}
                 type="button"
-                className={cn("rounded-full px-4 py-2 font-medium capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30", activePoint === point ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+                className={cn("rounded-full px-4 py-2 font-medium capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30", activePoint === point ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
                 onClick={() => setActivePoint(point)}
               >
                 {point}
@@ -119,7 +125,8 @@ export function LocationDemo() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-foreground">Choose service</p>
-                <p className="mt-1 text-xs text-muted-foreground">Preview surface for ride, courier, and delivery flows.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Route details for ride, courier, and delivery flows.</p>
               </div>
               <ShieldCheck className="size-5 text-success" aria-hidden={true} />
             </div>
@@ -128,8 +135,10 @@ export function LocationDemo() {
                 const Icon = choice.icon;
 
                 return (
-                  <button key={choice.label} type="button" className={cn("grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30", choice.active ? "border-primary bg-primary/10" : "border-border bg-surface hover:border-primary/35")}>
-                    <span className={cn("flex size-10 items-center justify-center rounded-md", choice.active ? "bg-primary text-primary-foreground" : "bg-surface-muted text-muted-foreground")}><Icon className="size-4" aria-hidden={true} /></span>
+                  <button key={choice.label} type="button" className={cn("grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30", choice.active ? "border-primary bg-primary/10" : "border-border bg-surface hover:border-primary/35",
+                    )}>
+                    <span className={cn("flex size-10 items-center justify-center rounded-md", choice.active ? "bg-primary text-primary-foreground" : "bg-surface-muted text-muted-foreground",
+                      )}><Icon className="size-4" aria-hidden={true} /></span>
                     <span>
                       <span className="block text-sm font-medium text-foreground">{choice.label}</span>
                       <span className="text-xs text-muted-foreground">{choice.eta} arrival</span>
@@ -157,11 +166,15 @@ export function LocationDemo() {
   );
 }
 
-function LocationStep({ index, label, value, active, onClick }: { index: string; label: string; value: string; active: boolean; onClick: () => void }) {
+function LocationStep({ index, label, value, active, onClick,
+}: { index: string; label: string; value: string; active: boolean; onClick: () => void;
+}) {
   return (
-    <button type="button" className={cn("rounded-lg border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30", active ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/35")} onClick={onClick}>
+    <button type="button" className={cn("rounded-lg border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30", active ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/35",
+      )} onClick={onClick}>
       <span className="flex items-start gap-3">
-        <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-md text-sm font-semibold", active ? "bg-primary text-primary-foreground" : "bg-surface-muted text-muted-foreground")}>{index}</span>
+        <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-md text-sm font-semibold", active ? "bg-primary text-primary-foreground" : "bg-surface-muted text-muted-foreground",
+          )}>{index}</span>
         <span className="min-w-0">
           <span className="block text-sm font-medium text-foreground">{label}</span>
           <span className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{value}</span>
@@ -170,4 +183,3 @@ function LocationStep({ index, label, value, active, onClick }: { index: string;
     </button>
   );
 }
-
