@@ -3,7 +3,7 @@ import { CustomerShell } from "@/components/shells";
 
 export default function CustomerRidesPage() {
   return (
-    <CustomerShell>
+    <CustomerShell mode="focused">
       <RideBookingPage />
     </CustomerShell>
   );

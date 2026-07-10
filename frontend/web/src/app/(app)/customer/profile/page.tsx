@@ -1,10 +1,10 @@
-import { CustomerRetentionPanel } from "@/components/retention";
+import { CustomerAccountPage } from "@/components/profile";
 import { CustomerShell } from "@/components/shells";
 
 export default function CustomerProfilePage() {
   return (
     <CustomerShell>
-      <CustomerRetentionPanel />
+      <CustomerAccountPage />
     </CustomerShell>
   );
 }

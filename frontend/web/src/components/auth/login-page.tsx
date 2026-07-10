@@ -50,10 +50,9 @@ const gatewayOptions = [
 export function LoginPage() {
   return (
     <AuthFrame eyebrow="Welcome to MoveX" title="Choose how you want to sign in" description="A cleaner entry point for customers, partners, and operations teams.">
-      <div className="grid gap-3">
+      <div className="grid gap-2.5">
         {gatewayOptions.map((option) => <AuthOptionCard key={option.href} {...option} />)}
       </div>
-      <p className="mt-5 text-sm leading-6 text-muted-foreground">Pick one path. We keep the auth role fixed for the rest of the flow, so OTP verification stays clean and role-based.</p>
     </AuthFrame>
   );
 }
@@ -418,18 +417,18 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
   }, [prefersReducedMotion]);
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
+    <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground lg:h-dvh lg:min-h-0 lg:overflow-hidden">
       <AnimatePresence>{showIntro && introReady && canAnimate ? <LoginIntro key="login-intro" /> : null}</AnimatePresence>
 
-      <div className="mx-auto flex min-h-dvh w-full max-w-6xl items-center px-4 py-3 sm:px-5 sm:py-4 lg:px-6">
+      <div className="mx-auto flex min-h-dvh w-full max-w-[72rem] items-center px-4 py-3 sm:px-5 sm:py-4 lg:h-dvh lg:min-h-0 lg:px-6 lg:py-6">
         <motion.div
           layout={canAnimate}
           initial={canAnimate ? { opacity: 0.96, scale: 0.985 } : false}
           animate={{ opacity: 1, scale: 1 }}
           transition={revealTransition}
-          className="grid w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)] lg:min-h-[min(38.5rem,calc(100dvh-1.5rem))] lg:grid-cols-[minmax(0,0.92fr)_minmax(24rem,0.8fr)]"
+          className="grid w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)] lg:h-[min(42rem,calc(100dvh-3rem))] lg:grid-cols-[minmax(0,0.78fr)_minmax(26rem,1fr)]"
         >
-          <section className="relative flex min-h-[14rem] overflow-hidden bg-primary p-5 text-primary-foreground sm:min-h-[18rem] sm:p-6 lg:min-h-0">
+          <section className="relative flex min-h-[12rem] overflow-hidden bg-primary p-5 text-primary-foreground sm:min-h-[15rem] sm:p-6 lg:min-h-0 lg:p-8">
             <div className="relative z-10 flex w-full flex-col justify-between gap-6">
               <div className="flex items-center justify-between gap-4">
                 <LogoLockup />
@@ -438,13 +437,13 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
                 </Link>
               </div>
 
-              <div className="max-w-xl">
+              <div className="max-w-md">
                 <p className="text-sm font-medium uppercase tracking-[0.16em] text-primary-foreground/70">One account. Every service.</p>
-                <h1 className="mt-3 max-w-[18.5rem] break-words text-2xl font-medium leading-[1.08] tracking-normal sm:mt-4 sm:max-w-lg sm:text-4xl">Sign in through the right door.</h1>
-                <p className="mt-3 max-w-[18.5rem] text-sm font-normal leading-6 text-primary-foreground/74 sm:text-base sm:leading-7">Customers, partners, and staff each get a focused route while the backend authenticates with a locked role.</p>
+                <h1 className="mt-3 max-w-[18.5rem] break-words text-2xl font-medium leading-[1.1] tracking-normal sm:max-w-md sm:text-3xl lg:text-4xl">Sign in through the right door.</h1>
+                <p className="mt-3 max-w-sm text-sm font-normal leading-6 text-primary-foreground/74 sm:text-base">Customers, partners, and staff each get a focused route while the backend authenticates with a locked role.</p>
               </div>
 
-              <div className="hidden flex-wrap gap-2 sm:flex">
+              <div className="hidden flex-wrap gap-2 lg:flex">
                 {trustChips.map((chip) => (
                   <span key={chip} className="rounded-full border border-primary-foreground/18 bg-primary-foreground/10 px-3 py-1.5 text-xs font-medium text-primary-foreground/82">
                     {chip}
@@ -458,7 +457,7 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
             initial={canAnimate ? { opacity: 0, y: 18 } : false}
             animate={{ opacity: showIntro && canAnimate ? 0 : 1, y: showIntro && canAnimate ? 18 : 0 }}
             transition={canAnimate ? { duration: 0.46, delay: showIntro ? 0 : 0.08, ease: "easeOut" } : { duration: 0 }}
-            className="flex min-h-0 flex-col bg-surface/98 p-4 backdrop-blur sm:p-5 lg:p-6"
+            className="flex min-h-0 flex-col overflow-y-auto bg-surface/98 p-4 backdrop-blur sm:p-5 lg:p-6"
             aria-labelledby="login-title"
           >
             <motion.div className="flex min-h-0 flex-1 flex-col" initial={canAnimate ? "hidden" : false} animate={showIntro && canAnimate ? "hidden" : "show"} variants={{ hidden: {}, show: { transition: { staggerChildren: 0.065, delayChildren: 0.08 } } }}>
@@ -479,11 +478,11 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
               </FormReveal>
 
               <FormReveal canAnimate={canAnimate}>
-                <div className="mt-4 min-h-0">{children}</div>
+                <div className="mt-3 min-h-0">{children}</div>
               </FormReveal>
 
               <FormReveal canAnimate={canAnimate}>
-                <div className="mt-4 flex items-center gap-2 border-t border-border pt-4 text-xs text-muted-foreground lg:mt-auto">
+                <div className="mt-3 flex items-center gap-2 border-t border-border pt-3 text-xs text-muted-foreground lg:mt-auto">
                   <Headphones size={16} aria-hidden={true} />
                   <span>For local testing, keep the backend running on port 3001.</span>
                 </div>
@@ -498,15 +497,15 @@ function AuthFrame({ eyebrow, title, description, backHref, children }: { eyebro
 
 function AuthOptionCard({ href, label, description, icon: Icon, tone }: { href: string; label: string; description: string; icon: LucideIcon; tone: string }) {
   return (
-    <Link href={href} className="group rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
-      <span className="flex items-start justify-between gap-4">
-        <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-md", tone)}>
-          <Icon className="size-5" aria-hidden={true} />
-        </span>
-        <ChevronRight className="mt-1 size-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden={true} />
+    <Link href={href} className="group flex min-h-[6.5rem] items-center gap-4 rounded-lg border border-border bg-surface p-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+      <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-md", tone)}>
+        <Icon className="size-5" aria-hidden={true} />
       </span>
-      <span className="mt-5 block text-lg font-medium text-foreground">{label}</span>
-      <span className="mt-2 block text-sm leading-6 text-muted-foreground">{description}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-base font-medium text-foreground">{label}</span>
+        <span className="mt-1 block text-sm leading-5 text-muted-foreground">{description}</span>
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden={true} />
     </Link>
   );
 }

@@ -58,7 +58,93 @@ export type PartnerTrack = {
   metrics: string;
 };
 
-export const heroImageUrl = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1800&q=80";
+export type PublicHeroSlide = {
+  id: "food" | "grocery" | "pharmacy" | "rides" | "courier" | "home";
+  label: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  promise: string;
+  ctaLabel: string;
+  href: string;
+  imageUrl: string;
+  imageAlt: string;
+};
+
+export const publicHeroSlides: PublicHeroSlide[] = [
+  {
+    id: "food",
+    label: "Food",
+    eyebrow: "Meals around you",
+    title: "Your city is cooking. Pick what arrives next.",
+    description: "Discover trusted kitchens, clear delivery times, and dishes for every kind of day.",
+    promise: "Live menus and delivery estimates",
+    ctaLabel: "Order food",
+    href: "/stores?type=FOOD",
+    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1800&q=82",
+    imageAlt: "A table filled with freshly prepared meals",
+  },
+  {
+    id: "grocery",
+    label: "Grocery",
+    eyebrow: "Everyday essentials",
+    title: "Fresh produce and pantry staples, without the store run.",
+    description: "Build the weekly basket or replace the one thing you ran out of, all from nearby stores.",
+    promise: "Fresh stock from local grocery partners",
+    ctaLabel: "Shop groceries",
+    href: "/stores?type=GROCERY",
+    imageUrl: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1800&q=82",
+    imageAlt: "Fresh fruit and vegetables arranged at a grocery market",
+  },
+  {
+    id: "pharmacy",
+    label: "Pharmacy",
+    eyebrow: "Health and wellness",
+    title: "Medicines and care products with verification built in.",
+    description: "Find nearby pharmacies, upload prescriptions securely, and track pharmacist review before dispatch.",
+    promise: "Prescription-ready checkout",
+    ctaLabel: "Find medicines",
+    href: "/stores?type=PHARMACY",
+    imageUrl: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=1800&q=82",
+    imageAlt: "Organized medicine and wellness products in a pharmacy",
+  },
+  {
+    id: "rides",
+    label: "Rides",
+    eyebrow: "Move across the city",
+    title: "Bike, auto, or cab. See the route before you book.",
+    description: "Pin pickup and destination, compare live estimates, and choose the ride that fits the moment.",
+    promise: "Route-based fares and nearby drivers",
+    ctaLabel: "Book a ride",
+    href: "/rides",
+    imageUrl: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1800&q=82",
+    imageAlt: "A passenger travelling through the city by car",
+  },
+  {
+    id: "courier",
+    label: "Courier",
+    eyebrow: "Send parcels nearby",
+    title: "Door-to-door delivery with both handoffs protected.",
+    description: "Choose pickup and delivery on one map, see the fare, and follow the parcel through OTP handoffs.",
+    promise: "Live route, tracking, and secure handoff",
+    ctaLabel: "Send a parcel",
+    href: "/customer/couriers",
+    imageUrl: "https://images.unsplash.com/photo-1580674285054-bed31e145f59?auto=format&fit=crop&w=1800&q=82",
+    imageAlt: "A local courier carrying parcels for delivery",
+  },
+  {
+    id: "home",
+    label: "Home services",
+    eyebrow: "Trusted help at home",
+    title: "Book verified professionals for the jobs that cannot wait.",
+    description: "Compare services, choose a time slot, and follow the visit from confirmation to completion.",
+    promise: "Scheduled visits from verified professionals",
+    ctaLabel: "Explore services",
+    href: "/customer/home-services",
+    imageUrl: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1800&q=82",
+    imageAlt: "A home service professional cleaning a modern living space",
+  },
+];
 
 export const publicServices: PublicService[] = [
   { id: "food", label: "Food", description: "Hot meals from trusted kitchens nearby.", href: "/stores?type=FOOD", tone: "bg-food-soft text-food", imageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=900&q=80" },

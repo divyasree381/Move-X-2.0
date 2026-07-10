@@ -10,6 +10,8 @@ locate -> estimate -> confirm/pay -> match partner -> track -> complete -> rate
 
 The same spine is reused across delivery, mobility, courier, and home-service flows instead of building separate systems for each vertical.
 
+For local setup and operating commands, see [the MoveX runbook](docs/RUNBOOK.md).
+
 ## User Roles
 
 MoveX supports eight roles:

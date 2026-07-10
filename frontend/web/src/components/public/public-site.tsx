@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, Bike, Building2, CheckCircle2, ChevronRight, Clock3, Headphones, Home, IndianRupee, LocateFixed, MapPin, Package, Pill, Search, ShoppingBasket, Sparkles, Star, Store, Truck, Utensils, type LucideIcon } from "lucide-react";
+import { ArrowRight, Bike, Building2, CheckCircle2, ChevronRight, Clock3, Headphones, Home, IndianRupee, LocateFixed, MapPin, Package, Pill, ShoppingBasket, Sparkles, Star, Store, Truck, Utensils, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui";
 import { PublicHeaderActions } from "./public-header-actions";
+import { ServiceHeroCarousel } from "./service-hero-carousel";
 import { cn } from "@/lib/utils";
 import { dietaryLabels, resolveDietaryType, type DietaryType } from "@/lib/dietary";
-import { findPublicStore, heroImageUrl, isPublicStoreType, partnerTracks, publicOffers, publicServices, publicStores, rideOptions, storesByType, type PublicOffer, type PublicService, type PublicStore, type PublicStoreType } from "@/lib/public-site-data";
+import { findPublicStore, isPublicStoreType, partnerTracks, publicHeroSlides, publicOffers, publicServices, publicStores, rideOptions, storesByType, type PublicOffer, type PublicService, type PublicStore, type PublicStoreType } from "@/lib/public-site-data";
 
 const navItems = [
   { label: "Home", href: "/", key: "home" },
@@ -117,41 +118,7 @@ export function PublicHomePage() {
 
   return (
     <PublicSiteShell active="home">
-      <section className="relative overflow-hidden bg-primary text-white">
-        <img src={heroImageUrl} alt="MoveX delivery, mobility, and local services" className="absolute inset-0 size-full object-cover object-center" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.82)_0%,rgba(2,6,23,0.58)_48%,rgba(2,6,23,0.22)_100%)]" aria-hidden={true} />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.42)_0%,rgba(2,6,23,0)_44%,rgba(2,6,23,0.34)_100%)]" aria-hidden={true} />
-        <div className="relative mx-auto flex min-h-[34rem] max-w-7xl items-center px-4 pb-24 pt-20 sm:px-6 sm:pb-24 sm:pt-24 lg:min-h-[36rem] lg:px-8">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/18 bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur">
-              <Sparkles className="size-4 text-accent" aria-hidden={true} />
-              One MoveX account for the whole city
-            </div>
-            <h1 className="mt-6 max-w-3xl text-4xl font-medium leading-[1.04] tracking-normal text-white sm:text-5xl lg:text-6xl">Get food, rides, essentials, and help nearby.</h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-white/78 sm:text-lg">Food, grocery, pharmacy, rides, courier, and home services come together in one location-first customer experience.</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="min-h-12 px-6">
-                <Link href="/stores"><Search className="size-4" aria-hidden={true} /> Explore stores</Link>
-              </Button>
-              <Button asChild size="lg" variant="secondary" className="min-h-12 border-white/25 bg-white/10 px-6 text-white hover:bg-white/15">
-                <Link href="/rides"><Bike className="size-4" aria-hidden={true} /> Book a ride</Link>
-              </Button>
-            </div>
-            <div className="mt-8 flex max-w-2xl flex-wrap gap-2">
-              {publicServices.map((service) => {
-                const Icon = serviceIcons[service.id] ?? Sparkles;
-
-                return (
-                  <Link key={service.id} href={service.href} className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/86 backdrop-blur transition hover:bg-white/16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35">
-                    <Icon className="size-3.5" aria-hidden={true} />
-                    {service.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </section>
+      <ServiceHeroCarousel slides={publicHeroSlides} />
 
       <main>
         <section className="relative z-10 mx-auto -mt-12 max-w-7xl px-4 sm:px-6 lg:px-8">

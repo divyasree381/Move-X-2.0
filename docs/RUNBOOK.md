@@ -11,15 +11,14 @@ cd "C:\All folders\Project Files\Move-X-2.0"
 Install these first:
 
 - Node.js `20.11+`
-- pnpm `9+` through Corepack
+- pnpm `11.9.0`
 - Docker Desktop
 - Git
 
-Enable pnpm:
+Install pnpm:
 
 ```powershell
-corepack enable
-corepack prepare pnpm@9.15.4 --activate
+npm install --global pnpm@11.9.0
 pnpm --version
 ```
 
