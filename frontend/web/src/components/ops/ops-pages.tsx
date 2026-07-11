@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PermissionAction } from "@movex/shared";
+import { PermissionAction, canPasswordLogin } from "@movex/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, MessageSquare, Scale, ShieldOff, Ticket, XCircle } from "lucide-react";
+import { CheckCircle2, MessageSquare, Scale, ShieldOff, Ticket, UserPlus, XCircle } from "lucide-react";
 
 import { QueryState } from "@/providers/query-state";
 import { useOpsPermission } from "@/components/shells";
-import { Button, EmptyState, Input, Skeleton, StatusPill } from "@/components/ui";
+import { Button, Dialog, DialogContent, DialogTrigger, EmptyState, Input, Skeleton, StatusPill } from "@/components/ui";
 import {
   addTicketMessage,
   adminUsers,
@@ -28,6 +28,8 @@ import {
   opsTickets,
   pendingPartners,
   pendingStores,
+  registerStaffAccount,
+  resendStaffInvitation,
   reviewPartner,
   reviewStore,
   suspendStore,
@@ -38,47 +40,130 @@ import {
   type OpsCoupon,
   type OpsDispute,
   type OpsTicket,
+  type StaffLoginRole,
 } from "@/lib/api";
 
 export function OpsUsersPage() {
   const params = useSearchParams();
   const queryClient = useQueryClient();
   const banAccess = useOpsPermission(PermissionAction.UsersBan);
+  const staffAccess = useOpsPermission(PermissionAction.StaffRegister);
   const role = params.get("role") ?? undefined;
-  const users = useQuery({ queryKey: ["ops-users", role], queryFn: () => adminUsers({ role, limit: 50 }),
+  const users = useQuery({
+    queryKey: ["ops-users", role],
+    queryFn: () => adminUsers({ role, limit: 50 }),
   });
-  const banMutation = useMutation({ mutationFn: ({ id, reason }: { id: string; reason?: string }) => banUser(id, reason), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ops-users"] }),
+  const banMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => banUser(id, reason),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ops-users"] }),
   });
-  const unbanMutation = useMutation({ mutationFn: unbanUser, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ops-users"] }),
+  const unbanMutation = useMutation({
+    mutationFn: unbanUser,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ops-users"] }),
+  });
+  const invitationMutation = useMutation({
+    mutationFn: resendStaffInvitation,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ops-users"] }),
   });
 
   return (
     <PermissionBoundary action={PermissionAction.UsersRead}>
-      <OpsPanel title="Users" description="Searchable staff view for user state and account controls." filters={<RoleFilter />}>
-        <QueryState isLoading={users.isLoading} isError={users.isError} error={users.error} onRetry={() => users.refetch()}>
-          <DataTable headers={["User", "Role", "Partner", "State", "Actions"]} empty="No users found">
-            {(users.data?.items ?? []).map((user) => (
-              <tr key={user.id} className="border-t border-border">
-                <Cell><Primary text={user.name ?? user.email ?? user.phoneE164 ?? user.id} sub={user.id} /></Cell>
-                <Cell><StatusPill label={user.role} tone="info" /></Cell>
-                <Cell>{user.partnerApproval}</Cell>
-                <Cell>{user.isBanned ? "Banned" : user.isOnline ? "Online" : "Offline"}</Cell>
-                <Cell>
-                  {banAccess.can ? (
-                    <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="secondary" disabled={banMutation.isPending || user.isBanned} onClick={() => banMutation.mutate({ id: user.id, reason: "Ops console action" })}><ShieldOff className="size-4" aria-hidden="true" /> Ban</Button>
-                      <Button size="sm" variant="ghost" disabled={unbanMutation.isPending || !user.isBanned} onClick={() => unbanMutation.mutate(user.id)}>Unban</Button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Read only</span>
-                  )}
-                </Cell>
-              </tr>
-            ))}
-          </DataTable>
-        </QueryState>
+      <OpsPanel title="Users" description="Search staff, customers, and partners, then apply the controls allowed for your role." filters={<RoleFilter />}>
+        <>
+          {staffAccess.can ? (
+            <StaffAccountCreator onCreated={() => queryClient.invalidateQueries({ queryKey: ["ops-users"] })} />
+          ) : null}
+          <QueryState isLoading={users.isLoading} isError={users.isError} error={users.error} onRetry={() => users.refetch()}>
+            <DataTable headers={["User", "Role", "Partner", "State", "Actions"]} empty="No users found">
+              {(users.data?.items ?? []).map((user) => {
+                const staffAccount = canPasswordLogin(user.role);
+                const canManage = banAccess.can && (!staffAccount || banAccess.role === "SUPER_ADMIN");
+
+                return (
+                  <tr key={user.id} className="border-t border-border">
+                    <Cell><Primary text={user.name ?? user.email ?? user.phoneE164 ?? user.id} sub={user.email ?? user.phoneE164 ?? user.id} /></Cell>
+                    <Cell><StatusPill label={user.role} tone="info" /></Cell>
+                    <Cell>{user.partnerApproval}</Cell>
+                    <Cell>{user.isBanned ? "Banned" : !user.emailVerifiedAt || user.mustChangePassword ? "Activation pending" : user.isOnline ? "Online" : "Active"}</Cell>
+                    <Cell>
+                      {canManage ? (
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" variant="secondary" disabled={banMutation.isPending || user.isBanned} onClick={() => banMutation.mutate({ id: user.id, reason: "Ops console action" })}><ShieldOff className="size-4" aria-hidden="true" /> Ban</Button>
+                          <Button size="sm" variant="ghost" disabled={unbanMutation.isPending || !user.isBanned} onClick={() => unbanMutation.mutate(user.id)}>Unban</Button>
+                          {staffAccess.can && staffAccount && !user.emailVerifiedAt ? (
+                            <Button size="sm" variant="ghost" disabled={invitationMutation.isPending || user.isBanned} onClick={() => invitationMutation.mutate(user.id)}>Resend invite</Button>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{staffAccount && banAccess.can ? "Super Admin only" : "Read only"}</span>
+                      )}
+                    </Cell>
+                  </tr>
+                );
+              })}
+            </DataTable>
+          </QueryState>
+        </>
       </OpsPanel>
     </PermissionBoundary>
+  );
+}
+
+const STAFF_ROLES = ["SUPPORT", "FINANCE", "ADMIN", "SUPER_ADMIN"] as const;
+
+function StaffAccountCreator({ onCreated }: { onCreated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<{ name: string; email: string; phone: string; role: StaffLoginRole; password: string }>({
+    name: "",
+    email: "",
+    phone: "",
+    role: "SUPPORT",
+    password: "",
+  });
+  const mutation = useMutation({
+    mutationFn: () => registerStaffAccount({
+      email: form.email.trim(),
+      password: form.password,
+      role: form.role,
+      ...(form.name.trim() ? { name: form.name.trim() } : {}),
+      ...(form.phone.trim() ? { phone: form.phone.trim() } : {}),
+    }),
+    onSuccess: () => {
+      onCreated();
+      setForm({ name: "", email: "", phone: "", role: "SUPPORT", password: "" });
+      setOpen(false);
+    },
+  });
+  const canSubmit = form.email.trim().length > 3 && form.password.length >= 12 && !mutation.isPending;
+
+  return (
+    <section className="flex flex-wrap items-center justify-between gap-4 border-y border-border bg-surface px-4 py-3">
+      <div>
+        <p className="text-sm font-semibold text-foreground">Staff access</p>
+        <p className="mt-1 text-xs text-muted-foreground">Create a role-limited staff account and send an email activation link.</p>
+      </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button><UserPlus className="size-4" aria-hidden="true" /> Create staff</Button>
+        </DialogTrigger>
+        <DialogContent title="Create staff account" description="The temporary password permits first sign-in; the email invitation verifies and activates the account.">
+          <form className="mt-5 space-y-4" onSubmit={(event) => { event.preventDefault(); mutation.mutate(); }}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="space-y-1.5 text-sm font-medium">Full name<Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} autoComplete="name" /></label>
+              <label className="space-y-1.5 text-sm font-medium">Role<select className="min-h-10 w-full rounded-md border border-border bg-surface px-3 text-sm" value={form.role} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as StaffLoginRole }))}>{STAFF_ROLES.map((role) => <option key={role} value={role}>{role.replace("_", " ")}</option>)}</select></label>
+            </div>
+            <label className="space-y-1.5 text-sm font-medium">Email<Input required type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} autoComplete="email" /></label>
+            <label className="space-y-1.5 text-sm font-medium">Phone <span className="font-normal text-muted-foreground">(optional)</span><Input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} autoComplete="tel" placeholder="+91 98765 43210" /></label>
+            <label className="space-y-1.5 text-sm font-medium">Temporary password<Input required type="password" minLength={12} value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} autoComplete="new-password" /></label>
+            {mutation.error ? <p role="alert" className="text-sm text-destructive">{mutation.error instanceof Error ? mutation.error.message : "Could not create the staff account."}</p> : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={!canSubmit}>{mutation.isPending ? "Creating..." : "Create account"}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </section>
   );
 }
 

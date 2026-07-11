@@ -840,7 +840,7 @@ export function partnerRoutePlan(input: { maxStops?: number; objective?: "DISTAN
 }
 export type OpsUser = {
   id: string;
-  role: string;
+  role: AuthRole;
   phoneE164?: string | null;
   email?: string | null;
   name?: string | null;
@@ -850,6 +850,8 @@ export type OpsUser = {
   isBanned?: boolean;
   mfaEnabled?: boolean;
   lastSeenAt?: string | null;
+  emailVerifiedAt?: string | null;
+  mustChangePassword?: boolean;
 };
 
 export type AuthRole = "CUSTOMER" | "RESTAURANT" | "DELIVERY" | "DRIVER" | "SUPPORT" | "FINANCE" | "ADMIN" | "SUPER_ADMIN";
@@ -871,6 +873,8 @@ export type AuthUser = {
   rejectionReason?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  emailVerifiedAt?: string | null;
+  mustChangePassword?: boolean;
 };
 
 export type AuthUserResponse = {
@@ -890,8 +894,32 @@ export function verifyOtpLogin(input: { phone: string; role: OtpLoginRole; code:
   return fetchApi<AuthUserResponse>("/auth/otp/verify", { method: "POST", body: JSON.stringify(input), skipRefresh: true });
 }
 
-export function adminLogin(input: { email: string; password: string; mfaCode?: string }) {
+export function adminLogin(input: { email: string; password: string }) {
   return fetchApi<AuthUserResponse>("/auth/admin/login", { method: "POST", body: JSON.stringify(input), skipRefresh: true });
+}
+
+export function registerStaffAccount(input: { email: string; password: string; role: StaffLoginRole; name?: string; phone?: string }) {
+  return fetchApi<AuthUserResponse>("/auth/admin/register", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function resendStaffInvitation(userId: string) {
+  return fetchApi<{ message: string }>("/auth/admin/users/" + encodeURIComponent(userId) + "/invitation", { method: "POST" });
+}
+
+export function requestStaffPasswordReset(input: { email: string }) {
+  return fetchApi<{ message: string }>("/auth/admin/password/forgot", { method: "POST", body: JSON.stringify(input), skipRefresh: true });
+}
+
+export function resetStaffPassword(input: { token: string; newPassword: string }) {
+  return fetchApi<{ message: string }>("/auth/admin/password/reset", { method: "POST", body: JSON.stringify(input), skipRefresh: true });
+}
+
+export function acceptStaffInvitation(input: { token: string; newPassword: string }) {
+  return fetchApi<{ message: string }>("/auth/admin/invitations/accept", { method: "POST", body: JSON.stringify(input), skipRefresh: true });
+}
+
+export function changeStaffPassword(input: { currentPassword: string; newPassword: string }) {
+  return fetchApi<AuthUserResponse>("/auth/admin/password/change", { method: "POST", body: JSON.stringify(input), skipRefresh: true });
 }
 
 export function logout() {
@@ -908,7 +936,10 @@ export function isPartnerAuthRole(role: AuthRole | string): role is Extract<Auth
   return PARTNER_AUTH_ROLES.includes(role as Extract<AuthRole, "RESTAURANT" | "DELIVERY" | "DRIVER">);
 }
 
-export function routeForAuthenticatedUser(user: Pick<AuthUser, "role" | "partnerApproval">) {
+export function routeForAuthenticatedUser(user: Pick<AuthUser, "role" | "partnerApproval" | "emailVerifiedAt" | "mustChangePassword">) {
+  if (["SUPPORT", "FINANCE", "ADMIN", "SUPER_ADMIN"].includes(user.role) && (!user.emailVerifiedAt || user.mustChangePassword)) {
+    return "/login/staff/activate";
+  }
   if (user.role === "CUSTOMER") {
     return "/";
   }

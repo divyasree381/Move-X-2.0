@@ -15,6 +15,8 @@ export type IdentityUser = {
   rejectionReason?: string | null;
   lastSeenAt?: Date | null;
   lastLoginAt?: Date | null;
+  emailVerifiedAt?: Date | null;
+  mustChangePassword: boolean;
   profileCompleted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -33,6 +35,8 @@ export type PublicUser = {
   partnerApproval: string;
   rejectionReason?: string | null;
   lastSeenAt?: string | null;
+  emailVerifiedAt?: string | null;
+  mustChangePassword: boolean;
 };
 
 export type SessionRecord = {
@@ -49,13 +53,13 @@ export type CachedSession = Omit<SessionRecord, "expiresAt" | "revokedAt" | "las
   expiresAt: string;
   revokedAt?: string | null;
   lastSeenAt?: string | null;
-  user: Omit<IdentityUser, "lastSeenAt" | "createdAt" | "updatedAt"> & {
+  user: Omit<IdentityUser, "lastSeenAt" | "emailVerifiedAt" | "createdAt" | "updatedAt"> & {
     lastSeenAt?: string | null;
+    emailVerifiedAt?: string | null;
     createdAt?: string;
     updatedAt?: string;
   };
 };
-
 export type OtpChallenge = {
   phoneE164: string;
   role: UserRoleValue;

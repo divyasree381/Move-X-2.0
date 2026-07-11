@@ -3,6 +3,7 @@ import { Test } from "@nestjs/testing";
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import type { App } from "supertest/types";
+import { StaffAuthTokenPurpose } from "@prisma/client";
 
 import { AppModule } from "../src/app.module";
 import { IdentityRepository } from "../src/modules/identity/identity.repository";
@@ -11,6 +12,7 @@ import type { OtpLoginRole, UserRoleValue } from "../src/modules/identity/consta
 import { RedisStoreService } from "../src/infrastructure/redis/redis-store.service";
 import { SMS_PROVIDER, type SendOtpInput, type SendSmsInput, type SmsProvider } from "../src/infrastructure/sms/sms-provider";
 import { PasswordService } from "../src/modules/identity/security/password.service";
+import { TokenHashService } from "../src/modules/identity/security/token-hash.service";
 import { setupApp } from "../src/setup-app";
 
 type MemoryRecord = {
@@ -114,6 +116,15 @@ class TestSmsProvider implements SmsProvider {
 
 type TestUser = IdentityUser & { passwordHash?: string | null };
 
+type TestStaffAuthToken = {
+  id: string;
+  userId: string;
+  purpose: StaffAuthTokenPurpose;
+  tokenHash: string;
+  expiresAt: Date;
+  usedAt?: Date | null;
+};
+
 type TestAddress = {
   id: string;
   userId: string;
@@ -130,6 +141,7 @@ class InMemoryIdentityRepository {
   readonly users: TestUser[] = [];
   readonly sessions: SessionRecord[] = [];
   readonly addresses: TestAddress[] = [];
+  readonly staffAuthTokens: TestStaffAuthToken[] = [];
   private userSequence = 0;
   private sessionSequence = 0;
   private addressSequence = 0;
@@ -168,6 +180,8 @@ class InMemoryIdentityRepository {
       profileCompleted: false,
       lastSeenAt: null,
       lastLoginAt: null,
+      emailVerifiedAt: null,
+      mustChangePassword: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -251,6 +265,8 @@ class InMemoryIdentityRepository {
     passwordHash: string;
     phoneE164?: string;
     name?: string;
+    mustChangePassword?: boolean;
+    emailVerifiedAt?: Date;
   }): Promise<IdentityUser> {
     const user: TestUser = {
       id: `test-user-${++this.userSequence}`,
@@ -266,6 +282,8 @@ class InMemoryIdentityRepository {
       profileCompleted: false,
       lastSeenAt: null,
       lastLoginAt: null,
+      emailVerifiedAt: input.emailVerifiedAt ?? null,
+      mustChangePassword: input.mustChangePassword ?? false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -274,6 +292,107 @@ class InMemoryIdentityRepository {
     return user;
   }
 
+  async createStaffWithInvitation(input: {
+    role: UserRoleValue;
+    email: string;
+    passwordHash: string;
+    phoneE164?: string;
+    name?: string;
+    tokenId: string;
+    tokenHash: string;
+    tokenExpiresAt: Date;
+  }): Promise<IdentityUser> {
+    const user = await this.createPasswordUser({
+      ...input,
+      mustChangePassword: true,
+    });
+    this.staffAuthTokens.push({
+      id: input.tokenId,
+      userId: user.id,
+      purpose: StaffAuthTokenPurpose.INVITATION,
+      tokenHash: input.tokenHash,
+      expiresAt: input.tokenExpiresAt,
+      usedAt: null,
+    });
+    return user;
+  }
+
+  async createInvitationToken(input: {
+    userId: string;
+    tokenId: string;
+    tokenHash: string;
+    expiresAt: Date;
+  }): Promise<void> {
+    for (const token of this.staffAuthTokens) {
+      if (token.userId === input.userId && token.purpose === StaffAuthTokenPurpose.INVITATION && !token.usedAt) {
+        token.usedAt = new Date();
+      }
+    }
+    this.staffAuthTokens.push({
+      id: input.tokenId,
+      userId: input.userId,
+      purpose: StaffAuthTokenPurpose.INVITATION,
+      tokenHash: input.tokenHash,
+      expiresAt: input.expiresAt,
+      usedAt: null,
+    });
+  }
+  async createPasswordResetToken(input: {
+    userId: string;
+    tokenId: string;
+    tokenHash: string;
+    expiresAt: Date;
+  }): Promise<void> {
+    for (const token of this.staffAuthTokens) {
+      if (token.userId === input.userId && token.purpose === StaffAuthTokenPurpose.PASSWORD_RESET && !token.usedAt) {
+        token.usedAt = new Date();
+      }
+    }
+    this.staffAuthTokens.push({
+      id: input.tokenId,
+      userId: input.userId,
+      purpose: StaffAuthTokenPurpose.PASSWORD_RESET,
+      tokenHash: input.tokenHash,
+      expiresAt: input.expiresAt,
+      usedAt: null,
+    });
+  }
+
+  async consumeStaffAuthToken(input: {
+    tokenHash: string;
+    purpose: StaffAuthTokenPurpose;
+    passwordHash: string;
+    now: Date;
+  }): Promise<IdentityUser | null> {
+    const token = this.staffAuthTokens.find((candidate) => candidate.tokenHash === input.tokenHash);
+
+    if (!token || token.purpose !== input.purpose || token.usedAt || token.expiresAt <= input.now) {
+      return null;
+    }
+
+    const user = this.requireUser(token.userId) as TestUser;
+
+    if (user.isBanned) {
+      return null;
+    }
+
+    token.usedAt = input.now;
+    user.passwordHash = input.passwordHash;
+    user.mustChangePassword = false;
+
+    if (input.purpose === StaffAuthTokenPurpose.INVITATION) {
+      user.emailVerifiedAt = input.now;
+    }
+
+    return user;
+  }
+
+  async updateStaffPassword(userId: string, passwordHash: string): Promise<IdentityUser> {
+    const user = this.requireUser(userId) as TestUser;
+    user.passwordHash = passwordHash;
+    user.mustChangePassword = false;
+    return user;
+  }
   async updateUserProfile(userId: string, input: { name?: string; email?: string; avatarUrl?: string }): Promise<IdentityUser> {
     const user = this.requireUser(userId);
     user.name = input.name ?? user.name;
@@ -393,6 +512,7 @@ class InMemoryIdentityRepository {
   dumpForTesting() {
     return {
       users: this.users,
+      staffAuthTokens: this.staffAuthTokens.map((token) => ({ ...token, expiresAt: token.expiresAt.toISOString(), usedAt: token.usedAt?.toISOString() ?? null })),
       sessions: this.sessions.map((session) => ({
         id: session.id,
         userId: session.userId,
@@ -625,19 +745,145 @@ async function main(): Promise<void> {
     const adminRegisterResponse = await request(server)
       .post("/api/v1/auth/admin/register")
       .set("Origin", "http://localhost:3000")
-      .set("Cookie", `${sessionCookieName}=${superAdminToken}`)
-      .send({ email: "ops@movex.test", password: "OpsPassword123", role: "ADMIN", name: "Ops Admin" })
+      .set("Cookie", sessionCookieName + "=" + superAdminToken)
+      .send({ email: "Ops@MoveX.Test", password: "OpsTemporary123", role: "ADMIN", name: "Ops Admin" })
       .expect(201);
-    const adminUserId = adminRegisterResponse.body.data.user.id;
+    const adminUserId = adminRegisterResponse.body.data.user.id as string;
     assert.equal(adminRegisterResponse.body.data.user.role, "ADMIN");
-    assertStorageDoesNotContain(context, "OpsPassword123");
+    assert.equal(adminRegisterResponse.body.data.user.email, "ops@movex.test");
+    assert.equal(adminRegisterResponse.body.data.user.mustChangePassword, true);
+    assert.equal(adminRegisterResponse.body.data.user.emailVerifiedAt, null);
+    assertStorageDoesNotContain(context, "OpsTemporary123");
+
+    const temporaryLoginResponse = await request(server)
+      .post("/api/v1/auth/admin/login")
+      .send({ email: "OPS@MOVEX.TEST", password: "OpsTemporary123" })
+      .expect(201);
+    const temporaryAdminToken = getCookieValue(temporaryLoginResponse, sessionCookieName);
+    assert.equal(temporaryLoginResponse.body.data.user.mustChangePassword, true);
+    await request(server)
+      .get("/api/v1/users/admin")
+      .set("Cookie", sessionCookieName + "=" + temporaryAdminToken)
+      .expect(403);
+
+    const tokenHashService = context.app.get(TokenHashService);
+    const originalInvitation = context.repository.staffAuthTokens.find(
+      (token) => token.userId === adminUserId && token.purpose === StaffAuthTokenPurpose.INVITATION && !token.usedAt,
+    );
+    assert(originalInvitation);
+    const originalInvitationToken = tokenHashService.createStaffAuthToken(originalInvitation.id, originalInvitation.purpose);
+
+    await request(server)
+      .post("/api/v1/auth/admin/users/" + adminUserId + "/invitation")
+      .set("Origin", "http://localhost:3000")
+      .set("Cookie", sessionCookieName + "=" + superAdminToken)
+      .expect(201);
+    await request(server)
+      .post("/api/v1/auth/admin/invitations/accept")
+      .send({ token: originalInvitationToken, newPassword: "ObsoleteInvitation123" })
+      .expect(401);
+
+    const invitationRecord = context.repository.staffAuthTokens.find(
+      (token) => token.userId === adminUserId && token.purpose === StaffAuthTokenPurpose.INVITATION && !token.usedAt,
+    );
+    assert(invitationRecord);
+    const invitationToken = tokenHashService.createStaffAuthToken(invitationRecord.id, invitationRecord.purpose);
+    assertStorageDoesNotContain(context, invitationToken);
+    await request(server)
+      .post("/api/v1/auth/admin/invitations/accept")
+      .send({ token: invitationToken, newPassword: "OpsActivatedPassword123" })
+      .expect(201);
+    await request(server)
+      .post("/api/v1/auth/admin/invitations/accept")
+      .send({ token: invitationToken, newPassword: "AnotherPassword123" })
+      .expect(401);
+    await request(server)
+      .post("/api/v1/auth/admin/login")
+      .send({ email: "ops@movex.test", password: "OpsTemporary123" })
+      .expect(401);
 
     const adminLoginResponse = await request(server)
       .post("/api/v1/auth/admin/login")
-      .send({ email: "ops@movex.test", password: "OpsPassword123" })
+      .send({ email: "OPS@MOVEX.TEST", password: "OpsActivatedPassword123" })
       .expect(201);
-    const adminToken = getCookieValue(adminLoginResponse, sessionCookieName);
-    await request(server).get("/api/v1/auth/me").set("Cookie", `${sessionCookieName}=${adminToken}`).expect(200);
+    let adminToken = getCookieValue(adminLoginResponse, sessionCookieName);
+    const activatedMe = await request(server).get("/api/v1/auth/me").set("Cookie", sessionCookieName + "=" + adminToken).expect(200);
+    assert(activatedMe.body.data.user.emailVerifiedAt);
+    assert.equal(activatedMe.body.data.user.mustChangePassword, false);
+    assert(context.repository.users.find((user) => user.id === adminUserId)?.lastLoginAt);
+    await request(server)
+      .post("/api/v1/auth/admin/register")
+      .set("Origin", "http://localhost:3000")
+      .set("Cookie", `${sessionCookieName}=${adminToken}`)
+      .send({ email: "forbidden@movex.test", password: "ForbiddenPassword123", role: "SUPPORT" })
+      .expect(403);
+
+    const supportRegisterResponse = await request(server)
+      .post("/api/v1/auth/admin/register")
+      .set("Origin", "http://localhost:3000")
+      .set("Cookie", `${sessionCookieName}=${superAdminToken}`)
+      .send({ email: "support@movex.test", password: "SupportPassword123", role: "SUPPORT", name: "Support Agent" })
+      .expect(201);
+    const supportUserId = supportRegisterResponse.body.data.user.id as string;
+
+    const knownRecovery = await request(server)
+      .post("/api/v1/auth/admin/password/forgot")
+      .send({ email: "ops@movex.test" })
+      .expect(201);
+    const unknownRecovery = await request(server)
+      .post("/api/v1/auth/admin/password/forgot")
+      .send({ email: "missing@movex.test" })
+      .expect(201);
+    assert.equal(knownRecovery.body.data.message, unknownRecovery.body.data.message);
+
+    const resetRecord = context.repository.staffAuthTokens.find(
+      (token) => token.userId === adminUserId && token.purpose === StaffAuthTokenPurpose.PASSWORD_RESET && !token.usedAt,
+    );
+    assert(resetRecord);
+    const resetToken = tokenHashService.createStaffAuthToken(resetRecord.id, resetRecord.purpose);
+    assertStorageDoesNotContain(context, resetToken);
+    await request(server)
+      .post("/api/v1/auth/admin/password/reset")
+      .send({ token: resetToken, newPassword: "OpsResetPassword123" })
+      .expect(201);
+    await request(server).get("/api/v1/auth/me").set("Cookie", sessionCookieName + "=" + adminToken).expect(401);
+    await request(server)
+      .post("/api/v1/auth/admin/password/reset")
+      .send({ token: resetToken, newPassword: "OpsResetAgain123" })
+      .expect(401);
+
+    const resetLoginResponse = await request(server)
+      .post("/api/v1/auth/admin/login")
+      .send({ email: "ops@movex.test", password: "OpsResetPassword123" })
+      .expect(201);
+    adminToken = getCookieValue(resetLoginResponse, sessionCookieName);
+
+    await request(server)
+      .post("/api/v1/auth/admin/password/change")
+      .set("Origin", "http://localhost:3000")
+      .set("Cookie", sessionCookieName + "=" + adminToken)
+      .send({ currentPassword: "OpsResetPassword123", newPassword: "OpsChangedPassword123" })
+      .expect(201);
+    await request(server).get("/api/v1/auth/me").set("Cookie", sessionCookieName + "=" + adminToken).expect(401);
+
+    const changedLoginResponse = await request(server)
+      .post("/api/v1/auth/admin/login")
+      .send({ email: "ops@movex.test", password: "OpsChangedPassword123" })
+      .expect(201);
+    adminToken = getCookieValue(changedLoginResponse, sessionCookieName);
+    await request(server)
+      .post(`/api/v1/users/admin/${supportUserId}/ban`)
+      .set("Origin", "http://localhost:3000")
+      .set("Cookie", `${sessionCookieName}=${adminToken}`)
+      .send({ reason: "Unauthorized staff action" })
+      .expect(403);
+
+    await request(server)
+      .post(`/api/v1/users/admin/${adminUserId}/ban`)
+      .set("Origin", "http://localhost:3000")
+      .set("Cookie", `${sessionCookieName}=${adminToken}`)
+      .send({ reason: "Self ban" })
+      .expect(400);
 
     await request(server)
       .post(`/api/v1/users/admin/${adminUserId}/ban`)
@@ -648,7 +894,7 @@ async function main(): Promise<void> {
     await request(server).get("/api/v1/auth/me").set("Cookie", `${sessionCookieName}=${adminToken}`).expect(401);
     await request(server)
       .post("/api/v1/auth/admin/login")
-      .send({ email: "ops@movex.test", password: "OpsPassword123" })
+      .send({ email: "OPS@MOVEX.TEST", password: "OpsChangedPassword123" })
       .expect(401);
 
     await requestOtp(server, "9900000201", "DRIVER");

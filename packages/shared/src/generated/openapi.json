@@ -87,6 +87,102 @@
         ]
       }
     },
+    "/api/v1/auth/admin/password/forgot": {
+      "post": {
+        "operationId": "IdentityController_forgotAdminPassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/password/reset": {
+      "post": {
+        "operationId": "IdentityController_resetAdminPassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/invitations/accept": {
+      "post": {
+        "operationId": "IdentityController_acceptAdminInvitation_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAcceptInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/password/change": {
+      "post": {
+        "operationId": "IdentityController_changeAdminPassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
     "/api/v1/auth/admin/bootstrap": {
       "post": {
         "operationId": "IdentityController_adminBootstrap_v1",
@@ -111,6 +207,29 @@
         ]
       }
     },
+    "/api/v1/auth/admin/users/{userId}/invitation": {
+      "post": {
+        "operationId": "IdentityController_resendAdminInvitation_v1",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
     "/api/v1/auth/admin/register": {
       "post": {
         "operationId": "IdentityController_adminRegister_v1",
@@ -121,68 +240,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AdminRegisterDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Identity"
-        ]
-      }
-    },
-    "/api/v1/auth/admin/mfa/setup": {
-      "post": {
-        "operationId": "IdentityController_setupMfa_v1",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Identity"
-        ]
-      }
-    },
-    "/api/v1/auth/admin/mfa/confirm": {
-      "post": {
-        "operationId": "IdentityController_confirmMfa_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MfaCodeDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Identity"
-        ]
-      }
-    },
-    "/api/v1/auth/admin/mfa/disable": {
-      "post": {
-        "operationId": "IdentityController_disableMfa_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MfaCodeDto"
               }
             }
           }
@@ -485,6 +542,42 @@
         ]
       }
     },
+    "/api/v1/users/me/partner-verification": {
+      "get": {
+        "operationId": "UsersController_myPartnerVerification_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      },
+      "put": {
+        "operationId": "UsersController_submitPartnerVerification_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerVerificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    },
     "/api/v1/users/me/online": {
       "post": {
         "operationId": "UsersController_setOnline_v1",
@@ -704,6 +797,29 @@
       "get": {
         "operationId": "UsersController_pendingPartners_v1",
         "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/admin/partners/{userId}/verification": {
+      "get": {
+        "operationId": "UsersController_partnerVerificationForAdmin_v1",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -3579,15 +3695,27 @@
         "type": "object",
         "properties": {}
       },
+      "AdminForgotPasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AdminResetPasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AdminAcceptInvitationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AdminChangePasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
       "AdminBootstrapDto": {
         "type": "object",
         "properties": {}
       },
       "AdminRegisterDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "MfaCodeDto": {
         "type": "object",
         "properties": {}
       },
@@ -3624,6 +3752,10 @@
         "properties": {}
       },
       "PartnerProfileDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PartnerVerificationDto": {
         "type": "object",
         "properties": {}
       },

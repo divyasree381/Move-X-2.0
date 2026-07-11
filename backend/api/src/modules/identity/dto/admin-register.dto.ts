@@ -6,7 +6,7 @@ export class AdminRegisterDto {
   email!: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(12)
   password!: string;
 
   @IsIn(PASSWORD_LOGIN_ROLES)

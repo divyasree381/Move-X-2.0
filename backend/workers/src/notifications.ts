@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import type { NotificationType, PrismaClient, User } from "@prisma/client";
 
 export type DeliveryContent = {
@@ -109,6 +110,8 @@ function titleForEvent(eventType: string): string {
     "refund.created": "Refund created",
     "payout.created": "Payout created",
     "partner.approved": "Partner approved",
+    "staff.invited": "Activate your MoveX staff account",
+    "staff.password-reset-requested": "Reset your MoveX staff password",
   };
   return titles[eventType] ?? "MoveX update";
 }
@@ -129,10 +132,53 @@ function bodyForEvent(eventType: string): string {
     "refund.created": "A refund has been created.",
     "payout.created": "A payout has been created.",
     "partner.approved": "Your partner profile has been approved.",
+    "staff.invited": "Check your registered email to activate your staff account.",
+    "staff.password-reset-requested": "Password reset instructions were sent to your registered email.",
   };
   return bodies[eventType] ?? "You have a new MoveX update.";
 }
 
+export function emailContentForEvent(
+  eventType: string,
+  payload: Record<string, unknown>,
+  fallback: DeliveryContent,
+): DeliveryContent {
+  const staffLink = staffLifecycleLink(eventType, payload);
+
+  if (eventType === "staff.invited" && staffLink) {
+    return { ...fallback, body: "Your MoveX staff account is ready. Set your password and verify your email: " + staffLink };
+  }
+
+  if (eventType === "staff.password-reset-requested" && staffLink) {
+    return { ...fallback, body: "Use this secure link to reset your MoveX staff password. It expires in 30 minutes: " + staffLink };
+  }
+
+  return fallback;
+}
+function staffLifecycleLink(eventType: string, payload: Record<string, unknown>): string | null {
+  const tokenId = typeof payload.tokenId === "string" ? payload.tokenId : null;
+  const purpose = typeof payload.tokenPurpose === "string" ? payload.tokenPurpose : null;
+
+  if (!tokenId || !purpose || !["staff.invited", "staff.password-reset-requested"].includes(eventType)) {
+    return null;
+  }
+
+  const secret = process.env.AUTH_HASH_SECRET;
+
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_HASH_SECRET is required to deliver staff lifecycle emails.");
+  }
+
+  const signature = createHmac("sha256", secret ?? "movex-dev-auth-hash-secret")
+    .update("staff-auth-token")
+    .update("\0")
+    .update(tokenId + ":" + purpose)
+    .digest("base64url");
+  const token = encodeURIComponent(tokenId + "." + signature);
+  const origin = (process.env.WEB_ORIGIN ?? "http://localhost:3000").replace(/\/+$/, "");
+  const path = eventType === "staff.invited" ? "/login/staff/activate" : "/login/staff/reset";
+  return origin + path + "?token=" + token;
+}
 function notificationTypeForEvent(eventType: string): NotificationType {
   if (eventType.includes("payment") || eventType.includes("refund") || eventType.includes("payout")) {
     return "PAYMENT";

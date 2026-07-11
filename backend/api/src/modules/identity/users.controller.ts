@@ -187,14 +187,14 @@ export class UsersController {
 
   @Post("admin/:userId/ban")
   @RequirePermission(PermissionAction.UsersBan)
-  banUser(@Param("userId") userId: string, @Body() body: BanUserDto) {
-    return this.usersService.banUser(userId, body.reason);
+  banUser(@Req() request: RequestWithUser, @Param("userId") userId: string, @Body() body: BanUserDto) {
+    return this.usersService.banUser(this.getSession(request), userId, body.reason);
   }
 
   @Post("admin/:userId/unban")
   @RequirePermission(PermissionAction.UsersBan)
-  unbanUser(@Param("userId") userId: string) {
-    return this.usersService.unbanUser(userId);
+  unbanUser(@Req() request: RequestWithUser, @Param("userId") userId: string) {
+    return this.usersService.unbanUser(this.getSession(request), userId);
   }
 
   @Get("admin/partners/pending")

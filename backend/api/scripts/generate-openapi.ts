@@ -10,7 +10,6 @@ async function main(): Promise<void> {
   process.env.NODE_ENV = process.env.NODE_ENV ?? "test";
   process.env.AUTH_HASH_SECRET = process.env.AUTH_HASH_SECRET ?? "openapi-generation-secret";
   process.env.CONFIG_SECRET_KEY = process.env.CONFIG_SECRET_KEY ?? "openapi-generation-config-secret";
-  process.env.MFA_SECRET_KEY = process.env.MFA_SECRET_KEY ?? "openapi-generation-mfa-secret";
   process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? "http://localhost:3000";
 
   const app = await NestFactory.create(AppModule, { rawBody: true, logger: false });

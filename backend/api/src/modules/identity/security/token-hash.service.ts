@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 
 @Injectable()
@@ -12,7 +12,7 @@ export class TokenHashService {
       throw new Error("AUTH_HASH_SECRET is required in production.");
     }
 
-    this.secret = configuredSecret ?? randomBytes(32).toString("hex");
+    this.secret = configuredSecret ?? (process.env.NODE_ENV === "test" ? "movex-test-auth-hash-secret" : "movex-dev-auth-hash-secret");
   }
 
   hashOtp(phoneE164: string, role: string, code: string): string {
@@ -21,6 +21,19 @@ export class TokenHashService {
 
   hashSessionToken(token: string): string {
     return this.hash("session", token);
+  }
+
+  createStaffAuthToken(tokenId: string, purpose: string): string {
+    const signature = createHmac("sha256", this.secret)
+      .update("staff-auth-token")
+      .update("\0")
+      .update(tokenId + ":" + purpose)
+      .digest("base64url");
+    return tokenId + "." + signature;
+  }
+
+  hashStaffAuthToken(token: string): string {
+    return this.hash("staff-auth-token", token);
   }
 
   timingSafeEqualHash(left: string, right: string): boolean {

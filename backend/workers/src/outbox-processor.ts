@@ -1,7 +1,7 @@
 import type Redis from "ioredis";
 import type { OutboxEvent, Prisma, PrismaClient } from "@prisma/client";
 
-import { contentForEvent, resolveNotificationUser, ResendWorkerEmailProvider, WorkerSmsProviderAdapter } from "./notifications.js";
+import { contentForEvent, emailContentForEvent, resolveNotificationUser, ResendWorkerEmailProvider, WorkerSmsProviderAdapter } from "./notifications.js";
 import { publishRealtime, topicForEvent } from "./realtime.js";
 import { setJsonIfNotExists } from "./redis.js";
 import { SearchIndexer } from "./search-indexer.js";
@@ -112,10 +112,11 @@ export class OutboxProcessor {
       }));
 
     if (user.email) {
+      const emailContent = emailContentForEvent(event.type, payload, content);
       await this.emailProvider.sendEmail({
         to: user.email,
-        subject: content.title,
-        text: content.body,
+        subject: emailContent.title,
+        text: emailContent.body,
         idempotencyKey: `outbox:${event.id}:email`,
       });
     }

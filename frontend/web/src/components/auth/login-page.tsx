@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, Bike, Building2, ChevronRight,
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PARTNER_LOGIN_TYPE_SESSION_KEY, partnerLoginConfigs, type PartnerLoginConfig,
 } from "@/lib/auth-flow";
-import { adminLogin, requestOtpLogin, routeForAuthenticatedUser, type OtpLoginRole, verifyOtpLogin,
+import { acceptStaffInvitation, adminLogin, changeStaffPassword, currentUser, requestOtpLogin, requestStaffPasswordReset, resetStaffPassword, routeForAuthenticatedUser, type OtpLoginRole, verifyOtpLogin,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -316,10 +316,8 @@ function StaffLoginFlow() {
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
   const canAnimate = !prefersReducedMotion;
-  const [email, setEmail] = useState("admin@movex.local");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mfaCode, setMfaCode] = useState("");
-  const [showMfaField, setShowMfaField] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -331,15 +329,10 @@ function StaffLoginFlow() {
     setIsSubmitting(true);
 
     try {
-      const result = await adminLogin({ email, password, mfaCode: showMfaField && mfaCode ? mfaCode : undefined,
-      });
+      const result = await adminLogin({ email, password });
       router.replace(routeForAuthenticatedUser(result.user));
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not sign in.";
-
-      if (message.toLowerCase().includes("mfa")) {
-        setShowMfaField(true);
-      }
 
       setError(message);
     } finally {
@@ -354,7 +347,7 @@ function StaffLoginFlow() {
           <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-ride-soft text-ride"><Building2 size={18} aria-hidden={true} /></span>
           <div>
             <p className="text-sm font-medium text-foreground">Staff console</p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">Use email and password first. Add an authenticator code only when your staff account requires MFA.</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">Use your registered staff email and password. Access is limited by your assigned role.</p>
           </div>
         </div>
       </div>
@@ -368,30 +361,11 @@ function StaffLoginFlow() {
           <label className="text-sm font-medium" htmlFor="staff-password">Password</label>
           <Input id="staff-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" type="password" autoComplete="current-password" className="min-h-11" />
         </div>
-        <AnimatePresence initial={false}>
-          {showMfaField ? (
-            <motion.div
-              key="staff-mfa-field"
-              initial={canAnimate ? { opacity: 0, y: 8 } : false}
-              animate={{ opacity: 1, y: 0 }}
-              exit={canAnimate ? { opacity: 0, y: -6 } : undefined}
-              transition={{ duration: canAnimate ? 0.2 : 0, ease: "easeOut" }}
-              className="space-y-1.5 rounded-md border border-border bg-surface-muted p-3"
-            >
-              <label className="text-sm font-medium" htmlFor="staff-mfa">Authenticator code</label>
-              <Input id="staff-mfa" value={mfaCode} onChange={(event) => setMfaCode(event.target.value)} placeholder="6-digit code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="min-h-11 bg-surface" />
-              <p className="text-xs leading-5 text-muted-foreground">Required only for staff accounts with MFA enabled. Local setup can continue without it.</p>
-            </motion.div>
-          ) : (
-            <button type="button" className="rounded-md text-left text-sm font-medium text-primary transition hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" onClick={() => setShowMfaField(true)}>
-              Use MFA code
-            </button>
-          )}
-        </AnimatePresence>
         <motion.div whileTap={canAnimate ? { scale: 0.98 } : undefined}>
           <Button className="min-h-11 w-full" type="submit" disabled={isSubmitting || !email || !password}>
             {isSubmitting ? "Signing in..." : "Sign in to ops"}
           </Button>
+          <Link href="/login/staff/forgot" className="mt-3 block text-center text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">Forgot password?</Link>
         </motion.div>
       </form>
 
@@ -400,6 +374,171 @@ function StaffLoginFlow() {
   );
 }
 
+export function StaffForgotPasswordPage() {
+  return (
+    <AuthFrame eyebrow="Staff recovery" title="Reset your password" description="Enter your registered staff email. We will send a secure, time-limited reset link." backHref="/login/staff">
+      <StaffForgotPasswordFlow />
+    </AuthFrame>
+  );
+}
+
+export function StaffResetPasswordPage() {
+  return (
+    <AuthFrame eyebrow="Staff recovery" title="Choose a new password" description="Create a strong password for your MoveX staff account." backHref="/login/staff">
+      <StaffTokenPasswordFlow mode="reset" />
+    </AuthFrame>
+  );
+}
+
+export function StaffActivationPage() {
+  const params = useSearchParams();
+  const hasInvitation = Boolean(params.get("token"));
+
+  return (
+    <AuthFrame
+      eyebrow="Staff activation"
+      title={hasInvitation ? "Activate your staff account" : "Secure your account"}
+      description={hasInvitation ? "Verify your email and replace the temporary password." : "Replace the temporary password before entering the operations console."}
+      backHref="/login/staff"
+    >
+      <StaffTokenPasswordFlow mode={hasInvitation ? "invitation" : "change"} />
+    </AuthFrame>
+  );
+}
+
+function StaffForgotPasswordFlow() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const result = await requestStaffPasswordReset({ email });
+      setStatus(result.message);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not request a password reset.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <form className="space-y-4" onSubmit={submit}>
+      <label className="block space-y-1.5 text-sm font-medium" htmlFor="recovery-email">
+        Staff email
+        <Input id="recovery-email" required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="name@company.com" className="min-h-11" />
+      </label>
+      <Button className="min-h-11 w-full" type="submit" disabled={isSubmitting || !email}>
+        {isSubmitting ? "Sending..." : "Send reset link"}
+      </Button>
+      <StatusMessages status={status} error={error} />
+    </form>
+  );
+}
+
+function StaffTokenPasswordFlow({ mode }: { mode: "invitation" | "reset" | "change" }) {
+  const router = useRouter();
+  const params = useSearchParams();
+  const token = params.get("token") ?? "";
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requiresPasswordChange, setRequiresPasswordChange] = useState(mode === "change");
+
+  useEffect(() => {
+    if (mode !== "change") {
+      return;
+    }
+
+    void currentUser().then(({ user }) => {
+      setRequiresPasswordChange(Boolean(user.mustChangePassword));
+
+      if (user.emailVerifiedAt && !user.mustChangePassword) {
+        router.replace("/ops");
+      }
+    }).catch(() => router.replace("/login/staff"));
+  }, [mode, router]);
+
+  const tokenRequired = mode !== "change";
+  const canSubmit = (!tokenRequired || token.length > 0) && (mode !== "change" || currentPassword.length > 0) && newPassword.length >= 12 && newPassword === confirmation;
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+
+    if (newPassword !== confirmation) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (mode === "invitation") {
+        await acceptStaffInvitation({ token, newPassword });
+        setStatus("Account activated. You can now sign in.");
+      } else if (mode === "reset") {
+        await resetStaffPassword({ token, newPassword });
+        setStatus("Password reset complete. You can now sign in.");
+      } else {
+        await changeStaffPassword({ currentPassword, newPassword });
+        setStatus("Password changed. Sign in again to continue.");
+      }
+
+      window.setTimeout(() => router.replace("/login/staff"), 700);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not update the password.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (tokenRequired && !token) {
+    return <StatusMessages status={null} error="This link is incomplete. Request a new invitation or password reset email." />;
+  }
+
+  if (mode === "change" && !requiresPasswordChange) {
+    return (
+      <div className="space-y-4">
+        <StatusMessages status="Your password is updated. Use the activation link sent to your registered email to verify the account." error={null} />
+        <Link href="/login/staff" className="block text-center text-sm font-medium text-primary hover:underline">Return to staff login</Link>
+      </div>
+    );
+  }
+
+  return (
+    <form className="space-y-4" onSubmit={submit}>
+      {mode === "change" ? (
+        <label className="block space-y-1.5 text-sm font-medium" htmlFor="current-staff-password">
+          Temporary password
+          <Input id="current-staff-password" required type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" className="min-h-11" />
+        </label>
+      ) : null}
+      <label className="block space-y-1.5 text-sm font-medium" htmlFor="new-staff-password">
+        New password
+        <Input id="new-staff-password" required minLength={12} type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" className="min-h-11" />
+        <span className="block text-xs font-normal text-muted-foreground">Use at least 12 characters.</span>
+      </label>
+      <label className="block space-y-1.5 text-sm font-medium" htmlFor="confirm-staff-password">
+        Confirm new password
+        <Input id="confirm-staff-password" required minLength={12} type="password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="new-password" className="min-h-11" />
+      </label>
+      <Button className="min-h-11 w-full" type="submit" disabled={isSubmitting || !canSubmit}>
+        {isSubmitting ? "Saving..." : mode === "invitation" ? "Activate account" : "Update password"}
+      </Button>
+      {mode === "change" ? <p className="text-xs leading-5 text-muted-foreground">Email verification is completed through the invitation link sent to your registered address.</p> : null}
+      <StatusMessages status={status} error={error} />
+    </form>
+  );
+}
 function AuthFrame({ eyebrow, title, description, backHref, children,
 }: { eyebrow: string; title: string; description: string; backHref?: string; children: ReactNode;
 }) {
