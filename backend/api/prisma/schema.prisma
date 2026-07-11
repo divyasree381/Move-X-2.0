@@ -113,6 +113,27 @@ enum PartnerApproval {
   REJECTED
 }
 
+enum PartnerDocumentType {
+  PROFILE_IMAGE
+  LIVE_PHOTO
+  STORE_LICENSE
+  AADHAAR
+  PAN
+  DRIVING_LICENSE
+  VEHICLE_RC
+  VEHICLE_INSURANCE
+  SKILL_CERTIFICATE
+  POLICE_VERIFICATION
+  BANK_PROOF
+}
+
+enum PartnerDocumentStatus {
+  UPLOADED
+  APPROVED
+  REJECTED
+  SUPERSEDED
+}
+
 enum LedgerEntryType {
   CREDIT
   DEBIT
@@ -275,6 +296,8 @@ model User {
   partnerShifts                   PartnerShift[]
   partnerOnlineSessions           PartnerOnlineSession[]
   partnerVerification             PartnerVerification?
+  partnerDocuments                PartnerDocument[]      @relation("PartnerDocumentOwner")
+  reviewedPartnerDocuments        PartnerDocument[]      @relation("PartnerDocumentReviewer")
   updatedFeatureFlags             FeatureFlag[]          @relation("FeatureFlagUpdater")
 
   @@index([role])
@@ -347,25 +370,59 @@ model PartnerOnlineSession {
 }
 
 model PartnerVerification {
-  id              String          @id @default(cuid())
-  userId          String          @unique
-  partnerKind     String
-  profile         Json            @default("{}")
-  address         Json            @default("{}")
-  documents       Json            @default("{}")
-  settlements     Json            @default("{}")
-  status          PartnerApproval @default(PENDING)
-  rejectionReason String?
-  submittedAt     DateTime?
-  reviewedAt      DateTime?
-  reviewedById    String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @default(now()) @updatedAt
+  id                        String          @id @default(cuid())
+  userId                    String          @unique
+  partnerKind               String
+  profile                   Json            @default("{}")
+  address                   Json            @default("{}")
+  documents                 Json            @default("{}")
+  settlements               Json            @default("{}")
+  sensitiveDetailsEncrypted Json?
+  sensitiveDetailsMasked    Json?
+  status                    PartnerApproval @default(PENDING)
+  rejectionReason           String?
+  submittedAt               DateTime?
+  reviewedAt                DateTime?
+  reviewedById              String?
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @default(now()) @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentsList PartnerDocument[]
 
   @@index([status, submittedAt])
   @@index([partnerKind, status])
+  @@index([reviewedById, reviewedAt])
+}
+
+model PartnerDocument {
+  id               String                @id @default(cuid())
+  userId           String
+  verificationId   String?
+  documentType     PartnerDocumentType
+  bucket           String
+  objectKey        String                @unique
+  originalFileName String
+  contentType      String
+  sizeBytes        Int
+  checksumSha256   String
+  version          Int
+  status           PartnerDocumentStatus @default(UPLOADED)
+  rejectionReason  String?
+  expiresAt        DateTime?
+  uploadedAt       DateTime              @default(now())
+  reviewedAt       DateTime?
+  reviewedById     String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @default(now()) @updatedAt
+
+  user         User                 @relation("PartnerDocumentOwner", fields: [userId], references: [id], onDelete: Cascade)
+  verification PartnerVerification? @relation(fields: [verificationId], references: [id], onDelete: SetNull)
+  reviewedBy   User?                @relation("PartnerDocumentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, documentType, version])
+  @@index([userId, status, uploadedAt(sort: Desc)])
+  @@index([verificationId, documentType])
   @@index([reviewedById, reviewedAt])
 }
 

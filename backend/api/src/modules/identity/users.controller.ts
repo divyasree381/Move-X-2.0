@@ -21,6 +21,7 @@ import { ApplyReferralDto, FavoriteDto, FavoritesQueryDto } from "./dto/retentio
 import { AdminUsersQueryDto } from "./dto/admin-users-query.dto";
 import { BanUserDto } from "./dto/ban-user.dto";
 import { PartnerLocationDto } from "./dto/location.dto";
+import { PartnerDocumentUploadDto } from "./dto/partner-document-upload.dto";
 import { PartnerOpsQueryDto, PartnerRoutePlanDto, PartnerShiftDto } from "./dto/partner-ops.dto";
 import { PartnerOnlineDto } from "./dto/partner-online.dto";
 import { PartnerProfileDto } from "./dto/partner-profile.dto";
@@ -29,12 +30,14 @@ import { PartnerReviewDto } from "./dto/partner-review.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import type { SessionRecord } from "./identity.types";
 import { UsersService } from "./users.service";
+import { PartnerDocumentsService } from "./partner-documents.service";
 
 @ApiExtraModels(
   AddressDto,
   AdminUsersQueryDto,
   BanUserDto,
   PartnerLocationDto,
+  PartnerDocumentUploadDto,
   PartnerOnlineDto,
   PartnerOpsQueryDto,
   PartnerRoutePlanDto,
@@ -50,7 +53,10 @@ import { UsersService } from "./users.service";
 )
 @Controller("users")
 export class UsersController {
-  constructor(@Inject(UsersService) private readonly usersService: UsersService) {}
+  constructor(
+    @Inject(UsersService) private readonly usersService: UsersService,
+    @Inject(PartnerDocumentsService) private readonly partnerDocumentsService: PartnerDocumentsService,
+  ) {}
 
   @Get("me")
   @RequirePermission(PermissionAction.OwnProfileRead)
@@ -138,6 +144,34 @@ export class UsersController {
   submitPartnerVerification(@Req() request: RequestWithUser, @Body() body: PartnerVerificationDto) {
     return this.usersService.submitPartnerVerification(this.getSession(request), body);
   }
+
+  @Post("me/partner-documents")
+  @RequirePermission(PermissionAction.PartnerProfileSubmit)
+  uploadPartnerDocument(@Req() request: RequestWithUser, @Body() body: PartnerDocumentUploadDto) {
+    return this.partnerDocumentsService.upload(this.getSession(request), body);
+  }
+
+  @Get("me/partner-documents")
+  @RequirePermission(PermissionAction.PartnerProfileSubmit)
+  listMyPartnerDocuments(@Req() request: RequestWithUser) {
+    return this.partnerDocumentsService.listOwn(this.getSession(request));
+  }
+
+  @Post("me/partner-documents/:documentId/access")
+  @RequirePermission(PermissionAction.PartnerProfileSubmit)
+  accessMyPartnerDocument(@Req() request: RequestWithUser, @Param("documentId") documentId: string) {
+    return this.partnerDocumentsService.accessOwn(
+      this.getSession(request),
+      documentId,
+      this.requestMetadata(request),
+    );
+  }
+
+  @Delete("me/partner-documents/:documentId")
+  @RequirePermission(PermissionAction.PartnerProfileSubmit)
+  deleteMyPartnerDocument(@Req() request: RequestWithUser, @Param("documentId") documentId: string) {
+    return this.partnerDocumentsService.removeOwn(this.getSession(request), documentId);
+  }
   @Post("me/online")
   @RequirePermission(PermissionAction.PartnerOnlineUpdate)
   setOnline(@Req() request: RequestWithUser, @Body() body: PartnerOnlineDto) {
@@ -209,6 +243,27 @@ export class UsersController {
     return this.usersService.getPartnerVerification(userId);
   }
 
+  @Get("admin/partners/:userId/documents")
+  @RequirePermission(PermissionAction.PartnerDocumentsRead)
+  partnerDocumentsForAdmin(@Param("userId") userId: string) {
+    return this.partnerDocumentsService.listForAdmin(userId);
+  }
+
+  @Post("admin/partners/:userId/documents/:documentId/access")
+  @RequirePermission(PermissionAction.PartnerDocumentsRead)
+  accessPartnerDocumentForAdmin(
+    @Req() request: RequestWithUser,
+    @Param("userId") userId: string,
+    @Param("documentId") documentId: string,
+  ) {
+    return this.partnerDocumentsService.accessForAdmin(
+      this.getSession(request),
+      userId,
+      documentId,
+      this.requestMetadata(request),
+    );
+  }
+
   @Post("admin/partners/:userId/review")
   @RequirePermission(PermissionAction.PartnersReview)
   reviewPartner(
@@ -217,6 +272,10 @@ export class UsersController {
     @Body() body: PartnerReviewDto,
   ) {
     return this.usersService.reviewPartner(userId, body, this.getSession(request));
+  }
+
+  private requestMetadata(request: RequestWithUser) {
+    return { ipAddress: request.ip, userAgent: request.get("user-agent") };
   }
 
   private getSession(request: RequestWithUser): SessionRecord {

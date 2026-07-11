@@ -48,11 +48,13 @@ import {
   isPartnerAuthRole,
   routeForAuthenticatedUser,
   submitPartnerVerification,
+  uploadPartnerDocument,
   type AuthUser,
+  type PartnerDocumentType,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const DRAFT_KEY = "movex-partner-verification-draft-v2";
+const DRAFT_KEY = "movex-partner-verification-draft-v3";
 const HOME_SERVICE_CATEGORIES = [
   "Plumbing",
   "Electrical",
@@ -85,7 +87,7 @@ type DocumentKey =
   | "skillCertificate"
   | "policeVerification"
   | "bankProof";
-type FileSnapshot = { name: string; size: number; type: string };
+type FileSnapshot = { name: string; size: number; type: string; file: File };
 type CapturedPhoto = { dataUrl: string; capturedAt: string };
 
 type VerificationForm = {
@@ -285,7 +287,7 @@ export function PartnerOnboardingPage({ preview }: { preview?: PartnerOnboarding
     try {
       const draft = JSON.parse(stored) as DraftPayload;
       setForm({ ...emptyForm, ...draft.form, location: draft.form.location ?? null });
-      setFiles(draft.files ?? {});
+      setFiles({});
       setDraftSavedAt(draft.savedAt);
     } catch {
       window.localStorage.removeItem(DRAFT_KEY);
@@ -320,9 +322,8 @@ export function PartnerOnboardingPage({ preview }: { preview?: PartnerOnboarding
         };
       }
 
-      return submitPartnerVerification(
-        buildVerificationPayload(form, files, liveCapture, partnerKind),
-      );
+      await uploadVerificationDocuments(files, liveCapture, form);
+      return submitPartnerVerification(buildVerificationPayload(form, liveCapture, partnerKind));
     },
     onSuccess: (result) => {
       setSubmittedUser(result.user);
@@ -336,7 +337,7 @@ export function PartnerOnboardingPage({ preview }: { preview?: PartnerOnboarding
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function handleFileChange(key: DocumentKey, event: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(key: DocumentKey, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
     if (!file) {
@@ -345,7 +346,12 @@ export function PartnerOnboardingPage({ preview }: { preview?: PartnerOnboarding
 
     setFiles((current) => ({
       ...current,
-      [key]: { name: file.name, size: file.size, type: file.type || "Uploaded file" },
+      [key]: {
+        name: file.name,
+        size: file.size,
+        type: file.type || inferContentType(file.name),
+        file,
+      },
     }));
   }
 
@@ -360,9 +366,16 @@ export function PartnerOnboardingPage({ preview }: { preview?: PartnerOnboarding
   function saveDraft() {
     const savedAt = new Date().toISOString();
     const payload: DraftPayload = {
-      form,
-      files,
-      liveCapture: liveCapture ? { capturedAt: liveCapture.capturedAt } : null,
+      form: {
+        ...form,
+        aadhaarNumber: "",
+        panNumber: "",
+        accountNumber: "",
+        confirmAccountNumber: "",
+        upiId: "",
+      },
+      files: {},
+      liveCapture: null,
       savedAt,
     };
 
@@ -1855,8 +1868,8 @@ function getCompletion(
       label: "Complete address details",
     },
     { done: Boolean(form.location), label: "Select location pin" },
-    { done: form.aadhaarNumber.trim().length >= 4, label: "Enter Aadhaar number" },
-    { done: form.panNumber.trim().length >= 4, label: "Enter PAN number" },
+    { done: /^\d{12}$/.test(form.aadhaarNumber.replace(/\D/g, "")), label: "Enter Aadhaar number" },
+    { done: /^[A-Z]{5}\d{4}[A-Z]$/.test(form.panNumber.trim().toUpperCase()), label: "Enter PAN number" },
     {
       done: form.accountHolderName.trim().length >= 2 && form.bankName.trim().length >= 2,
       label: "Enter bank account holder and bank name",
@@ -1990,16 +2003,77 @@ function getSubmitLabel(isReviewLocked: boolean, isPending: boolean) {
   return "Submit for review";
 }
 
+const DOCUMENT_TYPE_BY_KEY: Record<DocumentKey, PartnerDocumentType> = {
+  profileImage: "PROFILE_IMAGE",
+  storeLicense: "STORE_LICENSE",
+  aadhaar: "AADHAAR",
+  pan: "PAN",
+  drivingLicense: "DRIVING_LICENSE",
+  vehicleRc: "VEHICLE_RC",
+  vehicleInsurance: "VEHICLE_INSURANCE",
+  skillCertificate: "SKILL_CERTIFICATE",
+  policeVerification: "POLICE_VERIFICATION",
+  bankProof: "BANK_PROOF",
+};
+
+async function uploadVerificationDocuments(
+  files: Partial<Record<DocumentKey, FileSnapshot>>,
+  liveCapture: CapturedPhoto | null,
+  form: VerificationForm,
+) {
+  for (const [key, file] of Object.entries(files)) {
+    const documentKey = key as DocumentKey;
+    const expiresAt =
+      documentKey === "vehicleInsurance"
+        ? form.insuranceExpiry || undefined
+        : ["storeLicense", "drivingLicense", "skillCertificate"].includes(documentKey)
+          ? form.documentExpiry || undefined
+          : undefined;
+    await uploadPartnerDocument({
+      documentType: DOCUMENT_TYPE_BY_KEY[documentKey],
+      fileName: file.name,
+      contentType: file.type,
+      contentBase64: await readFileAsBase64(file.file),
+      ...(expiresAt ? { expiresAt: new Date(`${expiresAt}T23:59:59.999Z`).toISOString() } : {}),
+    });
+  }
+
+  if (liveCapture) {
+    await uploadPartnerDocument({
+      documentType: "LIVE_PHOTO",
+      fileName: `live-photo-${Date.now()}.jpg`,
+      contentType: "image/jpeg",
+      contentBase64: liveCapture.dataUrl.split(",")[1] ?? "",
+    });
+  }
+}
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      const base64 = result.split(",")[1];
+      if (!base64) reject(new Error("Could not read the selected document."));
+      else resolve(base64);
+    };
+    reader.onerror = () => reject(new Error("Could not read the selected document."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function inferContentType(fileName: string) {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+  if (extension === "pdf") return "application/pdf";
+  if (extension === "png") return "image/png";
+  if (extension === "webp") return "image/webp";
+  return "image/jpeg";
+}
+
 function buildVerificationPayload(
   form: VerificationForm,
-  files: Partial<Record<DocumentKey, FileSnapshot>>,
   liveCapture: CapturedPhoto | null,
   partnerKind: PartnerKind,
 ) {
-  const documentFiles = Object.fromEntries(
-    Object.entries(files).filter(([key]) => !["profileImage", "bankProof"].includes(key)),
-  );
-
   return {
     partnerKind,
     name: form.ownerName.trim() || undefined,
@@ -2018,7 +2092,6 @@ function buildVerificationPayload(
       emergencyContact: form.emergencyContact,
       serviceCategories: form.serviceCategories,
       serviceRadiusKm: form.serviceRadiusKm,
-      profileImage: files.profileImage ?? null,
       liveCapture: liveCapture ? { capturedAt: liveCapture.capturedAt, captured: true } : null,
     },
     address: {
@@ -2039,7 +2112,6 @@ function buildVerificationPayload(
       vehicleRcNumber: form.vehicleRcNumber,
       insuranceExpiry: form.insuranceExpiry,
       policeVerificationRef: form.policeVerificationRef,
-      files: documentFiles,
     },
     settlements: {
       accountHolderName: form.accountHolderName,
@@ -2047,7 +2119,6 @@ function buildVerificationPayload(
       accountNumber: form.accountNumber,
       ifscCode: form.ifscCode,
       upiId: form.upiId,
-      bankProof: files.bankProof ?? null,
       consents: {
         accuracy: form.accuracyConsent,
         verification: form.verificationConsent,

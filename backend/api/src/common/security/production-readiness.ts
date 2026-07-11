@@ -28,6 +28,15 @@ export function validateProductionReadiness(): void {
   requireEnv(errors, "RAZORPAY_KEY_SECRET");
   requireEnv(errors, "RAZORPAY_WEBHOOK_SECRET");
 
+  if ((process.env.STORAGE_PROVIDER ?? "mock") !== "supabase") {
+    errors.push("STORAGE_PROVIDER=supabase is required in production.");
+  }
+  requireEnv(errors, "SUPABASE_URL");
+  if (!process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    errors.push("SUPABASE_SECRET_KEY is required in production.");
+  }
+  requireEnv(errors, "SUPABASE_PRIVATE_BUCKET");
+
   if ((process.env.SESSION_COOKIE_NAME ?? "").startsWith("__Host-") === false) {
     errors.push("SESSION_COOKIE_NAME must use the __Host- prefix in production.");
   }
