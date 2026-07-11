@@ -142,6 +142,8 @@ export class SessionService {
       partnerApproval: user.partnerApproval,
       rejectionReason: user.rejectionReason,
       lastSeenAt: user.lastSeenAt?.toISOString() ?? null,
+      emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
+      mustChangePassword: user.mustChangePassword,
     };
   }
 
@@ -176,6 +178,7 @@ export class SessionService {
       user: {
         ...session.user,
         lastSeenAt: session.user.lastSeenAt?.toISOString() ?? null,
+        emailVerifiedAt: session.user.emailVerifiedAt?.toISOString() ?? null,
         createdAt: session.user.createdAt?.toISOString(),
         updatedAt: session.user.updatedAt?.toISOString(),
       },
@@ -191,6 +194,7 @@ export class SessionService {
       user: {
         ...session.user,
         lastSeenAt: session.user.lastSeenAt ? new Date(session.user.lastSeenAt) : null,
+        emailVerifiedAt: session.user.emailVerifiedAt ? new Date(session.user.emailVerifiedAt) : null,
         createdAt: session.user.createdAt ? new Date(session.user.createdAt) : undefined,
         updatedAt: session.user.updatedAt ? new Date(session.user.updatedAt) : undefined,
       },

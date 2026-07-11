@@ -22,6 +22,18 @@ export class IdentityRateLimiterService {
     ]);
   }
 
+  async consumeStaffLogin(email: string, ipAddress: string | undefined): Promise<void> {
+    await Promise.all([
+      this.consume("identity:staff-login:email:" + email, this.getNumber("STAFF_LOGIN_EMAIL_LIMIT", 10), DEFAULT_WINDOW_MS),
+      this.consume("identity:staff-login:ip:" + (ipAddress ?? "unknown"), this.getNumber("STAFF_LOGIN_IP_LIMIT", 50), DEFAULT_WINDOW_MS),
+    ]);
+  }
+  async consumeStaffRecovery(email: string, ipAddress: string | undefined): Promise<void> {
+    await Promise.all([
+      this.consume("identity:staff-recovery:email:" + email, this.getNumber("STAFF_RECOVERY_EMAIL_LIMIT", 3), DEFAULT_WINDOW_MS),
+      this.consume("identity:staff-recovery:ip:" + (ipAddress ?? "unknown"), this.getNumber("STAFF_RECOVERY_IP_LIMIT", 20), DEFAULT_WINDOW_MS),
+    ]);
+  }
   private async consume(key: string, limit: number, ttlMs: number): Promise<void> {
     const count = await this.redisStore.increment(key, ttlMs);
 

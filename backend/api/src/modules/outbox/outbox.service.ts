@@ -19,6 +19,8 @@ export const StandardOutboxEventType = {
   RefundCreated: "refund.created",
   PayoutCreated: "payout.created",
   PartnerApproved: "partner.approved",
+  StaffInvited: "staff.invited",
+  StaffPasswordResetRequested: "staff.password-reset-requested",
 } as const;
 
 export type StandardOutboxEventType = (typeof StandardOutboxEventType)[keyof typeof StandardOutboxEventType];

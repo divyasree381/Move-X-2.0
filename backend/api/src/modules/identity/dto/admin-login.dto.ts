@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, Length, MinLength } from "class-validator";
+import { IsEmail, IsString, MinLength } from "class-validator";
 
 export class AdminLoginDto {
   @IsEmail()
@@ -8,8 +8,4 @@ export class AdminLoginDto {
   @MinLength(8)
   password!: string;
 
-  @IsOptional()
-  @IsString()
-  @Length(6, 6)
-  mfaCode?: string;
 }

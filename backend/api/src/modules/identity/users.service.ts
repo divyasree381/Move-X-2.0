@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { CourierStatus, HomeServiceStatus, LedgerEntryType, OrderStatus, PartnerApproval, PartnerShiftStatus, PayoutStatus, Prisma, RideStatus, UserRole } from "@prisma/client";
+import { canPasswordLogin } from "@movex/shared";
 import { RedisStoreService } from "../../infrastructure/redis/redis-store.service";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { REALTIME_PROVIDER, type RealtimeProvider } from "../realtime/realtime-provider";
@@ -385,13 +386,15 @@ export class UsersService {
     };
   }
 
-  async banUser(userId: string, reason?: string): Promise<PublicUser> {
+  async banUser(actor: SessionRecord, userId: string, reason?: string): Promise<PublicUser> {
+    await this.assertCanManageAccount(actor, userId);
     const user = await this.repository.setUserBanned(userId, true, reason);
     await this.sessionService.revokeAllForUser(userId);
     return this.sessionService.toPublicUser(user);
   }
 
-  async unbanUser(userId: string): Promise<PublicUser> {
+  async unbanUser(actor: SessionRecord, userId: string): Promise<PublicUser> {
+    await this.assertCanManageAccount(actor, userId);
     const user = await this.repository.setUserBanned(userId, false);
     return this.sessionService.toPublicUser(user);
   }
@@ -436,6 +439,21 @@ export class UsersService {
     return this.sessionService.toPublicUser(user);
   }
 
+  private async assertCanManageAccount(actor: SessionRecord, userId: string): Promise<void> {
+    if (actor.userId === userId) {
+      throw new BadRequestException("You cannot change your own account status");
+    }
+
+    const target = await this.repository.findUserById(userId);
+
+    if (!target) {
+      throw new NotFoundException("User not found");
+    }
+
+    if (canPasswordLogin(target.role) && actor.user.role !== UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException("Only a super admin can manage staff accounts");
+    }
+  }
   private assertPartnerKindAllowed(session: SessionRecord, partnerKind: string): void {
     const allowed: Record<string, string[]> = {
       [UserRole.RESTAURANT]: ["store"],

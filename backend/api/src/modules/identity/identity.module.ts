@@ -9,7 +9,6 @@ import { IdentityRepository } from "./identity.repository";
 import { IdentityService } from "./identity.service";
 import { OtpChallengeService } from "./otp/otp-challenge.service";
 import { IdentityRateLimiterService } from "./rate-limiter/identity-rate-limiter.service";
-import { MfaService } from "./security/mfa.service";
 import { PasswordService } from "./security/password.service";
 import { TokenHashService } from "./security/token-hash.service";
 import { SessionService } from "./session/session.service";
@@ -25,7 +24,6 @@ import { UsersService } from "./users.service";
     UsersService,
     IdentityRateLimiterService,
     OtpChallengeService,
-    MfaService,
     SessionService,
     PasswordService,
     TokenHashService,

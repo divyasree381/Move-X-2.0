@@ -20,7 +20,6 @@ Generate unique values per environment for:
 
 - `AUTH_HASH_SECRET`
 - `CONFIG_SECRET_KEY`
-- `MFA_SECRET_KEY`
 - `OTP_HASH_SALT` and `ORDER_OTP_HASH_SALT`
 - `ADMIN_BOOTSTRAP_TOKEN` during first-super-admin setup only
 - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET`
@@ -49,12 +48,15 @@ Generate unique values per environment for:
 | `SESSION_COOKIE_NAME` | HttpOnly session cookie | `__Host-movex_session` |
 | `CSRF_COOKIE_NAME` | Double-submit CSRF cookie | `movex_csrf` |
 | `SESSION_TTL_SECONDS` | Server-side session lifetime | `2592000` |
-| `STAFF_MFA_REQUIRED` | Require staff MFA in production | `true` |
 | `OTP_TTL_SECONDS` | OTP challenge lifetime | `300` |
 | `OTP_REQUEST_PHONE_LIMIT` | OTP requests per phone window | `3` |
 | `OTP_REQUEST_IP_LIMIT` | OTP requests per IP window | `20` |
 | `OTP_VERIFY_PHONE_LIMIT` | Verification attempts per phone window | `20` |
 | `OTP_VERIFY_IP_LIMIT` | Verification attempts per IP window | `60` |
+| `STAFF_LOGIN_EMAIL_LIMIT` | Staff login attempts per email window | `10` |
+| `STAFF_LOGIN_IP_LIMIT` | Staff login attempts per IP window | `50` |
+| `STAFF_RECOVERY_EMAIL_LIMIT` | Staff recovery requests per email window | `3` |
+| `STAFF_RECOVERY_IP_LIMIT` | Staff recovery requests per IP window | `20` |
 
 Optional security tuning uses these code defaults:
 
@@ -67,6 +69,10 @@ Optional security tuning uses these code defaults:
 | `ORDER_OTP_HASH_SALT` | required explicitly in production |
 
 Production deployments should explicitly configure both OTP salts.
+
+Staff authentication uses scrypt-hashed passwords, verified email invitations, forced temporary-password replacement, single-use hashed recovery tokens, role permissions, audit logging, and revocable server-side sessions. Staff MFA remains deliberately deferred.
+
+The API and worker must share the same `AUTH_HASH_SECRET`; the worker uses it to derive invitation and password-reset links without storing plaintext lifecycle tokens. Set `WEB_ORIGIN` on both services to the canonical frontend origin.
 
 ## Orders And Retention Tuning
 

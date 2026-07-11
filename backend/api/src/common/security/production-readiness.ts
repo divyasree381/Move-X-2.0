@@ -22,7 +22,6 @@ export function validateProductionReadiness(): void {
 
   requireEnv(errors, "AUTH_HASH_SECRET");
   requireEnv(errors, "CONFIG_SECRET_KEY");
-  requireEnv(errors, "MFA_SECRET_KEY");
   requireEnv(errors, "OTP_HASH_SALT");
   requireEnv(errors, "ORDER_OTP_HASH_SALT");
   requireEnv(errors, "RAZORPAY_KEY_ID");

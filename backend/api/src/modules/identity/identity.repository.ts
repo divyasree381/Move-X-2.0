@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { PartnerApproval, Prisma, UserRole as PrismaUserRole, type AdminType as PrismaAdminType } from "@prisma/client";
+import { PartnerApproval, Prisma, StaffAuthTokenPurpose, UserRole as PrismaUserRole, type AdminType as PrismaAdminType } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import type { UserRoleValue } from "./constants";
@@ -19,6 +19,8 @@ export type CreatePasswordUserInput = {
   passwordHash: string;
   phoneE164?: string;
   name?: string;
+  mustChangePassword?: boolean;
+  emailVerifiedAt?: Date;
 };
 
 export type AddressInput = {
@@ -94,6 +96,8 @@ export class IdentityRepository {
         phoneE164: input.phoneE164,
         passwordHash: input.passwordHash,
         name: input.name,
+        mustChangePassword: input.mustChangePassword ?? false,
+        emailVerifiedAt: input.emailVerifiedAt,
         partnerApproval: PartnerApproval.NONE,
       },
     });
@@ -101,6 +105,164 @@ export class IdentityRepository {
     return this.toIdentityUser(user);
   }
 
+  async createStaffWithInvitation(input: CreatePasswordUserInput & {
+    tokenId: string;
+    tokenHash: string;
+    tokenExpiresAt: Date;
+  }): Promise<IdentityUser> {
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          role: input.role as PrismaUserRole,
+          adminType: input.adminType,
+          email: input.email.toLowerCase(),
+          phoneE164: input.phoneE164,
+          passwordHash: input.passwordHash,
+          name: input.name,
+          mustChangePassword: true,
+          partnerApproval: PartnerApproval.NONE,
+        },
+      });
+      await tx.staffAuthToken.create({
+        data: {
+          id: input.tokenId,
+          userId: user.id,
+          purpose: StaffAuthTokenPurpose.INVITATION,
+          tokenHash: input.tokenHash,
+          expiresAt: input.tokenExpiresAt,
+        },
+      });
+      await tx.outboxEvent.create({
+        data: {
+          type: "staff.invited",
+          payload: {
+            userId: user.id,
+            tokenId: input.tokenId,
+            tokenPurpose: StaffAuthTokenPurpose.INVITATION,
+          },
+        },
+      });
+      return this.toIdentityUser(user);
+    });
+  }
+
+  async createInvitationToken(input: {
+    userId: string;
+    tokenId: string;
+    tokenHash: string;
+    expiresAt: Date;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.staffAuthToken.updateMany({
+        where: {
+          userId: input.userId,
+          purpose: StaffAuthTokenPurpose.INVITATION,
+          usedAt: null,
+        },
+        data: { usedAt: new Date() },
+      });
+      await tx.staffAuthToken.create({
+        data: {
+          id: input.tokenId,
+          userId: input.userId,
+          purpose: StaffAuthTokenPurpose.INVITATION,
+          tokenHash: input.tokenHash,
+          expiresAt: input.expiresAt,
+        },
+      });
+      await tx.outboxEvent.create({
+        data: {
+          type: "staff.invited",
+          payload: {
+            userId: input.userId,
+            tokenId: input.tokenId,
+            tokenPurpose: StaffAuthTokenPurpose.INVITATION,
+          },
+        },
+      });
+    });
+  }
+  async createPasswordResetToken(input: {
+    userId: string;
+    tokenId: string;
+    tokenHash: string;
+    expiresAt: Date;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.staffAuthToken.updateMany({
+        where: {
+          userId: input.userId,
+          purpose: StaffAuthTokenPurpose.PASSWORD_RESET,
+          usedAt: null,
+        },
+        data: { usedAt: new Date() },
+      });
+      await tx.staffAuthToken.create({
+        data: {
+          id: input.tokenId,
+          userId: input.userId,
+          purpose: StaffAuthTokenPurpose.PASSWORD_RESET,
+          tokenHash: input.tokenHash,
+          expiresAt: input.expiresAt,
+        },
+      });
+      await tx.outboxEvent.create({
+        data: {
+          type: "staff.password-reset-requested",
+          payload: {
+            userId: input.userId,
+            tokenId: input.tokenId,
+            tokenPurpose: StaffAuthTokenPurpose.PASSWORD_RESET,
+          },
+        },
+      });
+    });
+  }
+
+  async consumeStaffAuthToken(input: {
+    tokenHash: string;
+    purpose: StaffAuthTokenPurpose;
+    passwordHash: string;
+    now: Date;
+  }): Promise<IdentityUser | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const token = await tx.staffAuthToken.findUnique({
+        where: { tokenHash: input.tokenHash },
+        include: { user: true },
+      });
+
+      if (!token || token.purpose !== input.purpose || token.usedAt || token.expiresAt <= input.now || token.user.isBanned) {
+        return null;
+      }
+
+      const consumed = await tx.staffAuthToken.updateMany({
+        where: { id: token.id, usedAt: null, expiresAt: { gt: input.now } },
+        data: { usedAt: input.now },
+      });
+
+      if (consumed.count !== 1) {
+        return null;
+      }
+
+      const user = await tx.user.update({
+        where: { id: token.userId },
+        data: {
+          passwordHash: input.passwordHash,
+          mustChangePassword: false,
+          ...(input.purpose === StaffAuthTokenPurpose.INVITATION ? { emailVerifiedAt: input.now } : {}),
+        },
+      });
+      return this.toIdentityUser(user);
+    });
+  }
+
+  async updateStaffPassword(userId: string, passwordHash: string): Promise<IdentityUser> {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash, mustChangePassword: false },
+    });
+    return this.toIdentityUser(user);
+  }
   async saveMfaSecret(userId: string, encryptedSecret: Prisma.InputJsonValue): Promise<IdentityUser> {
     const user = await this.prisma.user.update({
       where: { id: userId },
@@ -417,6 +579,8 @@ export class IdentityRepository {
       rejectionReason?: string | null;
       lastSeenAt?: Date | null;
       lastLoginAt?: Date | null;
+      emailVerifiedAt?: Date | null;
+      mustChangePassword?: boolean;
       profileCompleted: boolean;
       createdAt?: Date;
       updatedAt?: Date;
@@ -437,6 +601,8 @@ export class IdentityRepository {
       rejectionReason: record.rejectionReason,
       lastSeenAt: record.lastSeenAt,
       lastLoginAt: record.lastLoginAt,
+      emailVerifiedAt: record.emailVerifiedAt,
+      mustChangePassword: record.mustChangePassword ?? false,
       profileCompleted: record.profileCompleted,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Post, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Param, Post, Req, Res } from "@nestjs/common";
 import { ApiBody } from "@nestjs/swagger";
 import { PermissionAction } from "@movex/shared";
 import type { Request, Response } from "express";
@@ -6,10 +6,13 @@ import type { Request, Response } from "express";
 import { RequirePermission } from "../../common/decorators/permissions.decorator";
 import { Public } from "../../common/decorators/public.decorator";
 import type { RequestWithUser } from "../../common/types/authenticated-request";
+import { AdminAcceptInvitationDto } from "./dto/admin-accept-invitation.dto";
 import { AdminBootstrapDto } from "./dto/admin-bootstrap.dto";
+import { AdminChangePasswordDto } from "./dto/admin-change-password.dto";
+import { AdminForgotPasswordDto } from "./dto/admin-forgot-password.dto";
 import { AdminLoginDto } from "./dto/admin-login.dto";
 import { AdminRegisterDto } from "./dto/admin-register.dto";
-import { MfaCodeDto } from "./dto/mfa-code.dto";
+import { AdminResetPasswordDto } from "./dto/admin-reset-password.dto";
 import { OtpRequestDto } from "./dto/otp-request.dto";
 import { OtpVerifyDto } from "./dto/otp-verify.dto";
 import { IdentityService } from "./identity.service";
@@ -61,6 +64,32 @@ export class IdentityController {
   }
 
   @Public()
+  @ApiBody({ type: AdminForgotPasswordDto })
+  @Post("admin/password/forgot")
+  async forgotAdminPassword(@Body() body: AdminForgotPasswordDto, @Req() request: Request) {
+    return this.identityService.requestStaffPasswordReset(body, this.sessionService.toRequestMetadata(request));
+  }
+
+  @Public()
+  @ApiBody({ type: AdminResetPasswordDto })
+  @Post("admin/password/reset")
+  async resetAdminPassword(@Body() body: AdminResetPasswordDto) {
+    return this.identityService.resetStaffPassword(body);
+  }
+
+  @Public()
+  @ApiBody({ type: AdminAcceptInvitationDto })
+  @Post("admin/invitations/accept")
+  async acceptAdminInvitation(@Body() body: AdminAcceptInvitationDto) {
+    return this.identityService.acceptStaffInvitation(body);
+  }
+
+  @ApiBody({ type: AdminChangePasswordDto })
+  @Post("admin/password/change")
+  async changeAdminPassword(@Body() body: AdminChangePasswordDto, @Req() request: RequestWithUser) {
+    return this.identityService.changeStaffPassword(this.getRequestSession(request), body);
+  }
+  @Public()
   @ApiBody({ type: AdminBootstrapDto })
   @Post("admin/bootstrap")
   async adminBootstrap(@Body() body: AdminBootstrapDto, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
@@ -72,6 +101,11 @@ export class IdentityController {
     };
   }
 
+  @RequirePermission(PermissionAction.StaffRegister)
+  @Post("admin/users/:userId/invitation")
+  async resendAdminInvitation(@Param("userId") userId: string) {
+    return this.identityService.resendStaffInvitation(userId);
+  }
   @ApiBody({ type: AdminRegisterDto })
   @RequirePermission(PermissionAction.StaffRegister)
   @Post("admin/register")
@@ -81,25 +115,6 @@ export class IdentityController {
     };
   }
 
-  @Post("admin/mfa/setup")
-  async setupMfa(@Req() request: RequestWithUser) {
-    const session = this.getRequestSession(request);
-    return this.identityService.setupMfa(session.userId);
-  }
-
-  @ApiBody({ type: MfaCodeDto })
-  @Post("admin/mfa/confirm")
-  async confirmMfa(@Req() request: RequestWithUser, @Body() body: MfaCodeDto) {
-    const session = this.getRequestSession(request);
-    return { user: await this.identityService.confirmMfa(session.userId, body.code) };
-  }
-
-  @ApiBody({ type: MfaCodeDto })
-  @Post("admin/mfa/disable")
-  async disableMfa(@Req() request: RequestWithUser, @Body() body: MfaCodeDto) {
-    const session = this.getRequestSession(request);
-    return { user: await this.identityService.disableMfa(session.userId, body.code) };
-  }
   @Get("me")
   async me(@Req() request: RequestWithUser) {
     const session = this.getRequestSession(request);

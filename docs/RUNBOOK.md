@@ -89,7 +89,6 @@ Also set strong local secrets in `backend/api/.env`:
 ```env
 AUTH_HASH_SECRET=replace-with-a-long-random-secret
 CONFIG_SECRET_KEY=replace-with-32-byte-config-secret
-MFA_SECRET_KEY=replace-with-32-byte-mfa-secret
 ADMIN_BOOTSTRAP_TOKEN=replace-with-one-time-setup-token
 SESSION_COOKIE_NAME=__Host-movex_session
 ```
@@ -196,7 +195,6 @@ CORS_ORIGIN=https://your-frontend-domain.com
 SESSION_COOKIE_NAME=__Host-movex_session
 AUTH_HASH_SECRET=long-random-secret
 CONFIG_SECRET_KEY=long-random-secret
-MFA_SECRET_KEY=long-random-secret
 OTP_HASH_SALT=long-random-ride-otp-salt
 ORDER_OTP_HASH_SALT=long-random-order-otp-salt
 ```
@@ -282,14 +280,15 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://your-otel-collector/v1/traces
 
 ### Admin Security
 
-Production should use:
+Staff authentication uses email and scrypt-hashed passwords, verified invitation links, forced temporary-password replacement, role-based permissions, and revocable server-side sessions.
 
 ```env
-STAFF_MFA_REQUIRED=true
 ADMIN_BOOTSTRAP_TOKEN=one-time-random-token
+AUTH_HASH_SECRET=same-long-random-secret-on-api-and-workers
+WEB_ORIGIN=https://your-frontend-domain.com
 ```
 
-After creating the first super admin, rotate or remove the bootstrap token.
+After creating the first super admin, rotate or remove the bootstrap token. Apply the staff identity migration before inviting staff, run the worker to deliver invitation/reset emails, and configure `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, and `NOTIFICATION_EMAIL_FROM` in production. Staff MFA remains deliberately deferred and is not part of the active login flow.
 
 ### Deployment Targets
 
