@@ -12,6 +12,7 @@ import { Button, Input, StatusPill } from "@/components/ui";
 import { createHomeService, estimateHomeService, homeServiceCatalog, type HomeServiceCreateResponse } from "@/lib/api";
 import { RideMap } from "@/components/rides";
 import { cn } from "@/lib/utils";
+import { beginOnlinePayment } from "@/lib/payment-checkout";
 
 const DEFAULT_ADDRESS: SelectedLocation = { address: "Indiranagar, Bengaluru", lat: 12.9784, lng: 77.6408, source: "gps" };
 const PAYMENTS = ["CASH", "WALLET", "ONLINE"] as const;
@@ -23,13 +24,20 @@ export function HomeServiceBookingPage() {
   const [scheduledFor, setScheduledFor] = useState(defaultSlotValue());
   const [note, setNote] = useState("");
   const [created, setCreated] = useState<HomeServiceCreateResponse | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const catalog = useQuery({ queryKey: ["home-service-catalog"], queryFn: () => homeServiceCatalog() });
   const selected = catalog.data?.items.find((item) => item.code === serviceCode) ?? catalog.data?.items[0];
   const estimate = useQuery({ queryKey: ["home-service-estimate", serviceCode], queryFn: () => estimateHomeService({ serviceCode }), enabled: Boolean(serviceCode) });
   const createMutation = useMutation({
     mutationFn: () => createHomeService({ serviceCode, address, scheduledFor: new Date(scheduledFor).toISOString(), note: note.trim() || undefined, paymentMethod }),
-    onSuccess: setCreated,
+    onSuccess: async (result) => {
+      setCreated(result);
+      if (paymentMethod === "ONLINE") {
+        try { await beginOnlinePayment("HOME_SERVICE", result.booking.id); }
+        catch (error) { setPaymentError(error instanceof Error ? error.message : "Payment could not be completed"); }
+      }
+    },
   });
   const categories = useMemo(() => Array.from(new Set((catalog.data?.items ?? []).map((item) => item.category))), [catalog.data]);
 
@@ -99,6 +107,7 @@ export function HomeServiceBookingPage() {
         <section className="rounded-md border border-border bg-surface p-4">
           <StatusPill label="Service scheduled" tone="success" />
           <h3 className="mt-2 text-lg font-semibold text-foreground">Professionals offered: {created.offeredProfessionals}</h3>
+          {paymentError ? <p className="mt-2 text-sm text-destructive" role="status">{paymentError}</p> : null}
           {created.devStartOtp ? <p className="mt-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">Dev start OTP: {created.devStartOtp}</p> : null}
           <div className="mt-3 flex flex-wrap gap-2">
             <Button asChild><Link href={`/customer/home-services/${created.booking.id}`}>Track booking</Link></Button>

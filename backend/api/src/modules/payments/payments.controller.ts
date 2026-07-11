@@ -6,13 +6,13 @@ import type { Request } from "express";
 import { Public } from "../../common/decorators/public.decorator";
 import { RequirePermission } from "../../common/decorators/permissions.decorator";
 import type { RequestWithUser } from "../../common/types/authenticated-request";
-import { CreatePaymentOrderDto, CreateRefundDto, MockCaptureDto } from "./dto/payments.dto";
+import { CreatePaymentOrderDto, CreateRefundDto, CreateWalletTopUpDto, MockCaptureDto } from "./dto/payments.dto";
 import { PaymentsService } from "./payments.service";
 
 type RawBodyRequest = Request & { rawBody?: Buffer };
 
 @ApiTags("Payments")
-@ApiExtraModels(CreatePaymentOrderDto, CreateRefundDto, MockCaptureDto)
+@ApiExtraModels(CreatePaymentOrderDto, CreateRefundDto, CreateWalletTopUpDto, MockCaptureDto)
 @Controller({ path: "payments", version: "1" })
 export class PaymentsController {
   constructor(@Inject(PaymentsService) private readonly paymentsService: PaymentsService) {}
@@ -24,6 +24,12 @@ export class PaymentsController {
     }
 
     return this.paymentsService.createPaymentOrder(request.user.session, body);
+  }
+
+  @Post("wallet-topups")
+  createWalletTopUp(@Req() request: RequestWithUser, @Body() body: CreateWalletTopUpDto) {
+    if (!request.user?.session) throw new Error("Authenticated request is missing session context.");
+    return this.paymentsService.createWalletTopUp(request.user.session, body);
   }
 
   @Post("refunds")
@@ -43,7 +49,6 @@ export class PaymentsController {
     return this.paymentsService.processRazorpayWebhook(rawBody, signature, body);
   }
 
-  @Public()
   @Post("mock-capture")
   mockCapture(@Body() body: MockCaptureDto) {
     return this.paymentsService.mockCapture(body);

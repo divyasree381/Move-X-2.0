@@ -131,7 +131,6 @@ export class RidesService {
     });
 
     const offeredDrivers = await this.offerRideToNearbyDrivers(ride);
-    await this.publishRideRealtime(ride, "ride.requested", { offeredDrivers });
 
     return {
       ride: this.serializeRide(ride),
@@ -182,7 +181,6 @@ export class RidesService {
     });
 
     const offeredPartners = await this.offerCourierToNearbyPartners(booking);
-    await this.publishCourierRealtime(booking, "courier.requested", { offeredPartners });
 
     return {
       courier: this.serializeCourier(booking),
@@ -246,18 +244,13 @@ export class RidesService {
     this.assertDelivery(user);
     await this.assertApprovedOnlineDelivery(user.userId);
 
-    const result = await this.prisma.courierBooking.updateMany({
-      where: { id: courierId, status: CourierStatus.REQUESTED, deliveryPartnerId: null },
-      data: { status: CourierStatus.ASSIGNED, deliveryPartnerId: user.userId },
+    const booking = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.courierBooking.updateMany({ where: { id: courierId, status: CourierStatus.REQUESTED, deliveryPartnerId: null }, data: { status: CourierStatus.ASSIGNED, deliveryPartnerId: user.userId } });
+      if (result.count !== 1) throw new BadRequestException("Courier job is no longer available");
+      const accepted = await tx.courierBooking.findUniqueOrThrow({ where: { id: courierId }, include: { customer: { select: { id: true, name: true, phoneE164: true, role: true } }, deliveryPartner: { select: { id: true, name: true, phoneE164: true, role: true } } } });
+      await this.outboxService.courierAccepted(tx, { courierId: accepted.id, customerId: accepted.customerId, partnerId: user.userId, topic: `courier:${accepted.id}` });
+      return accepted;
     });
-
-    if (result.count !== 1) {
-      throw new BadRequestException("Courier job is no longer available");
-    }
-
-    const booking = await this.findCourierOrThrow(courierId);
-    await this.outboxService.courierAccepted(this.prisma, { courierId: booking.id, customerId: booking.customerId, partnerId: user.userId, topic: `courier:${booking.id}` });
-    await this.publishCourierRealtime(booking, "courier.accepted");
     return this.serializeCourier(booking);
   }
 
@@ -295,11 +288,10 @@ export class RidesService {
         data: { status: CourierStatus.CANCELLED, paymentStatus: latest.paymentStatus === PaymentStatus.PAID ? PaymentStatus.REFUNDED : PaymentStatus.CANCELLED },
         include: { customer: { select: { id: true, name: true, phoneE164: true, role: true } }, deliveryPartner: { select: { id: true, name: true, phoneE164: true, role: true } } },
       });
-      await this.outboxService.courierStatusChanged(tx, { courierId: cancelled.id, customerId: cancelled.customerId, partnerId: cancelled.deliveryPartnerId ?? undefined, status: cancelled.status, topic: `courier:${cancelled.id}` });
+      await this.outboxService.courierStatusChanged(tx, { courierId: cancelled.id, customerId: cancelled.customerId, partnerId: cancelled.deliveryPartnerId ?? undefined, status: cancelled.status, reason: body.reason?.trim() || undefined, topic: `courier:${cancelled.id}` });
       return cancelled;
     });
 
-    await this.publishCourierRealtime(updated, "courier.cancelled", { reason: body.reason ?? null });
     return this.serializeCourier(updated);
   }
 
@@ -317,18 +309,17 @@ export class RidesService {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const markerKey = `rating:courier:${courierId}:${side}`;
-      const existing = await tx.systemConfig.findUnique({ where: { key: markerKey } });
+      const existing = await tx.review.findFirst({ where: { authorId: user.userId, courierBookingId: courierId } });
       if (existing) {
         return tx.courierBooking.findUniqueOrThrow({ where: { id: courierId }, include: { customer: { select: { id: true, name: true, phoneE164: true, role: true } }, deliveryPartner: { select: { id: true, name: true, phoneE164: true, role: true } } } });
       }
 
       const targetId = side === "customer" ? booking.deliveryPartnerId : booking.customerId;
       if (targetId) {
-        await this.applyRatingAggregate(tx, `${side === "customer" ? "delivery" : "customer"}:${targetId}`, body.rating);
+        await this.applyRatingAggregate(tx, targetId, body.rating);
       }
 
-      await tx.systemConfig.create({ data: { key: markerKey, value: { rating: body.rating, comment: body.comment ?? null, by: user.userId }, description: "Courier rating marker" } });
+      await tx.review.create({ data: { authorId: user.userId, targetUserId: targetId, courierBookingId: courierId, rating: body.rating, comment: body.comment?.trim() || null } });
       return tx.courierBooking.update({ where: { id: courierId }, data: side === "customer" ? { rated: true } : {}, include: { customer: { select: { id: true, name: true, phoneE164: true, role: true } }, deliveryPartner: { select: { id: true, name: true, phoneE164: true, role: true } } } });
     });
 
@@ -390,7 +381,6 @@ export class RidesService {
     });
 
     const offeredProfessionals = await this.offerHomeServiceToNearbyProfessionals(booking);
-    await this.publishHomeServiceRealtime(booking, "home-service.requested", { offeredProfessionals });
 
     return {
       booking: this.serializeHomeService(booking),
@@ -421,6 +411,7 @@ export class RidesService {
   async listHomeServiceQueue(user: AuthenticatedUser) {
     this.assertDelivery(user);
     await this.assertApprovedOnlineDelivery(user.userId);
+    const serviceCategories = await this.homeServiceCategoriesForPartner(user.userId);
     const heartbeat = await this.getPartnerHeartbeat(user.userId);
     const partnerLat = heartbeat?.lat;
     const partnerLng = heartbeat?.lng;
@@ -431,7 +422,7 @@ export class RidesService {
     const bookings = await this.prisma.homeServiceBooking.findMany({
       where: {
         OR: [
-          { status: HomeServiceStatus.REQUESTED, professionalId: null },
+          { status: HomeServiceStatus.REQUESTED, professionalId: null, serviceCategory: { in: serviceCategories } },
           { professionalId: user.userId, status: { in: [HomeServiceStatus.ASSIGNED, HomeServiceStatus.ARRIVED, HomeServiceStatus.IN_SERVICE] } },
         ],
       },
@@ -452,13 +443,17 @@ export class RidesService {
   async acceptHomeService(user: AuthenticatedUser, bookingId: string) {
     this.assertDelivery(user);
     await this.assertApprovedOnlineDelivery(user.userId);
-    const result = await this.prisma.homeServiceBooking.updateMany({ where: { id: bookingId, status: HomeServiceStatus.REQUESTED, professionalId: null }, data: { status: HomeServiceStatus.ASSIGNED, professionalId: user.userId } });
-    if (result.count !== 1) {
-      throw new BadRequestException("Home-service job is no longer available");
+    const requested = await this.prisma.homeServiceBooking.findUnique({ where: { id: bookingId }, select: { serviceCategory: true } });
+    if (!requested || !(await this.partnerSupportsHomeService(user.userId, requested.serviceCategory))) {
+      throw new ForbiddenException("This service is not enabled for the professional profile");
     }
-    const booking = await this.findHomeServiceOrThrow(bookingId);
-    await this.outboxService.homeServiceAccepted(this.prisma, { homeServiceId: booking.id, customerId: booking.customerId, partnerId: user.userId, topic: `home-service:${booking.id}` });
-    await this.publishHomeServiceRealtime(booking, "home-service.accepted");
+    const booking = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.homeServiceBooking.updateMany({ where: { id: bookingId, status: HomeServiceStatus.REQUESTED, professionalId: null }, data: { status: HomeServiceStatus.ASSIGNED, professionalId: user.userId } });
+      if (result.count !== 1) throw new BadRequestException("Home-service job is no longer available");
+      const accepted = await tx.homeServiceBooking.findUniqueOrThrow({ where: { id: bookingId }, include: { customer: { select: { id: true, name: true, phoneE164: true, role: true } }, professional: { select: { id: true, name: true, phoneE164: true, role: true } } } });
+      await this.outboxService.homeServiceAccepted(tx, { homeServiceId: accepted.id, customerId: accepted.customerId, partnerId: user.userId, topic: `home-service:${accepted.id}` });
+      return accepted;
+    });
     return this.serializeHomeService(booking);
   }
 
@@ -495,11 +490,10 @@ export class RidesService {
         data: { status: HomeServiceStatus.CANCELLED, paymentStatus: latest.paymentStatus === PaymentStatus.PAID ? PaymentStatus.REFUNDED : PaymentStatus.CANCELLED },
         include: { customer: { select: { id: true, name: true, phoneE164: true, role: true } }, professional: { select: { id: true, name: true, phoneE164: true, role: true } } },
       });
-      await this.outboxService.homeServiceStatusChanged(tx, { homeServiceId: cancelled.id, customerId: cancelled.customerId, partnerId: cancelled.professionalId ?? undefined, status: cancelled.status, topic: `home-service:${cancelled.id}` });
+      await this.outboxService.homeServiceStatusChanged(tx, { homeServiceId: cancelled.id, customerId: cancelled.customerId, partnerId: cancelled.professionalId ?? undefined, status: cancelled.status, reason: body.reason?.trim() || undefined, topic: `home-service:${cancelled.id}` });
       return cancelled;
     });
 
-    await this.publishHomeServiceRealtime(updated, "home-service.cancelled", { reason: body.reason ?? null });
     return this.serializeHomeService(updated);
   }
 
@@ -516,16 +510,15 @@ export class RidesService {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const markerKey = `rating:home-service:${bookingId}:${side}`;
-      const existing = await tx.systemConfig.findUnique({ where: { key: markerKey } });
+      const existing = await tx.review.findFirst({ where: { authorId: user.userId, homeServiceBookingId: bookingId } });
       if (existing) {
         return tx.homeServiceBooking.findUniqueOrThrow({ where: { id: bookingId }, include: { customer: { select: { id: true, name: true, phoneE164: true, role: true } }, professional: { select: { id: true, name: true, phoneE164: true, role: true } } } });
       }
       const targetId = side === "customer" ? booking.professionalId : booking.customerId;
       if (targetId) {
-        await this.applyRatingAggregate(tx, `${side === "customer" ? "home-service-pro" : "customer"}:${targetId}`, body.rating);
+        await this.applyRatingAggregate(tx, targetId, body.rating);
       }
-      await tx.systemConfig.create({ data: { key: markerKey, value: { rating: body.rating, comment: body.comment ?? null, by: user.userId }, description: "Home-service rating marker" } });
+      await tx.review.create({ data: { authorId: user.userId, targetUserId: targetId, homeServiceBookingId: bookingId, rating: body.rating, comment: body.comment?.trim() || null } });
       return tx.homeServiceBooking.update({ where: { id: bookingId }, data: side === "customer" ? { rated: true } : {}, include: { customer: { select: { id: true, name: true, phoneE164: true, role: true } }, professional: { select: { id: true, name: true, phoneE164: true, role: true } } } });
     });
 
@@ -600,19 +593,15 @@ export class RidesService {
     if (!heartbeat || !this.isVehicleType(heartbeat.vehicleType)) {
       throw new BadRequestException("Driver vehicle heartbeat is required");
     }
+    const acceptedVehicleType = heartbeat.vehicleType;
 
-    const result = await this.prisma.ride.updateMany({
-      where: { id: rideId, status: RideStatus.REQUESTED, driverId: null, vehicleType: heartbeat.vehicleType },
-      data: { status: RideStatus.ASSIGNED, driverId: user.userId },
+    const ride = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.ride.updateMany({ where: { id: rideId, status: RideStatus.REQUESTED, driverId: null, vehicleType: acceptedVehicleType }, data: { status: RideStatus.ASSIGNED, driverId: user.userId } });
+      if (result.count !== 1) throw new BadRequestException("Ride is no longer available");
+      const accepted = await tx.ride.findUniqueOrThrow({ where: { id: rideId }, include: { customer: { select: { id: true, name: true, phoneE164: true, role: true } }, driver: { select: { id: true, name: true, phoneE164: true, role: true } } } });
+      await this.outboxService.rideAccepted(tx, { rideId: accepted.id, customerId: accepted.customerId, partnerId: user.userId, topic: `ride:${accepted.id}` });
+      return accepted;
     });
-
-    if (result.count !== 1) {
-      throw new BadRequestException("Ride is no longer available");
-    }
-
-    const ride = await this.findRideOrThrow(rideId);
-    await this.outboxService.rideAccepted(this.prisma, { rideId: ride.id, customerId: ride.customerId, partnerId: user.userId, topic: `ride:${ride.id}` });
-    await this.publishRideRealtime(ride, "ride.accepted");
     return this.serializeRide(ride);
   }
 
@@ -665,7 +654,6 @@ export class RidesService {
       return cancelled;
     });
 
-    await this.publishRideRealtime(updated, "ride.cancelled", { reason: body.reason ?? null, cancellationFee: cancellationFee.toString() });
     return this.serializeRide(updated);
   }
 
@@ -683,18 +671,17 @@ export class RidesService {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const markerKey = `rating:ride:${rideId}:${side}`;
-      const existing = await tx.systemConfig.findUnique({ where: { key: markerKey } });
+      const existing = await tx.review.findFirst({ where: { authorId: user.userId, rideId } });
       if (existing) {
         return tx.ride.findUniqueOrThrow({ where: { id: rideId }, include: { customer: { select: { id: true, name: true, phoneE164: true, role: true } }, driver: { select: { id: true, name: true, phoneE164: true, role: true } } } });
       }
 
       const targetId = side === "customer" ? ride.driverId : ride.customerId;
       if (targetId) {
-        await this.applyRatingAggregate(tx, `${side === "customer" ? "driver" : "customer"}:${targetId}`, body.rating);
+        await this.applyRatingAggregate(tx, targetId, body.rating);
       }
 
-      await tx.systemConfig.create({ data: { key: markerKey, value: { rating: body.rating, comment: body.comment ?? null, by: user.userId }, description: "Ride rating marker" } });
+      await tx.review.create({ data: { authorId: user.userId, targetUserId: targetId, rideId, rating: body.rating, comment: body.comment?.trim() || null } });
       return tx.ride.update({ where: { id: rideId }, data: side === "customer" ? { rated: true } : {}, include: { customer: { select: { id: true, name: true, phoneE164: true, role: true } }, driver: { select: { id: true, name: true, phoneE164: true, role: true } } } });
     });
 
@@ -732,7 +719,6 @@ export class RidesService {
       return next;
     });
 
-    await this.publishHomeServiceRealtime(updated, "home-service.status.changed");
     return this.serializeHomeService(updated);
   }
   private async transitionCourier(user: AuthenticatedUser, courierId: string, target: CourierStatus, otp?: string) {
@@ -767,7 +753,6 @@ export class RidesService {
       return next;
     });
 
-    await this.publishCourierRealtime(updated, "courier.status.changed");
     return this.serializeCourier(updated);
   }
   private async transitionDriverRide(user: AuthenticatedUser, rideId: string, target: RideStatus, otp?: string) {
@@ -803,7 +788,6 @@ export class RidesService {
       return next;
     });
 
-    await this.publishRideRealtime(updated, "ride.status.changed");
     return this.serializeRide(updated);
   }
 
@@ -895,7 +879,6 @@ export class RidesService {
       if (!partner || partner.role !== UserRole.DELIVERY || partner.isBanned || !partner.isOnline || partner.partnerApproval !== "APPROVED") {
         continue;
       }
-
       await this.redisStore.setJson(`partner:courier-offers:${candidate.member}:${booking.id}`, { courierId: booking.id, distanceKm: candidate.distanceKm }, COURIER_OFFER_TTL_MS);
       await this.realtimeProvider.publish(`partner:${candidate.member}`, {
         id: `courier.offer:${booking.id}:${candidate.member}:${Date.now()}`,
@@ -1034,6 +1017,9 @@ export class RidesService {
 
       const partner = await this.prisma.user.findUnique({ where: { id: candidate.member }, select: { role: true, isBanned: true, isOnline: true, partnerApproval: true } });
       if (!partner || partner.role !== UserRole.DELIVERY || partner.isBanned || !partner.isOnline || partner.partnerApproval !== "APPROVED") {
+        continue;
+      }
+      if (!(await this.partnerSupportsHomeService(candidate.member, booking.serviceCategory))) {
         continue;
       }
 
@@ -1297,20 +1283,27 @@ export class RidesService {
     }, ZERO);
   }
 
-  private async applyRatingAggregate(tx: PrismaTx, key: string, rating: number): Promise<void> {
-    const configKey = `rating:${key}`;
-    const existing = await tx.systemConfig.findUnique({ where: { key: configKey } });
-    const value = existing && typeof existing.value === "object" && existing.value !== null && !Array.isArray(existing.value) ? (existing.value as { average?: unknown; count?: unknown }) : {};
-    const count = typeof value.count === "number" ? value.count : 0;
-    const average = new Prisma.Decimal(typeof value.average === "string" || typeof value.average === "number" ? value.average : 0);
-    const nextCount = count + 1;
-    const nextAverage = average.mul(count).plus(rating).div(nextCount).toDecimalPlaces(2).toString();
+  private async applyRatingAggregate(tx: PrismaTx, userId: string, rating: number): Promise<void> {
+    const target = await tx.user.findUnique({ where: { id: userId }, select: { ratingAverage: true, ratingCount: true } });
+    if (!target) return;
+    const nextCount = target.ratingCount + 1;
+    const nextAverage = target.ratingAverage.mul(target.ratingCount).plus(rating).div(nextCount).toDecimalPlaces(2);
+    await tx.user.update({ where: { id: userId }, data: { ratingAverage: nextAverage, ratingCount: nextCount } });
+  }
 
-    await tx.systemConfig.upsert({
-      where: { key: configKey },
-      update: { value: { average: nextAverage, count: nextCount }, description: "Ride rating aggregate" },
-      create: { key: configKey, value: { average: nextAverage, count: nextCount }, description: "Ride rating aggregate" },
-    });
+  private async partnerSupportsHomeService(userId: string, category: string): Promise<boolean> {
+    const categories = await this.homeServiceCategoriesForPartner(userId);
+    return categories.some((value) => value.localeCompare(category, undefined, { sensitivity: "accent" }) === 0);
+  }
+
+  private async homeServiceCategoriesForPartner(userId: string): Promise<string[]> {
+    const verification = await this.prisma.partnerVerification.findUnique({ where: { userId }, select: { profile: true } });
+    if (!verification || !verification.profile || typeof verification.profile !== "object" || Array.isArray(verification.profile)) {
+      return [];
+    }
+    const raw = (verification.profile as Record<string, unknown>).serviceCategories;
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((value): value is string => typeof value === "string" && value.trim().length > 0).map((value) => value.trim());
   }
 
   private locationSnapshot(location: RideLocationDto): Prisma.InputJsonValue {

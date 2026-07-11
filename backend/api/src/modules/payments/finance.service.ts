@@ -24,6 +24,18 @@ const ZERO_DECIMAL = new Prisma.Decimal(0);
 export class FinanceService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
+  findWalletTopUp(idempotencyKey: string) {
+    return this.prisma.walletTopUp.findUnique({ where: { idempotencyKey } });
+  }
+
+  async createWalletTopUp(userId: string, amount: number, idempotencyKey: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) throw new NotFoundException("User not found");
+    return this.prisma.walletTopUp.create({
+      data: { userId, amount: new Prisma.Decimal(amount).toDecimalPlaces(2), idempotencyKey },
+    });
+  }
+
   derivePaymentReference(referenceType: PaymentReferenceType, referenceId: string): Promise<PaymentReference> {
     return this.derivePaymentReferenceInTx(this.prisma, referenceType, referenceId);
   }
@@ -122,34 +134,21 @@ export class FinanceService {
       };
     }
 
-    const topup = await tx.systemConfig.findUnique({ where: { key: `wallet_topup:${referenceId}` } });
-
-    if (!topup || typeof topup.value !== "object" || topup.value === null || Array.isArray(topup.value)) {
+    const topup = await tx.walletTopUp.findUnique({ where: { id: referenceId }, include: { user: true } });
+    if (!topup) {
       throw new NotFoundException("Wallet top-up reference not found");
-    }
-
-    const value = topup.value as { userId?: unknown; amount?: unknown; paymentStatus?: unknown; providerPaymentId?: unknown };
-
-    if (typeof value.userId !== "string" || (typeof value.amount !== "string" && typeof value.amount !== "number")) {
-      throw new NotFoundException("Wallet top-up reference is invalid");
-    }
-
-    const user = await tx.user.findUnique({ where: { id: value.userId } });
-
-    if (!user) {
-      throw new NotFoundException("Wallet top-up user not found");
     }
 
     return {
       referenceType,
       referenceId,
-      customerId: user.id,
-      customerRole: user.role,
-      payableAmount: new Prisma.Decimal(value.amount),
-      paymentStatus: this.isPaymentStatus(value.paymentStatus) ? value.paymentStatus : PaymentStatus.PENDING,
-      providerPaymentId: typeof value.providerPaymentId === "string" ? value.providerPaymentId : undefined,
-      creditUserId: user.id,
-      creditUserRole: user.role,
+      customerId: topup.user.id,
+      customerRole: topup.user.role,
+      payableAmount: topup.amount,
+      paymentStatus: topup.paymentStatus,
+      providerPaymentId: topup.providerPaymentId ?? undefined,
+      creditUserId: topup.user.id,
+      creditUserRole: topup.user.role,
     };
   }
 
@@ -347,17 +346,7 @@ export class FinanceService {
       return;
     }
 
-    await tx.systemConfig.update({
-      where: { key: `wallet_topup:${reference.referenceId}` },
-      data: {
-        value: {
-          userId: reference.customerId,
-          amount: reference.payableAmount.toString(),
-          paymentStatus,
-          providerPaymentId: providerPaymentId ?? null,
-        },
-      },
-    });
+    await tx.walletTopUp.update({ where: { id: reference.referenceId }, data: { paymentStatus, providerPaymentId } });
   }
 
   private referenceTopic(reference: PaymentReference): string {

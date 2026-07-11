@@ -20,6 +20,7 @@ import { OrdersModule } from "./modules/orders/orders.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
 import { PlatformModule } from "./modules/platform/platform.module";
 import { RealtimeModule } from "./modules/realtime/realtime.module";
+import { ReviewsModule } from "./modules/reviews/reviews.module";
 import { RidesModule } from "./modules/rides/rides.module";
 import { SampleModule } from "./modules/sample/sample.module";
 import { TrustModule } from "./modules/trust/trust.module";
@@ -53,9 +54,10 @@ import { TrustModule } from "./modules/trust/trust.module";
     PaymentsModule,
     PlatformModule,
     RealtimeModule,
+    ReviewsModule,
     RidesModule,
     HealthModule,
-    SampleModule,
+    ...(process.env.NODE_ENV === "production" ? [] : [SampleModule]),
     TrustModule,
   ],
   providers: [

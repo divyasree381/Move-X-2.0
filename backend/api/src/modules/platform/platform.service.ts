@@ -1,5 +1,5 @@
 import { Inject, BadRequestException, Injectable } from "@nestjs/common";
-import { Prisma, ServiceType } from "@prisma/client";
+import { CourierStatus, HomeServiceStatus, OrderStatus, PaymentStatus, Prisma, RideStatus, ServiceType } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import type { AuthenticatedUser } from "../../common/types/authenticated-request";
@@ -19,6 +19,28 @@ const ALL_SCOPE = "ALL";
 @Injectable()
 export class PlatformService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  async homepageConfig() {
+    const row = await this.prisma.systemConfig.findUnique({ where: { key: "platform.homepage" } });
+    return { config: row?.value ?? {} };
+  }
+
+  async updateHomepageConfig(config: Record<string, unknown>) {
+    const row = await this.prisma.systemConfig.upsert({
+      where: { key: "platform.homepage" },
+      update: { value: config as Prisma.InputJsonValue, description: "Public homepage content and visibility" },
+      create: { key: "platform.homepage", value: config as Prisma.InputJsonValue, description: "Public homepage content and visibility" },
+    });
+    return { config: row.value };
+  }
+
+  async publicConfig() {
+    const [homepage, flags] = await Promise.all([
+      this.homepageConfig(),
+      this.prisma.featureFlag.findMany({ where: { key: { startsWith: "vertical." } }, select: { key: true, enabled: true } }),
+    ]);
+    return { homepage: homepage.config, featureFlags: Object.fromEntries(flags.map((flag) => [flag.key, flag.enabled])) };
+  }
 
   async analytics(query: AnalyticsQueryDto) {
     const range = this.resolveDateRange(query.from, query.to);
@@ -174,10 +196,10 @@ export class PlatformService {
     const all = this.scope(scopes, ALL_SCOPE);
 
     const [orders, rides, couriers, homeServices, activePartnerSessions] = await Promise.all([
-      this.prisma.order.findMany({ where: { createdAt: { gte: from, lt: to } }, select: { serviceType: true, total: true, deliveryPartnerId: true } }),
-      this.prisma.ride.findMany({ where: { createdAt: { gte: from, lt: to } }, select: { finalFare: true, estimatedFare: true, driverId: true } }),
-      this.prisma.courierBooking.findMany({ where: { createdAt: { gte: from, lt: to } }, select: { finalFare: true, estimatedFare: true, deliveryPartnerId: true } }),
-      this.prisma.homeServiceBooking.findMany({ where: { createdAt: { gte: from, lt: to } }, select: { finalFare: true, estimatedFare: true, professionalId: true } }),
+      this.prisma.order.findMany({ where: { createdAt: { gte: from, lt: to }, status: OrderStatus.DELIVERED, paymentStatus: PaymentStatus.PAID }, select: { serviceType: true, total: true, deliveryPartnerId: true } }),
+      this.prisma.ride.findMany({ where: { createdAt: { gte: from, lt: to }, status: RideStatus.COMPLETED, paymentStatus: PaymentStatus.PAID }, select: { finalFare: true, estimatedFare: true, driverId: true } }),
+      this.prisma.courierBooking.findMany({ where: { createdAt: { gte: from, lt: to }, status: CourierStatus.COMPLETED, paymentStatus: PaymentStatus.PAID }, select: { finalFare: true, estimatedFare: true, deliveryPartnerId: true } }),
+      this.prisma.homeServiceBooking.findMany({ where: { createdAt: { gte: from, lt: to }, status: HomeServiceStatus.COMPLETED, paymentStatus: PaymentStatus.PAID }, select: { finalFare: true, estimatedFare: true, professionalId: true } }),
       this.prisma.partnerOnlineSession.findMany({ where: { startedAt: { lt: to }, OR: [{ endedAt: null }, { endedAt: { gte: from } }] }, select: { userId: true } }),
     ]);
 

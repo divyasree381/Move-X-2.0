@@ -242,6 +242,12 @@ enum PartnerShiftStatus {
   COMPLETED
 }
 
+enum ReviewStatus {
+  PUBLISHED
+  HIDDEN
+  REMOVED
+}
+
 model User {
   id                  String          @id @default(cuid())
   role                UserRole
@@ -254,6 +260,8 @@ model User {
   name                String?
   avatarUrl           String?
   walletBalanceCached Decimal         @default(0) @db.Decimal(14, 2)
+  ratingAverage       Decimal         @default(0) @db.Decimal(3, 2)
+  ratingCount         Int             @default(0)
   referralCode        String?         @unique
   referredById        String?
   isBanned            Boolean         @default(false)
@@ -299,6 +307,9 @@ model User {
   partnerDocuments                PartnerDocument[]      @relation("PartnerDocumentOwner")
   reviewedPartnerDocuments        PartnerDocument[]      @relation("PartnerDocumentReviewer")
   updatedFeatureFlags             FeatureFlag[]          @relation("FeatureFlagUpdater")
+  reviewsAuthored                 Review[]               @relation("ReviewAuthor")
+  reviewsReceived                 Review[]               @relation("ReviewTargetUser")
+  walletTopUps                    WalletTopUp[]
 
   @@index([role])
   @@index([mfaEnabled, role])
@@ -505,6 +516,7 @@ model Store {
   menuItems MenuItem[]
   favorites Favorite[]
   orders    Order[]
+  reviews   Review[]
 
   @@index([ownerId])
   @@index([type, approval, isOpen])
@@ -527,6 +539,7 @@ model MenuItem {
 
   store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
   favorites Favorite[]
+  reviews   Review[]
 
   @@index([storeId, available])
 }
@@ -564,6 +577,7 @@ model Order {
   store           Store         @relation(fields: [storeId], references: [id], onDelete: Restrict)
   deliveryPartner User?         @relation("OrderDeliveryPartner", fields: [deliveryPartnerId], references: [id], onDelete: SetNull)
   ledgerEntries   LedgerEntry[]
+  reviews         Review[]
 
   @@index([customerId, createdAt(sort: Desc)])
   @@index([storeId, status])
@@ -593,6 +607,7 @@ model Ride {
   customer      User          @relation("RideCustomer", fields: [customerId], references: [id], onDelete: Restrict)
   driver        User?         @relation("RideDriver", fields: [driverId], references: [id], onDelete: SetNull)
   ledgerEntries LedgerEntry[]
+  reviews       Review[]
 
   @@index([customerId, createdAt(sort: Desc)])
   @@index([driverId, status, createdAt(sort: Desc)])
@@ -621,6 +636,7 @@ model CourierBooking {
 
   customer        User  @relation("CourierCustomer", fields: [customerId], references: [id], onDelete: Restrict)
   deliveryPartner User? @relation("CourierDeliveryPartner", fields: [deliveryPartnerId], references: [id], onDelete: SetNull)
+  reviews         Review[]
 
   @@index([customerId, createdAt(sort: Desc)])
   @@index([deliveryPartnerId, status, createdAt(sort: Desc)])
@@ -648,6 +664,7 @@ model HomeServiceBooking {
 
   customer     User  @relation("HomeServiceCustomer", fields: [customerId], references: [id], onDelete: Restrict)
   professional User? @relation("HomeServiceProfessional", fields: [professionalId], references: [id], onDelete: SetNull)
+  reviews     Review[]
 
   @@index([customerId, createdAt(sort: Desc)])
   @@index([professionalId, status, createdAt(sort: Desc)])
@@ -670,6 +687,56 @@ model HomeServiceCatalogItem {
 
   @@index([category, isActive, sortOrder])
   @@index([isActive, sortOrder])
+}
+
+model Review {
+  id                   String       @id @default(cuid())
+  authorId             String
+  targetUserId         String?
+  storeId              String?
+  menuItemId           String?
+  orderId              String?
+  rideId               String?
+  courierBookingId     String?
+  homeServiceBookingId String?
+  rating               Int
+  comment              String?
+  tags                 String[]     @default([])
+  status               ReviewStatus @default(PUBLISHED)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @default(now()) @updatedAt
+
+  author             User                @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  targetUser         User?               @relation("ReviewTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  store              Store?              @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  menuItem           MenuItem?           @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  order              Order?              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ride               Ride?               @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  courierBooking     CourierBooking?     @relation(fields: [courierBookingId], references: [id], onDelete: Cascade)
+  homeServiceBooking HomeServiceBooking? @relation(fields: [homeServiceBookingId], references: [id], onDelete: Cascade)
+
+  @@unique([authorId, orderId])
+  @@unique([authorId, rideId])
+  @@unique([authorId, courierBookingId])
+  @@unique([authorId, homeServiceBookingId])
+  @@index([storeId, status, createdAt(sort: Desc)])
+  @@index([menuItemId, status, createdAt(sort: Desc)])
+  @@index([targetUserId, status, createdAt(sort: Desc)])
+}
+
+model WalletTopUp {
+  id                String        @id @default(cuid())
+  userId            String
+  amount            Decimal       @db.Decimal(12, 2)
+  paymentStatus     PaymentStatus @default(PENDING)
+  providerPaymentId String?       @unique
+  idempotencyKey    String        @unique
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model LedgerEntry {

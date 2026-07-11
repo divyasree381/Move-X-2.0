@@ -1,5 +1,5 @@
-import { notFound } from "next/navigation";
+import { OpsHomepagePage } from "@/components/ops/platform-pages";
 
 export default function OpsHomepageRoute() {
-  notFound();
+  return <OpsHomepagePage />;
 }

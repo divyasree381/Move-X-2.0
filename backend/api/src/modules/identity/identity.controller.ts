@@ -44,7 +44,7 @@ export class IdentityController {
   @Post("otp/verify")
   async verifyOtp(@Body() body: OtpVerifyDto, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
     const result = await this.identityService.verifyOtp(body, this.sessionService.toRequestMetadata(request));
-    this.setSessionCookies(response, result.session.token, result.session.maxAgeSeconds);
+    this.setSessionCookies(response, result.session.token, result.session.maxAgeSeconds, result.user.role);
 
     return {
       user: result.user,
@@ -56,7 +56,7 @@ export class IdentityController {
   @Post("admin/login")
   async adminLogin(@Body() body: AdminLoginDto, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
     const result = await this.identityService.loginAdmin(body, this.sessionService.toRequestMetadata(request));
-    this.setSessionCookies(response, result.session.token, result.session.maxAgeSeconds);
+    this.setSessionCookies(response, result.session.token, result.session.maxAgeSeconds, result.user.role);
 
     return {
       user: result.user,
@@ -94,7 +94,7 @@ export class IdentityController {
   @Post("admin/bootstrap")
   async adminBootstrap(@Body() body: AdminBootstrapDto, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
     const result = await this.identityService.bootstrapSuperAdmin(body, this.sessionService.toRequestMetadata(request));
-    this.setSessionCookies(response, result.session.token, result.session.maxAgeSeconds);
+    this.setSessionCookies(response, result.session.token, result.session.maxAgeSeconds, result.user.role);
 
     return {
       user: result.user,
@@ -123,6 +123,16 @@ export class IdentityController {
     };
   }
 
+  @Post("refresh")
+  async refresh(@Req() request: RequestWithUser, @Res({ passthrough: true }) response: Response) {
+    const current = this.getRequestSession(request);
+    const token = this.sessionService.getSessionTokenFromRequest(request);
+    if (!token) throw new Error("Authenticated request is missing a session token.");
+    const rotated = await this.sessionService.rotateSession(current, token, this.sessionService.toRequestMetadata(request));
+    this.setSessionCookies(response, rotated.token, rotated.maxAgeSeconds, current.user.role);
+    return { user: this.sessionService.toPublicUser(current.user) };
+  }
+
   @Post("logout")
   async logout(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
     const token = this.sessionService.getSessionTokenFromRequest(request);
@@ -143,7 +153,7 @@ export class IdentityController {
     return { message: "Logged out everywhere" };
   }
 
-  private setSessionCookies(response: Response, token: string, maxAgeSeconds: number): void {
+  private setSessionCookies(response: Response, token: string, maxAgeSeconds: number, role: string): void {
     const maxAge = maxAgeSeconds * 1000;
 
     response.cookie(this.sessionService.getSessionCookieName(), token, {
@@ -160,6 +170,7 @@ export class IdentityController {
       path: "/",
       maxAge,
     });
+    response.cookie("movex_role", role, { httpOnly: false, secure: true, sameSite: "lax", path: "/", maxAge });
   }
 
   private clearSessionCookies(response: Response): void {
@@ -175,6 +186,7 @@ export class IdentityController {
       sameSite: "lax",
       path: "/",
     });
+    response.clearCookie("movex_role", { httpOnly: false, secure: true, sameSite: "lax", path: "/" });
   }
 
   private getRequestSession(request: RequestWithUser): SessionRecord {

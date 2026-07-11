@@ -13,6 +13,7 @@ import { Button, Input, StatusPill } from "@/components/ui";
 import { autocompleteLocations, createCourier, estimateCourier, geocodeAddress, getPlaceDetails, reverseGeocode, type CourierContactInput, type CourierCreateResponse, type CourierEstimate,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { beginOnlinePayment } from "@/lib/payment-checkout";
 
 const SHOW_DEVELOPMENT_HANDOFF_CODES = process.env.NODE_ENV === "development";
 
@@ -49,6 +50,7 @@ export function CourierBookingPage() {
   const [recipient, setRecipient] = useState<CourierContactInput>({ name: "Recipient", phone: "+919900000002",
   });
   const [created, setCreated] = useState<CourierCreateResponse | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const reverseLookupId = useRef(0);
 
   const weight = Number(packageWeightKg);
@@ -74,7 +76,13 @@ export function CourierBookingPage() {
       if (!estimateInput || !estimate.data) throw new Error("A live courier route and fare are required before booking.");
       return createCourier({ ...estimateInput, sender, recipient, paymentMethod });
     },
-    onSuccess: setCreated,
+    onSuccess: async (result) => {
+      setCreated(result);
+      if (paymentMethod === "ONLINE") {
+        try { await beginOnlinePayment("COURIER", result.courier.id); }
+        catch (error) { setPaymentError(error instanceof Error ? error.message : "Payment could not be completed"); }
+      }
+    },
   });
 
   const routeLabel = estimate.data
@@ -180,6 +188,7 @@ export function CourierBookingPage() {
             <StatusPill label="Courier Requested" tone="success" />
             <h2 className="mt-3 text-xl font-bold text-foreground">Finding a delivery partner</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{created.offeredPartners > 0 ? `${created.offeredPartners} nearby partners received your parcel request.` : "We are expanding the search around your pickup."}</p>
+            {paymentError ? <p className="mt-3 text-sm text-destructive" role="status">{paymentError}</p> : null}
             {SHOW_DEVELOPMENT_HANDOFF_CODES && created.devOtps ? (
               <p className="mt-3 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs text-foreground">
                 Handoff codes: pickup {created.devOtps.pickup}, delivery {created.devOtps.delivery}</p>

@@ -4,7 +4,7 @@ import { PaymentStatus } from "@prisma/client";
 
 import { RedisStoreService } from "../../infrastructure/redis/redis-store.service";
 import type { SessionRecord } from "../identity/identity.types";
-import type { CreatePaymentOrderDto, CreateRefundDto} from "./dto/payments.dto";
+import type { CreatePaymentOrderDto, CreateRefundDto, CreateWalletTopUpDto } from "./dto/payments.dto";
 import { type PaymentReferenceType } from "./dto/payments.dto";
 import { FinanceService } from "./finance.service";
 import { PAYMENT_PROVIDER, type PaymentProvider, type PaymentProviderOrder } from "./payment-provider";
@@ -113,6 +113,13 @@ export class PaymentsService {
     } finally {
       await this.redisStore.delete(lockKey);
     }
+  }
+
+  async createWalletTopUp(session: SessionRecord, body: CreateWalletTopUpDto) {
+    const idempotencyKey = `${session.user.id}:${body.idempotencyKey}`;
+    const existing = await this.financeService.findWalletTopUp(idempotencyKey);
+    if (existing) return existing;
+    return this.financeService.createWalletTopUp(session.user.id, body.amount, idempotencyKey);
   }
 
   async processRazorpayWebhook(rawBody: Buffer, signature: string | undefined, parsedBody: unknown) {

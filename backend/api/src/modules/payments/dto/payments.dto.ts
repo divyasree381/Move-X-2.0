@@ -1,4 +1,5 @@
-import { IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { IsIn, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
+import { Type } from "class-transformer";
 
 export const paymentReferenceTypes = ["ORDER", "RIDE", "COURIER", "HOME_SERVICE", "WALLET_TOPUP"] as const;
 export type PaymentReferenceType = (typeof paymentReferenceTypes)[number];
@@ -51,4 +52,17 @@ export class MockCaptureDto {
   @IsString()
   @MaxLength(256)
   razorpayPaymentId?: string;
+}
+
+export class CreateWalletTopUpDto {
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(10)
+  @Max(100000)
+  amount!: number;
+
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  idempotencyKey!: string;
 }

@@ -596,7 +596,6 @@ export class OrdersService {
       throw new NotFoundException("Order not found");
     }
 
-    await this.publishOrderRealtime(order, "order.partner.assigned");
     return this.serializeOrder(order);
   }
 
@@ -651,7 +650,6 @@ export class OrdersService {
       return cancelled;
     });
 
-    await this.publishOrderRealtime(updated, "order.status.changed");
     return this.serializeOrder(updated);
   }
 
@@ -673,6 +671,16 @@ export class OrdersService {
         return order;
       }
 
+      await tx.review.create({
+        data: {
+          authorId: user.userId,
+          targetUserId: order.deliveryPartnerId,
+          storeId: order.storeId,
+          orderId: order.id,
+          rating: body.rating,
+          comment: body.comment?.trim() || null,
+        },
+      });
       await this.applyStoreRating(tx, order.storeId, body.rating);
       if (order.deliveryPartnerId) {
         await this.applyPartnerRating(tx, order.deliveryPartnerId, body.rating);
@@ -734,7 +742,6 @@ export class OrdersService {
       return next;
     });
 
-    await this.publishOrderRealtime(updated, "order.status.changed");
     return this.serializeOrder(updated);
   }
 
@@ -765,7 +772,6 @@ export class OrdersService {
       return next;
     });
 
-    await this.publishOrderRealtime(updated, "order.status.changed");
     return this.serializeOrder(updated);
   }
 
@@ -1482,19 +1488,11 @@ export class OrdersService {
   }
 
   private async applyPartnerRating(tx: PrismaTx, partnerId: string, rating: number): Promise<void> {
-    const key = `rating:partner:${partnerId}`;
-    const existing = await tx.systemConfig.findUnique({ where: { key } });
-    const value = existing && typeof existing.value === "object" && existing.value !== null && !Array.isArray(existing.value) ? (existing.value as { average?: unknown; count?: unknown }) : {};
-    const count = typeof value.count === "number" ? value.count : 0;
-    const average = new Prisma.Decimal(typeof value.average === "string" || typeof value.average === "number" ? value.average : 0);
-    const nextCount = count + 1;
-    const nextAverage = average.mul(count).plus(rating).div(nextCount).toDecimalPlaces(2).toString();
-
-    await tx.systemConfig.upsert({
-      where: { key },
-      update: { value: { average: nextAverage, count: nextCount }, description: "Delivery partner rating aggregate" },
-      create: { key, value: { average: nextAverage, count: nextCount }, description: "Delivery partner rating aggregate" },
-    });
+    const partner = await tx.user.findUnique({ where: { id: partnerId }, select: { ratingAverage: true, ratingCount: true } });
+    if (!partner) return;
+    const nextCount = partner.ratingCount + 1;
+    const nextAverage = partner.ratingAverage.mul(partner.ratingCount).plus(rating).div(nextCount).toDecimalPlaces(2);
+    await tx.user.update({ where: { id: partnerId }, data: { ratingAverage: nextAverage, ratingCount: nextCount } });
   }
 
   private distanceFromOrder(order: { address: Prisma.JsonValue; storeLocation: Prisma.JsonValue }, lat: number, lng: number): number {

@@ -3,12 +3,13 @@ import { ApiExtraModels, ApiTags } from "@nestjs/swagger";
 import { PermissionAction } from "@movex/shared";
 
 import { RequirePermission } from "../../common/decorators/permissions.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 import type { AuthenticatedUser, RequestWithUser } from "../../common/types/authenticated-request";
-import { AnalyticsQueryDto, FeatureFlagQueryDto, RefreshAnalyticsDto, SearchRebuildDto, UpsertFeatureFlagDto } from "./dto/platform.dto";
+import { AnalyticsQueryDto, FeatureFlagQueryDto, HomepageConfigDto, RefreshAnalyticsDto, SearchRebuildDto, UpsertFeatureFlagDto } from "./dto/platform.dto";
 import { PlatformService } from "./platform.service";
 
 @ApiTags("Platform")
-@ApiExtraModels(AnalyticsQueryDto, RefreshAnalyticsDto, FeatureFlagQueryDto, UpsertFeatureFlagDto, SearchRebuildDto)
+@ApiExtraModels(AnalyticsQueryDto, RefreshAnalyticsDto, FeatureFlagQueryDto, UpsertFeatureFlagDto, SearchRebuildDto, HomepageConfigDto)
 @Controller({ path: "platform", version: "1" })
 export class PlatformController {
   constructor(@Inject(PlatformService) private readonly platformService: PlatformService) {}
@@ -41,6 +42,24 @@ export class PlatformController {
   @RequirePermission(PermissionAction.PlatformSearchRebuildManage)
   requestSearchRebuild(@Req() request: RequestWithUser, @Body() body: SearchRebuildDto) {
     return this.platformService.requestSearchRebuild(this.getUser(request), body);
+  }
+
+  @Public()
+  @Get("public-config")
+  publicConfig() {
+    return this.platformService.publicConfig();
+  }
+
+  @Get("homepage")
+  @RequirePermission(PermissionAction.PlatformHomepageManage)
+  homepage() {
+    return this.platformService.homepageConfig();
+  }
+
+  @Put("homepage")
+  @RequirePermission(PermissionAction.PlatformHomepageManage)
+  updateHomepage(@Body() body: HomepageConfigDto) {
+    return this.platformService.updateHomepageConfig(body.config);
   }
 
   private getUser(request: RequestWithUser): AuthenticatedUser {

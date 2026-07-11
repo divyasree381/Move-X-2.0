@@ -405,6 +405,42 @@ export function checkoutOrder(input: { paymentMethod: "WALLET" | "CASH" | "ONLIN
   return fetchApi<CheckoutResponse>("/orders/checkout", { method: "POST", body: JSON.stringify(input) });
 }
 
+export type PartnerStoreInput = { type: "FOOD" | "GROCERY" | "PHARMACY"; name: string; description: string; imageUrl?: string; etaMinutes: number; minOrder: number; deliveryRadiusKm: number; lat: number; lng: number; openingHours?: Record<string, unknown> };
+export type PartnerStore = { id: string; type: string; name: string; description: string; imageUrl?: string | null; etaMinutes: number; minOrder: string; deliveryRadiusKm: string; lat: string; lng: string; isOpen: boolean; approval: string; rejectionReason?: string | null };
+export type PartnerMenuItem = { id: string; storeId: string; section: string; name: string; description: string; price: string; imageUrl?: string | null; tags: string[]; available: boolean; stock: number };
+
+export function getPartnerStore() { return fetchApi<{ store: PartnerStore | null; menu: PartnerMenuItem[] }>("/stores/partner/me"); }
+export function createPartnerStore(input: PartnerStoreInput) { return fetchApi<PartnerStore>("/stores/partner", { method: "POST", body: JSON.stringify(input) }); }
+export function updatePartnerStore(input: PartnerStoreInput) { return fetchApi<PartnerStore>("/stores/partner", { method: "PATCH", body: JSON.stringify(input) }); }
+export function setPartnerStoreOpen(isOpen: boolean) { return fetchApi<PartnerStore>("/stores/partner/open", { method: "POST", body: JSON.stringify({ isOpen }) }); }
+export function requestPartnerStoreApproval() { return fetchApi<PartnerStore>("/stores/partner/request-approval", { method: "POST" }); }
+export function createPartnerMenuItem(input: { section: string; name: string; description: string; price: number; stock: number; available?: boolean; tags?: string[] }) { return fetchApi<PartnerMenuItem>("/stores/partner/menu-items", { method: "POST", body: JSON.stringify(input) }); }
+export function updatePartnerMenuItem(itemId: string, input: Partial<{ section: string; name: string; description: string; price: number; stock: number; available: boolean; tags: string[] }>) { return fetchApi<PartnerMenuItem>(`/stores/partner/menu-items/${encodeURIComponent(itemId)}`, { method: "PATCH", body: JSON.stringify(input) }); }
+export function deletePartnerMenuItem(itemId: string) { return fetchApi<{ deleted: true }>(`/stores/partner/menu-items/${encodeURIComponent(itemId)}`, { method: "DELETE" }); }
+
+export type PaymentReferenceType = "ORDER" | "RIDE" | "COURIER" | "HOME_SERVICE" | "WALLET_TOPUP";
+export type PaymentOrderResponse = {
+  provider: "razorpay";
+  order: { id: string; amountPaise: number; currency: string; receipt: string; status: string };
+  referenceType: PaymentReferenceType;
+  referenceId: string;
+  amount: string;
+  amountPaise: number;
+  currency: "INR";
+};
+
+export function createPaymentOrder(input: { referenceType: PaymentReferenceType; referenceId: string; idempotencyKey: string }) {
+  return fetchApi<PaymentOrderResponse>("/payments/orders", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function createWalletTopUp(input: { amount: number; idempotencyKey: string }) {
+  return fetchApi<{ id: string; amount: string; paymentStatus: string }>("/payments/wallet-topups", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function captureDevelopmentPayment(input: { referenceType: PaymentReferenceType; referenceId: string; razorpayOrderId: string; razorpayPaymentId?: string }) {
+  return fetchApi<{ processed: boolean }>("/payments/mock-capture", { method: "POST", body: JSON.stringify(input) });
+}
+
 export function listOrders(params: { cursor?: string; limit?: number } = {}) {
   return fetchApi<{ items: OrderSummary[]; nextCursor?: string }>(`/orders${toQueryString(params)}`);
 }
@@ -1442,6 +1478,11 @@ export function platformFeatureFlags(params: { cursor?: string; limit?: number; 
 export function upsertPlatformFeatureFlag(key: string, input: { enabled: boolean; description?: string; rollout?: Record<string, unknown> }) {
   return fetchApi<PlatformFeatureFlag>(`/platform/feature-flags/${encodeURIComponent(key)}`, { method: "PUT", body: JSON.stringify(input) });
 }
+
+export type PublicPlatformConfig = { homepage: Record<string, unknown>; featureFlags: Record<string, boolean> };
+export function publicPlatformConfig() { return fetchApi<PublicPlatformConfig>("/platform/public-config"); }
+export function platformHomepage() { return fetchApi<{ config: Record<string, unknown> }>("/platform/homepage"); }
+export function updatePlatformHomepage(config: Record<string, unknown>) { return fetchApi<{ config: Record<string, unknown> }>("/platform/homepage", { method: "PUT", body: JSON.stringify({ config }) }); }
 
 export function requestPlatformSearchRebuild(input: { scope?: string } = {}) {
   return fetchApi<{ accepted: boolean; eventId: string }>("/platform/search/rebuild", { method: "POST", body: JSON.stringify(input) });

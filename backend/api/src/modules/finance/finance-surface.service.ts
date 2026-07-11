@@ -3,6 +3,7 @@ import type { InvoiceType } from "@prisma/client";
 import { InvoiceStatus, LedgerEntryType, PaymentMethod, PayoutStatus, Prisma, ReconciliationReportStatus, UserRole } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
+import { SensitiveDataService } from "../../common/security/sensitive-data.service";
 import { FinanceService as PaymentFinanceService } from "../payments/finance.service";
 import type { PaymentReferenceType } from "../payments/dto/payments.dto";
 import type { GenerateInvoiceDto, GenerateReconciliationDto, InvoiceQueryDto, LedgerQueryDto, MarkPayoutDto, PayoutQueryDto, PayoutSweepDto, ReconciliationQueryDto, WalletAdjustmentDto } from "./dto/finance.dto";
@@ -28,6 +29,7 @@ export class FinanceSurfaceService {
     @Inject(PaymentFinanceService) private readonly paymentFinance: PaymentFinanceService,
     @Inject(PAYOUT_PROVIDER) private readonly payoutProvider: PayoutProvider,
     @Inject(SETTLEMENT_PROVIDER) private readonly settlementProvider: SettlementProvider,
+    @Inject(SensitiveDataService) private readonly sensitiveData: SensitiveDataService,
   ) {}
 
   async listLedger(query: LedgerQueryDto) {
@@ -396,12 +398,32 @@ export class FinanceSurfaceService {
     return Boolean(error && typeof error === "object" && "code" in error && ["P2034", "P2002"].includes(String((error as { code?: unknown }).code)));
   }
   private async resolveBankDetails(tx: PrismaTx, userId: string): Promise<BankDetails> {
-    const store = await tx.store.findFirst({ where: { ownerId: userId }, select: { bankAccount: true } });
-    const bank = this.recordFromJson(store?.bankAccount ?? null);
+    const verification = await tx.partnerVerification.findUnique({
+      where: { userId },
+      select: { status: true, settlements: true, sensitiveDetailsEncrypted: true },
+    });
+    if (!verification || verification.status !== "APPROVED") {
+      throw new BadRequestException("Approved partner verification is required before payout");
+    }
+
+    const settlement = this.recordFromJson(verification.settlements);
+    let sensitive: Record<string, string>;
+    try {
+      sensitive = this.sensitiveData.decrypt(verification.sensitiveDetailsEncrypted);
+    } catch {
+      throw new BadRequestException("Partner bank details are unavailable or cannot be decrypted");
+    }
+
+    const accountName = this.stringOrFallback(settlement.accountHolderName, "");
+    const accountNumber = this.stringOrFallback(sensitive.accountNumber, "");
+    const bankIfsc = this.stringOrFallback(settlement.ifscCode, "").toUpperCase();
+    if (!accountName || !/^\d{6,24}$/.test(accountNumber) || !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(bankIfsc)) {
+      throw new BadRequestException("Complete and verify partner settlement details before payout");
+    }
     return {
-      bankAccountName: this.stringOrFallback(bank.accountName ?? bank.bankAccountName, "MoveX Sandbox Partner"),
-      bankAccountNumber: this.stringOrFallback(bank.accountNumber ?? bank.bankAccountNumber, "0000000000"),
-      bankIfsc: this.stringOrFallback(bank.ifsc ?? bank.bankIfsc, "MOCK0000001"),
+      bankAccountName: accountName,
+      bankAccountNumber: accountNumber,
+      bankIfsc,
     };
   }
 
