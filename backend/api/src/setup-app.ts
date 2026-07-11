@@ -1,6 +1,7 @@
 import { ValidationPipe, VersioningType, type INestApplication } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
+import { json, urlencoded, type Request } from "express";
 
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { createPinoLoggerMiddleware } from "./common/middleware/pino-logger.middleware";
@@ -10,6 +11,11 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
 import { isExactAllowedOrigin } from "./common/utils/origin.util";
 
 export function setupApp(app: INestApplication): INestApplication {
+  const captureRawBody = (request: Request, _response: unknown, buffer: Buffer) => {
+    (request as Request & { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
+  };
+  app.use(json({ limit: process.env.REQUEST_BODY_LIMIT ?? "14mb", verify: captureRawBody }));
+  app.use(urlencoded({ extended: true, limit: "1mb", verify: captureRawBody }));
   app.use(requestContextMiddleware);
   app.use(createPinoLoggerMiddleware());
   app.use(cookieParser());

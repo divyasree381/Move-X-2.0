@@ -233,6 +233,24 @@ GOOGLE_MAPS_API_KEY=your-server-side-google-maps-key
 
 Keep this key only in `backend/api/.env`; do not expose it in frontend env.
 
+### Private Partner Documents
+
+For partner onboarding uploads, create a private Supabase Storage bucket named `movex-private`, then configure only the API:
+
+```env
+STORAGE_PROVIDER=supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
+SUPABASE_PRIVATE_BUCKET=movex-private
+PARTNER_KYC_SECRET_KEY=replace-with-a-long-random-secret
+```
+
+Keep **Public bucket** disabled. Do not add the secret key to the web environment. Apply the Prisma migration before submitting partner verification:
+
+```powershell
+pnpm --filter @movex/api exec prisma migrate deploy
+```
+
 ### Email / Notifications
 
 For production notification email:

@@ -11,6 +11,7 @@ MoveX keeps committed environment files as templates only. Real `.env` and `.env
 | Payments | `PAYMENT_PROVIDER` | `mock` | `razorpay` |
 | Email | `EMAIL_PROVIDER` | `mock` | `resend` |
 | Search | `SEARCH_PROVIDER` | `postgres` | `meilisearch` |
+| Private files | `STORAGE_PROVIDER` | `mock` | `supabase` |
 
 The open-source maps provider uses Photon autocomplete, Nominatim geocoding, and OSRM routing. Google requires `GOOGLE_MAPS_API_KEY`. Provider keys remain server-side.
 
@@ -27,6 +28,8 @@ Generate unique values per environment for:
 - `GOOGLE_MAPS_API_KEY` when `MAPS_PROVIDER=google`
 - `RESEND_API_KEY` when `EMAIL_PROVIDER=resend`
 - `MEILISEARCH_API_KEY` when `SEARCH_PROVIDER=meilisearch`
+- `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SUPABASE_PRIVATE_BUCKET` when `STORAGE_PROVIDER=supabase`
+- `PARTNER_KYC_SECRET_KEY` for partner identity and bank-detail encryption (falls back to `CONFIG_SECRET_KEY`)
 
 `SMS_GATEWAY_SECRET` remains accepted temporarily for existing deployments, but new environments must use `SMS_GATEWAY_API_KEY`.
 
@@ -112,6 +115,22 @@ The API and worker must share the same `AUTH_HASH_SECRET`; the worker uses it to
 | `PAYMENT_WEBHOOK_LOCK_TTL_MS` | `30000` |
 | `MAPS_GEOCODE_CACHE_TTL_MS` | `300000` |
 | `MAPS_ROUTE_CACHE_TTL_MS` | `60000` |
+
+## Private Partner Documents
+
+Partner KYC files and pharmacy prescriptions use the backend-only `StorageProvider`. Local development defaults to the in-memory mock. Production must use a private Supabase Storage bucket:
+
+```env
+STORAGE_PROVIDER=supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
+SUPABASE_PRIVATE_BUCKET=movex-private
+PARTNER_KYC_SECRET_KEY=generate-a-separate-long-random-secret
+```
+
+Create `movex-private` in the Supabase Storage dashboard with **Public bucket disabled**. The API uploads with the server secret key and returns only short-lived signed URLs after MoveX session and permission checks. Never place the Supabase secret key in `frontend/web/.env.local` or any `NEXT_PUBLIC_*` variable.
+
+PostgreSQL stores document type, version, checksum, MIME type, review state, and object key. Aadhaar, PAN, account number, and UPI details are encrypted or masked before persistence; raw file contents remain in object storage.
 
 ## Workers
 

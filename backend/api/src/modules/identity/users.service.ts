@@ -1,8 +1,9 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { CourierStatus, HomeServiceStatus, LedgerEntryType, OrderStatus, PartnerApproval, PartnerShiftStatus, PayoutStatus, Prisma, RideStatus, UserRole } from "@prisma/client";
+import { CourierStatus, HomeServiceStatus, LedgerEntryType, OrderStatus, PartnerApproval, PartnerDocumentStatus, PartnerShiftStatus, PayoutStatus, Prisma, RideStatus, UserRole } from "@prisma/client";
 import { canPasswordLogin } from "@movex/shared";
 import { RedisStoreService } from "../../infrastructure/redis/redis-store.service";
+import { SensitiveDataService } from "../../common/security/sensitive-data.service";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { REALTIME_PROVIDER, type RealtimeProvider } from "../realtime/realtime-provider";
 import { IdentityRepository } from "./identity.repository";
@@ -12,6 +13,7 @@ import type { AddressDto, UpdateAddressDto } from "./dto/address.dto";
 import type { AdminUsersQueryDto } from "./dto/admin-users-query.dto";
 import type { PartnerVerificationDto } from "./dto/partner-verification.dto";
 import { StubRouteOptimizationProvider } from "../partner-ops/route-optimization.provider";
+import { PartnerDocumentsService } from "./partner-documents.service";
 
 const APPROVED = "APPROVED";
 const LOCATION_TTL_MS = 30_000;
@@ -25,6 +27,7 @@ type PartnerVerificationRow = {
   address: Prisma.JsonValue;
   documents: Prisma.JsonValue;
   settlements: Prisma.JsonValue;
+  sensitiveDetailsMasked: Prisma.JsonValue | null;
   status: string;
   rejectionReason: string | null;
   submittedAt: Date | null;
@@ -60,6 +63,8 @@ export class UsersService {
     @Inject(RedisStoreService) private readonly redisStore: RedisStoreService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(REALTIME_PROVIDER) private readonly realtimeProvider: RealtimeProvider,
+    @Inject(PartnerDocumentsService) private readonly partnerDocuments: PartnerDocumentsService,
+    @Inject(SensitiveDataService) private readonly sensitiveData: SensitiveDataService,
   ) {}
 
   async getMe(session: SessionRecord): Promise<PublicUser> {
@@ -204,7 +209,7 @@ export class UsersService {
 
   async getPartnerVerification(userId: string) {
     const rows = await this.prisma.$queryRaw<PartnerVerificationRow[]>`
-      SELECT "id", "userId", "partnerKind", "profile", "address", "documents", "settlements", "status", "rejectionReason", "submittedAt", "reviewedAt", "reviewedById", "createdAt", "updatedAt"
+      SELECT "id", "userId", "partnerKind", "profile", "address", "documents", "settlements", "sensitiveDetailsMasked", "status", "rejectionReason", "submittedAt", "reviewedAt", "reviewedById", "createdAt", "updatedAt"
       FROM "PartnerVerification"
       WHERE "userId" = ${userId}
       LIMIT 1
@@ -216,19 +221,22 @@ export class UsersService {
   async submitPartnerVerification(session: SessionRecord, input: PartnerVerificationDto) {
     this.assertPartnerRole(session);
     this.assertPartnerKindAllowed(session, input.partnerKind);
+    await this.partnerDocuments.assertSubmissionReady(session.userId, input.partnerKind);
 
     const now = new Date();
-    const profile = input.profile ?? {};
+    const profile = this.sanitizeProfile(input.profile ?? {});
     const address = input.address ?? {};
-    const documents = input.documents ?? {};
-    const settlements = input.settlements ?? {};
+    const { documents, settlements, encrypted, masked } = this.sanitizeSensitiveDetails(
+      input.documents ?? {},
+      input.settlements ?? {},
+    );
     const name =
       input.name?.trim() ||
       this.stringFromRecord(profile, "ownerName") ||
       this.stringFromRecord(profile, "businessName");
     const avatarUrl = input.avatarUrl?.trim() || undefined;
 
-    const user = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
         where: { id: session.userId },
         data: {
@@ -238,33 +246,47 @@ export class UsersService {
           rejectionReason: null,
         },
       });
-
-      await tx.$executeRaw`
-        INSERT INTO "PartnerVerification" ("id", "userId", "partnerKind", "profile", "address", "documents", "settlements", "status", "rejectionReason", "submittedAt", "reviewedAt", "reviewedById", "createdAt", "updatedAt")
-        VALUES (${randomUUID()}, ${session.userId}, ${input.partnerKind}, ${JSON.stringify(profile)}::jsonb, ${JSON.stringify(address)}::jsonb, ${JSON.stringify(documents)}::jsonb, ${JSON.stringify(settlements)}::jsonb, 'PENDING'::"PartnerApproval", NULL, ${now}, NULL, NULL, ${now}, ${now})
-        ON CONFLICT ("userId") DO UPDATE SET
-          "partnerKind" = EXCLUDED."partnerKind",
-          "profile" = EXCLUDED."profile",
-          "address" = EXCLUDED."address",
-          "documents" = EXCLUDED."documents",
-          "settlements" = EXCLUDED."settlements",
-          "status" = 'PENDING'::"PartnerApproval",
-          "rejectionReason" = NULL,
-          "submittedAt" = EXCLUDED."submittedAt",
-          "reviewedAt" = NULL,
-          "reviewedById" = NULL,
-          "updatedAt" = EXCLUDED."updatedAt"
-      `;
-
-      return updatedUser;
+      const verification = await tx.partnerVerification.upsert({
+        where: { userId: session.userId },
+        create: {
+          userId: session.userId,
+          partnerKind: input.partnerKind,
+          profile: profile as Prisma.InputJsonValue,
+          address: address as Prisma.InputJsonValue,
+          documents: documents as Prisma.InputJsonValue,
+          settlements: settlements as Prisma.InputJsonValue,
+          sensitiveDetailsEncrypted: encrypted,
+          sensitiveDetailsMasked: masked as Prisma.InputJsonValue,
+          status: PartnerApproval.PENDING,
+          submittedAt: now,
+        },
+        update: {
+          partnerKind: input.partnerKind,
+          profile: profile as Prisma.InputJsonValue,
+          address: address as Prisma.InputJsonValue,
+          documents: documents as Prisma.InputJsonValue,
+          settlements: settlements as Prisma.InputJsonValue,
+          sensitiveDetailsEncrypted: encrypted,
+          sensitiveDetailsMasked: masked as Prisma.InputJsonValue,
+          status: PartnerApproval.PENDING,
+          rejectionReason: null,
+          submittedAt: now,
+          reviewedAt: null,
+          reviewedById: null,
+        },
+      });
+      await tx.partnerDocument.updateMany({
+        where: { userId: session.userId, status: { not: PartnerDocumentStatus.SUPERSEDED } },
+        data: { verificationId: verification.id },
+      });
+      return { updatedUser, verificationId: verification.id };
     });
 
     await this.notifyAdminsPartnerPending(session.userId, session.user.role as UserRole);
     const verification = await this.getPartnerVerification(session.userId);
 
-    return { user: this.sessionService.toPublicUser(user), verification };
+    return { user: this.sessionService.toPublicUser(result.updatedUser), verification };
   }
-
   async setOnline(session: SessionRecord, isOnline: boolean): Promise<PublicUser> {
     this.assertApprovedPartner(session);
     const user = await this.repository.setUserOnline(session.userId, isOnline);
@@ -425,7 +447,7 @@ export class UsersService {
       reason ?? undefined,
     );
 
-    await this.prisma.$executeRaw`
+    const verificationUpdates = await this.prisma.$executeRaw`
       UPDATE "PartnerVerification"
       SET "status" = ${input.approval}::"PartnerApproval",
           "rejectionReason" = ${reason},
@@ -434,6 +456,18 @@ export class UsersService {
           "updatedAt" = ${reviewedAt}
       WHERE "userId" = ${userId}
     `;
+
+    if (input.approval === "APPROVED" && verificationUpdates > 0) {
+      await this.prisma.partnerDocument.updateMany({
+        where: { userId, status: PartnerDocumentStatus.UPLOADED },
+        data: {
+          status: PartnerDocumentStatus.APPROVED,
+          reviewedAt,
+          reviewedById: reviewer?.userId ?? null,
+          rejectionReason: null,
+        },
+      });
+    }
 
     await this.sessionService.revokeAllForUser(userId);
     return this.sessionService.toPublicUser(user);
@@ -468,6 +502,49 @@ export class UsersService {
     }
   }
 
+  private sanitizeProfile(profile: Record<string, unknown>): Record<string, unknown> {
+    const sanitized = { ...profile };
+    delete sanitized.profileImage;
+    return sanitized;
+  }
+
+  private sanitizeSensitiveDetails(
+    documentInput: Record<string, unknown>,
+    settlementInput: Record<string, unknown>,
+  ) {
+    const aadhaarNumber = this.stringFromRecord(documentInput, "aadhaarNumber")?.replace(/\D/g, "") ?? "";
+    const panNumber = this.stringFromRecord(documentInput, "panNumber")?.toUpperCase() ?? "";
+    const accountNumber = this.stringFromRecord(settlementInput, "accountNumber")?.replace(/\s/g, "") ?? "";
+    const upiId = this.stringFromRecord(settlementInput, "upiId") ?? "";
+
+    if (!/^\d{12}$/.test(aadhaarNumber)) {
+      throw new BadRequestException("Aadhaar number must contain exactly 12 digits");
+    }
+    if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(panNumber)) {
+      throw new BadRequestException("PAN number format is invalid");
+    }
+    if (!/^\d{6,24}$/.test(accountNumber)) {
+      throw new BadRequestException("Bank account number must contain 6 to 24 digits");
+    }
+
+    const documents = { ...documentInput };
+    const settlements = { ...settlementInput };
+    delete documents.files;
+    delete settlements.bankProof;
+    documents.aadhaarNumber = this.sensitiveData.maskAadhaar(aadhaarNumber);
+    documents.panNumber = this.sensitiveData.maskPan(panNumber);
+    settlements.accountNumber = this.sensitiveData.maskAccount(accountNumber);
+    if (upiId) settlements.upiId = this.sensitiveData.maskUpi(upiId);
+    const masked = {
+      aadhaarNumber: documents.aadhaarNumber,
+      panNumber: documents.panNumber,
+      accountNumber: settlements.accountNumber,
+      ...(upiId ? { upiId: settlements.upiId } : {}),
+    };
+    const encrypted = this.sensitiveData.encrypt({ aadhaarNumber, panNumber, accountNumber, ...(upiId ? { upiId } : {}) });
+    return { documents, settlements, encrypted, masked };
+  }
+
   private stringFromRecord(record: Record<string, unknown>, key: string): string | undefined {
     const value = record[key];
     return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -482,6 +559,7 @@ export class UsersService {
       address: row.address,
       documents: row.documents,
       settlements: row.settlements,
+      sensitiveDetailsMasked: row.sensitiveDetailsMasked,
       status: row.status,
       rejectionReason: row.rejectionReason,
       submittedAt: row.submittedAt?.toISOString() ?? null,

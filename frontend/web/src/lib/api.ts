@@ -1012,7 +1012,7 @@ export function submitPartnerProfile(input: { name?: string; avatarUrl?: string 
 }
 export type PartnerVerificationKind = "store" | "delivery" | "driver" | "home-services";
 export type PartnerVerificationPayload = { partnerKind: PartnerVerificationKind; name?: string; avatarUrl?: string; profile: Record<string, unknown>; address: Record<string, unknown>; documents: Record<string, unknown>; settlements: Record<string, unknown> };
-export type PartnerVerificationRecord = PartnerVerificationPayload & { id: string; userId: string; status: string; rejectionReason?: string | null; submittedAt?: string | null; reviewedAt?: string | null; reviewedById?: string | null; createdAt: string; updatedAt: string };
+export type PartnerVerificationRecord = PartnerVerificationPayload & { id: string; userId: string; sensitiveDetailsMasked?: Record<string, unknown> | null; status: string; rejectionReason?: string | null; submittedAt?: string | null; reviewedAt?: string | null; reviewedById?: string | null; createdAt: string; updatedAt: string };
 export type PartnerVerificationSubmitResponse = { user: AuthUser; verification: PartnerVerificationRecord | null };
 export function getPartnerVerification() {
   return fetchApi<PartnerVerificationRecord | null>("/users/me/partner-verification");
@@ -1022,6 +1022,46 @@ export function submitPartnerVerification(input: PartnerVerificationPayload) {
 }
 export function getAdminPartnerVerification(userId: string) {
   return fetchApi<PartnerVerificationRecord | null>(`/users/admin/partners/${encodeURIComponent(userId)}/verification`);
+}
+export type PartnerDocumentType = "PROFILE_IMAGE" | "LIVE_PHOTO" | "STORE_LICENSE" | "AADHAAR" | "PAN" | "DRIVING_LICENSE" | "VEHICLE_RC" | "VEHICLE_INSURANCE" | "SKILL_CERTIFICATE" | "POLICE_VERIFICATION" | "BANK_PROOF";
+export type PartnerDocumentRecord = {
+  id: string;
+  documentType: PartnerDocumentType;
+  originalFileName: string;
+  contentType: string;
+  sizeBytes: number;
+  checksumSha256: string;
+  version: number;
+  status: "UPLOADED" | "APPROVED" | "REJECTED";
+  rejectionReason?: string | null;
+  expiresAt?: string | null;
+  uploadedAt: string;
+  reviewedAt?: string | null;
+};
+export type PartnerDocumentUpload = {
+  documentType: PartnerDocumentType;
+  fileName: string;
+  contentType: string;
+  contentBase64: string;
+  expiresAt?: string;
+};
+export function uploadPartnerDocument(input: PartnerDocumentUpload) {
+  return fetchApi<PartnerDocumentRecord>("/users/me/partner-documents", { method: "POST", body: JSON.stringify(input) });
+}
+export function listPartnerDocuments() {
+  return fetchApi<PartnerDocumentRecord[]>("/users/me/partner-documents");
+}
+export function deletePartnerDocument(documentId: string) {
+  return fetchApi<{ deleted: true }>(`/users/me/partner-documents/${encodeURIComponent(documentId)}`, { method: "DELETE" });
+}
+export function accessPartnerDocument(documentId: string) {
+  return fetchApi<{ url: string; expiresInSeconds: number }>(`/users/me/partner-documents/${encodeURIComponent(documentId)}/access`, { method: "POST" });
+}
+export function getAdminPartnerDocuments(userId: string) {
+  return fetchApi<PartnerDocumentRecord[]>(`/users/admin/partners/${encodeURIComponent(userId)}/documents`);
+}
+export function accessAdminPartnerDocument(userId: string, documentId: string) {
+  return fetchApi<{ url: string; expiresInSeconds: number }>(`/users/admin/partners/${encodeURIComponent(userId)}/documents/${encodeURIComponent(documentId)}/access`, { method: "POST" });
 }
 export type OpsCoupon = {
   id: string;

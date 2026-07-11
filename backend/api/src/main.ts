@@ -1,4 +1,4 @@
-﻿import { NestFactory } from "@nestjs/core";
+import { NestFactory } from "@nestjs/core";
 
 import { AppModule } from "./app.module";
 import { setupApp } from "./setup-app";
@@ -8,7 +8,7 @@ import { startObservability } from "./observability";
 async function bootstrap(): Promise<void> {
   validateProductionReadiness();
   await startObservability("api");
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   setupApp(app);
 
   const port = Number(process.env.PORT ?? 3001);

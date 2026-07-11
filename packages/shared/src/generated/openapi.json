@@ -578,6 +578,88 @@
         ]
       }
     },
+    "/api/v1/users/me/partner-documents": {
+      "post": {
+        "operationId": "UsersController_uploadPartnerDocument_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerDocumentUploadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_listMyPartnerDocuments_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/me/partner-documents/{documentId}/access": {
+      "post": {
+        "operationId": "UsersController_accessMyPartnerDocument_v1",
+        "parameters": [
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/me/partner-documents/{documentId}": {
+      "delete": {
+        "operationId": "UsersController_deleteMyPartnerDocument_v1",
+        "parameters": [
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    },
     "/api/v1/users/me/online": {
       "post": {
         "operationId": "UsersController_setOnline_v1",
@@ -822,6 +904,60 @@
         ],
         "responses": {
           "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/admin/partners/{userId}/documents": {
+      "get": {
+        "operationId": "UsersController_partnerDocumentsForAdmin_v1",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/admin/partners/{userId}/documents/{documentId}/access": {
+      "post": {
+        "operationId": "UsersController_accessPartnerDocumentForAdmin_v1",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
             "description": ""
           }
         },
@@ -3732,6 +3868,10 @@
         "properties": {}
       },
       "PartnerLocationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PartnerDocumentUploadDto": {
         "type": "object",
         "properties": {}
       },

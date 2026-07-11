@@ -9,7 +9,7 @@ import type { RequestWithUser } from "../types/authenticated-request";
 const STAFF_ROLES = new Set<string>([UserRole.SUPPORT, UserRole.FINANCE, UserRole.ADMIN, UserRole.SUPER_ADMIN]);
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const REDACTED = "[REDACTED]";
-const SENSITIVE_KEY_PATTERN = /(password|token|secret|otp|code|hash|signature|authorization|cookie|csrf|apiKey|key)$/i;
+const SENSITIVE_KEY_PATTERN = /(password|token|secret|otp|code|hash|signature|authorization|cookie|csrf|apiKey|key|aadhaar|panNumber|accountNumber|contentBase64)$/i;
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {

@@ -9,12 +9,16 @@ export type StoreObjectInput = {
 };
 
 export type StoredObject = {
+  bucket: string;
   key: string;
-  url: string;
+  url?: string;
   contentType: string;
   sizeBytes: number;
+  checksumSha256: string;
 };
 
 export interface StorageProvider {
   putObject(input: StoreObjectInput): Promise<StoredObject>;
+  createSignedUrl(bucket: string, key: string, expiresInSeconds: number): Promise<string>;
+  deleteObject(bucket: string, key: string): Promise<void>;
 }

@@ -72,7 +72,7 @@ MoveX keeps external services behind provider interfaces so they can be swapped 
 - `SmsProvider`
 - `PaymentProvider`
 - `MapsProvider`
-- `StorageProvider`
+- `StorageProvider` (private Supabase Storage in production; signed document access)
 - `NotificationProvider`
 - `RealtimeProvider`
 - `SearchAdapter`

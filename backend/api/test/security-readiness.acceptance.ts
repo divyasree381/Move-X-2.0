@@ -6,6 +6,8 @@ import { getAllowedOrigins } from "../src/common/utils/origin.util";
 import { validateProductionReadiness } from "../src/common/security/production-readiness";
 import { TokenHashService } from "../src/modules/identity/security/token-hash.service";
 import { MfaService } from "../src/modules/identity/security/mfa.service";
+import { SensitiveDataService } from "../src/common/security/sensitive-data.service";
+import { MockStorageProvider } from "../src/infrastructure/storage/mock-storage.provider";
 import { RazorpayProvider } from "../src/modules/payments/razorpay.provider";
 
 function withEnv<T>(env: NodeJS.ProcessEnv, run: () => T): T {
@@ -98,6 +100,10 @@ async function main(): Promise<void> {
       RAZORPAY_KEY_ID: "rzp_live_key",
       RAZORPAY_KEY_SECRET: "rzp_live_secret",
       RAZORPAY_WEBHOOK_SECRET: "webhook-secret",
+      STORAGE_PROVIDER: "supabase",
+      SUPABASE_URL: "https://project.supabase.co",
+      SUPABASE_SECRET_KEY: "sb_secret_test",
+      SUPABASE_PRIVATE_BUCKET: "movex-private",
     },
     () => {
       assert.doesNotThrow(() => validateProductionReadiness());
@@ -121,6 +127,31 @@ async function main(): Promise<void> {
     assert.equal(mfa.decryptSecret(encrypted as unknown as Parameters<MfaService["decryptSecret"]>[0]), secret);
     assert.match(mfa.provisioningUri({ issuer: "MoveX", account: "ops@example.com", secret }), /^otpauth:\/\/totp\//);
   });
+
+  withEnv({ NODE_ENV: "test", PARTNER_KYC_SECRET_KEY: "kyc-test-key" }, () => {
+    const service = new SensitiveDataService();
+    const plaintext = { aadhaarNumber: "123412341234", panNumber: "ABCDE1234F", accountNumber: "123456789012" };
+    const encrypted = service.encrypt(plaintext);
+    const serialized = JSON.stringify(encrypted);
+    assert(!serialized.includes(plaintext.aadhaarNumber));
+    assert(!serialized.includes(plaintext.panNumber));
+    assert(!serialized.includes(plaintext.accountNumber));
+    assert.equal(service.maskAadhaar(plaintext.aadhaarNumber), "XXXX XXXX 1234");
+    assert.equal(service.maskAccount(plaintext.accountNumber), "********9012");
+  });
+
+  const storage = new MockStorageProvider();
+  const stored = await storage.putObject({
+    keyPrefix: "partners/user-1/aadhaar",
+    fileName: "aadhaar.pdf",
+    contentType: "application/pdf",
+    contentBase64: Buffer.from("%PDF-secure-document").toString("base64"),
+  });
+  assert.equal(stored.bucket, "mock-private");
+  assert.match(stored.checksumSha256, /^[0-9a-f]{64}$/);
+  assert.match(await storage.createSignedUrl(stored.bucket, stored.key, 300), /expiresIn=300/);
+  await storage.deleteObject(stored.bucket, stored.key);
+  await assert.rejects(() => storage.createSignedUrl(stored.bucket, stored.key, 300));
 
   const ordersSource = readFileSync("src/modules/orders/orders.service.ts", "utf8");
   const ridesSource = readFileSync("src/modules/rides/rides.service.ts", "utf8");

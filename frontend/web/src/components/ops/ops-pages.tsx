@@ -20,6 +20,8 @@ import {
   createTicket,
   deactivateCoupon,
   getAdminPartnerVerification,
+  getAdminPartnerDocuments,
+  accessAdminPartnerDocument,
   getTicket,
   opsAudit,
   opsDisputes,
@@ -40,6 +42,7 @@ import {
   type OpsCoupon,
   type OpsDispute,
   type OpsTicket,
+  type PartnerDocumentRecord,
   type StaffLoginRole,
 } from "@/lib/api";
 
@@ -445,33 +448,62 @@ function ReviewButtons({ onApprove, onReject, disabled,
 }
 
 function PartnerVerificationCell({ userId }: { userId: string }) {
-  const verification = useQuery({ queryKey: ["ops-partner-verification", userId], queryFn: () => getAdminPartnerVerification(userId),
+  const documentAccess = useOpsPermission(PermissionAction.PartnerDocumentsRead);
+  const verification = useQuery({
+    queryKey: ["ops-partner-verification", userId],
+    queryFn: () => getAdminPartnerVerification(userId),
+  });
+  const documents = useQuery({
+    queryKey: ["ops-partner-documents", userId],
+    queryFn: () => getAdminPartnerDocuments(userId),
+    enabled: documentAccess.can,
   });
 
-  if (verification.isLoading) {
+  if (verification.isLoading || (documentAccess.can && documents.isLoading)) {
     return <span className="text-xs text-muted-foreground">Loading...</span>;
   }
 
   if (!verification.data) {
-    return <span className="text-xs text-muted-foreground">No full pack yet</span>;
+    return <span className="text-xs text-muted-foreground">No verification pack yet</span>;
   }
 
   const profile = verification.data.profile;
   const address = verification.data.address;
-  const documents = verification.data.documents;
   const settlements = verification.data.settlements;
-  const files = documents.files && typeof documents.files === "object" ? Object.keys(documents.files as Record<string, unknown>).length : 0;
+  const documentRows = documents.data ?? [];
   const bankReady = Boolean(settlements.accountHolderName && settlements.ifscCode);
 
   return (
-    <div className="space-y-1 text-xs text-muted-foreground">
+    <div className="space-y-2 text-xs text-muted-foreground">
       <p className="font-medium text-foreground">{String(profile.businessName ?? profile.ownerName ?? verification.data.partnerKind)}</p>
-      <p>{String(address.city ?? "Location pending")} - {files} document files</p>
+      <p>{String(address.city ?? "Location pending")} - {documentRows.length} secure documents</p>
       <div className="flex flex-wrap gap-1">
         <StatusPill label={verification.data.status} tone={verification.data.status === "REJECTED" ? "danger" : verification.data.status === "APPROVED" ? "success" : "warning"} />
         <StatusPill label={bankReady ? "Bank ready" : "Bank missing"} tone={bankReady ? "success" : "warning"} />
       </div>
+      {documentAccess.can && documentRows.length > 0 ? (
+        <details>
+          <summary className="cursor-pointer font-medium text-primary">Review documents</summary>
+          <div className="mt-2 flex max-w-md flex-wrap gap-2">
+            {documentRows.map((document) => (
+              <SecureDocumentButton key={document.id} userId={userId} document={document} />
+            ))}
+          </div>
+        </details>
+      ) : null}
     </div>
+  );
+}
+
+function SecureDocumentButton({ userId, document }: { userId: string; document: PartnerDocumentRecord }) {
+  const access = useMutation({
+    mutationFn: () => accessAdminPartnerDocument(userId, document.id),
+    onSuccess: ({ url }) => window.open(url, "_blank", "noopener,noreferrer"),
+  });
+  return (
+    <Button size="sm" variant="secondary" disabled={access.isPending} onClick={() => access.mutate()}>
+      {document.documentType.replaceAll("_", " ")}
+    </Button>
   );
 }
 function RoleFilter() {
