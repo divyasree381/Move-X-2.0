@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { PrismaModule } from "../../infrastructure/prisma/prisma.module";
+import { SensitiveDataService } from "../../common/security/sensitive-data.service";
 import { PaymentsModule } from "../payments/payments.module";
 import { FinanceController } from "./finance.controller";
 import { FinanceSurfaceService } from "./finance-surface.service";
@@ -16,6 +17,7 @@ import { SETTLEMENT_PROVIDER } from "./settlement-provider";
     FinanceSurfaceService,
     MockPayoutProvider,
     MockRazorpaySettlementProvider,
+    SensitiveDataService,
     {
       provide: PAYOUT_PROVIDER,
       useExisting: MockPayoutProvider,

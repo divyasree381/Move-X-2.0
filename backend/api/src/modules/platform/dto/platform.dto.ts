@@ -56,3 +56,8 @@ export class SearchRebuildDto {
   @MaxLength(80)
   scope?: string;
 }
+
+export class HomepageConfigDto {
+  @IsObject()
+  config!: Record<string, unknown>;
+}

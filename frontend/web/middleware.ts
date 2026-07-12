@@ -7,6 +7,10 @@ const OPS_ROLES = new Set(["SUPPORT", "FINANCE", "ADMIN", "SUPER_ADMIN"]);
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  if (pathname === "/partner") {
+    return NextResponse.next();
+  }
+
   if (!pathname.startsWith("/customer") && !pathname.startsWith("/partner") && !pathname.startsWith("/ops")) {
     return NextResponse.next();
   }

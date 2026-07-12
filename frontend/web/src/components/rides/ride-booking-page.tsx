@@ -12,6 +12,7 @@ import { Button, StatusPill } from "@/components/ui";
 import { autocompleteLocations, createRide, estimateRide, geocodeAddress, reverseGeocode, type RideCreateResponse, type RideEstimate,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { beginOnlinePayment } from "@/lib/payment-checkout";
 import { RideMap } from "./ride-map";
 
 const DEFAULT_PICKUP: SelectedLocation = { address: "Indiranagar, Bengaluru", lat: 12.9784, lng: 77.6408, source: "gps",
@@ -56,6 +57,7 @@ export function RideBookingPage() {
   const [vehicleType, setVehicleType] = useState<VehicleType>("BIKE");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [created, setCreated] = useState<RideCreateResponse | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationBusy, setLocationBusy] = useState(false);
   const reverseLookupId = useRef(0);
@@ -88,7 +90,13 @@ export function RideBookingPage() {
       if (!estimateInput || !selectedEstimate?.data) throw new Error("Choose a ride option with an available fare before booking.");
       return createRide({ ...estimateInput, paymentMethod });
     },
-    onSuccess: setCreated,
+    onSuccess: async (result) => {
+      setCreated(result);
+      if (paymentMethod === "ONLINE") {
+        try { await beginOnlinePayment("RIDE", result.ride.id); }
+        catch (error) { setPaymentError(error instanceof Error ? error.message : "Payment could not be completed"); }
+      }
+    },
   });
 
   function beginPinning(point: ActivePoint, location: SelectedLocation) {
@@ -215,6 +223,7 @@ export function RideBookingPage() {
             <StatusPill label="Ride requested" tone="success" />
             <h2 className="mt-3 text-xl font-bold text-foreground">Looking for your driver</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{created.offeredDrivers > 0 ? `${created.offeredDrivers} nearby drivers received your request.` : "We are expanding the search around your pickup."}</p>
+            {paymentError ? <p className="mt-3 text-sm text-destructive" role="status">{paymentError}</p> : null}
             <div className="mt-5 flex flex-col gap-2">
               <Button asChild className="w-full"><Link href={`/customer/rides/${created.ride.id}`}>Track Ride</Link></Button>
               <Button variant="secondary" className="w-full" onClick={() => { setCreated(null); setStep(1); setDrop(null); }}>Book Another Ride</Button>

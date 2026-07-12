@@ -107,6 +107,13 @@ export class MarketplaceService {
     return this.toStoreDetail(store);
   }
 
+  async getMyStore(user: AuthenticatedUser) {
+    this.assertRestaurantOwner(user);
+    const store = await this.prisma.store.findFirst({ where: { ownerId: user.userId }, include: { menuItems: { orderBy: [{ section: "asc" }, { name: "asc" }] } } });
+    if (!store) return { store: null, menu: [] };
+    return { store: this.toStoreDetail(store), menu: store.menuItems.map(this.toMenuItem) };
+  }
+
   async updateMyStore(user: AuthenticatedUser, body: UpsertStoreDto) {
     this.assertRestaurantOwner(user);
     const store = await this.findOwnedStore(user.userId);

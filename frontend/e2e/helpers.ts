@@ -43,7 +43,7 @@ const emptyCart = {
 
 const filledCart = {
   store: { id: store.id, name: store.name, etaMinutes: store.etaMinutes, minOrder: store.minOrder, isOpen: true, type: "FOOD" },
-  items: [{ ...menuItem, quantity: 1, lineTotal: "199.00" }],
+  items: [{ ...menuItem, menuItemId: menuItem.id, quantity: 1, lineTotal: "199.00" }],
   couponCode: null,
   coupon: null,
   couponError: null,
@@ -73,6 +73,7 @@ async function responseFor(route: Route): Promise<unknown> {
   if (path === `/stores/${store.id}`) return { ...store, ownerId: "restaurant_1", approval: "APPROVED", rejectionReason: null, openingHours: {} };
   if (path === `/stores/${store.id}/menu`) return [menuItem];
   if (path === "/maps/geocode") return { address: "Indiranagar, Bengaluru", lat: 12.9784, lng: 77.6408, source: "typed" };
+  if (path === "/maps/reverse-geocode") return "Koramangala, Bengaluru";
   if (path === "/rides/estimate") return { vehicleType: "BIKE", distanceMeters: 4200, durationSeconds: 900, distanceKm: "4.20", durationMinutes: 15, baseFare: "40.00", surgeMultiplier: "1.00", estimatedFare: "96.00", polyline: "encoded" };
   if (path === "/rides" && request.method() === "POST") return { ride: { id: "ride_1", customerId: "customer_1", driverId: null, vehicleType: "BIKE", pickup: {}, drop: {}, status: "REQUESTED", estimatedFare: "96.00", finalFare: null, distanceKm: "4.20", durationMinutes: 15, surgeMultiplier: "1.00", paymentMethod: "CASH", paymentStatus: "PENDING", rated: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, offeredDrivers: 2, devStartOtp: "123456" };
   if (path === "/rides/driver/queue") return { items: [{ id: "ride_1", customerId: "customer_1", driverId: null, vehicleType: "BIKE", pickup: { address: "Indiranagar" }, drop: { address: "MG Road" }, status: "REQUESTED", estimatedFare: "96.00", finalFare: null, distanceKm: 2.1, durationMinutes: 15, surgeMultiplier: "1.00", paymentMethod: "CASH", paymentStatus: "PENDING", rated: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }] };

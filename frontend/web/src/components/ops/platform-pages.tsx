@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { PermissionAction } from "@movex/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Flag, RefreshCw, Search } from "lucide-react";
+import { BarChart3, Flag, ImageIcon, RefreshCw, Search } from "lucide-react";
 
 import { QueryState } from "@/providers/query-state";
 import { useOpsPermission } from "@/components/shells";
@@ -13,10 +13,21 @@ import {
   platformFeatureFlags,
   refreshPlatformAnalytics,
   requestPlatformSearchRebuild,
+  platformHomepage,
+  updatePlatformHomepage,
   upsertPlatformFeatureFlag,
   type PlatformAnalyticsRow,
   type PlatformFeatureFlag,
 } from "@/lib/api";
+
+export function OpsHomepagePage() {
+  const client = useQueryClient();
+  const query = useQuery({ queryKey: ["platform-homepage"], queryFn: platformHomepage });
+  const [value, setValue] = useState("{}");
+  useEffect(() => { if (query.data) setValue(JSON.stringify(query.data.config, null, 2)); }, [query.data]);
+  const save = useMutation({ mutationFn: () => updatePlatformHomepage(JSON.parse(value) as Record<string, unknown>), onSuccess: () => client.invalidateQueries({ queryKey: ["platform-homepage"] }) });
+  return <PlatformPermissionBoundary action={PermissionAction.PlatformHomepageManage}><PlatformPanel title="Homepage" description="Control public hero slides, announcements, and service presentation." icon={<ImageIcon className="size-5" aria-hidden="true" />}><textarea className="min-h-80 w-full rounded-md border border-border bg-surface p-3 font-mono text-sm" value={value} onChange={(event) => setValue(event.target.value)} aria-label="Homepage configuration JSON"/><div className="mt-3 flex justify-end"><Button disabled={save.isPending} onClick={() => save.mutate()}>Save homepage</Button></div>{save.error ? <p className="mt-2 text-sm text-destructive">{save.error instanceof Error ? save.error.message : "Homepage save failed"}</p> : null}</PlatformPanel></PlatformPermissionBoundary>;
+}
 
 export function OpsAnalyticsPage() {
   const today = new Date().toISOString().slice(0, 10);

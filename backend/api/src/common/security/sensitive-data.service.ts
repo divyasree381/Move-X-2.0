@@ -1,4 +1,4 @@
-import { createCipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 
@@ -29,6 +29,37 @@ export class SensitiveDataService {
       ciphertext: ciphertext.toString("base64"),
     };
     return payload as Prisma.InputJsonValue;
+  }
+
+  decrypt(value: Prisma.JsonValue | Prisma.InputJsonValue | null | undefined): Record<string, string> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("Encrypted sensitive data is missing");
+    }
+
+    const payload = value as Partial<EncryptedPayload>;
+    if (
+      payload.encrypted !== true ||
+      payload.alg !== ALGORITHM ||
+      typeof payload.iv !== "string" ||
+      typeof payload.tag !== "string" ||
+      typeof payload.ciphertext !== "string"
+    ) {
+      throw new Error("Encrypted sensitive data is invalid");
+    }
+
+    const decipher = createDecipheriv(ALGORITHM, this.encryptionKey(), Buffer.from(payload.iv, "base64"));
+    decipher.setAuthTag(Buffer.from(payload.tag, "base64"));
+    const plaintext = Buffer.concat([
+      decipher.update(Buffer.from(payload.ciphertext, "base64")),
+      decipher.final(),
+    ]).toString("utf8");
+    const parsed = JSON.parse(plaintext) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Decrypted sensitive data is invalid");
+    }
+    return Object.fromEntries(
+      Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+    );
   }
 
   maskAadhaar(value: string): string {

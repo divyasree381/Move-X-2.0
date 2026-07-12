@@ -45,6 +45,7 @@ import {
 } from "@/components/ui";
 import {
   createCustomerAddress,
+  createWalletTopUp,
   currentUser,
   deleteCustomerAddress,
   geocodeAddress,
@@ -62,6 +63,7 @@ import {
   type CustomerAddress,
   type CustomerAddressInput,
 } from "@/lib/api";
+import { beginOnlinePayment } from "@/lib/payment-checkout";
 import { cn } from "@/lib/utils";
 
 const sectionLinks = [
@@ -90,9 +92,25 @@ export function CustomerAccountPage() {
   const { toast } = useToast();
   const [profileOpen, setProfileOpen] = useState(false);
   const [addressOpen, setAddressOpen] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("500");
   const [showAddressMap, setShowAddressMap] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: "", email: "", avatarUrl: "" });
   const [addressDraft, setAddressDraft] = useState<AddressDraft>(emptyAddressDraft);
+  const topUp = useMutation({
+    mutationFn: async () => {
+      const amount = Number(topUpAmount);
+      if (!Number.isFinite(amount) || amount < 10) throw new Error("Enter an amount of at least Rs 10");
+      const reference = await createWalletTopUp({ amount, idempotencyKey: crypto.randomUUID() });
+      await beginOnlinePayment("WALLET_TOPUP", reference.id);
+      return reference;
+    },
+    onSuccess: () => {
+      setTopUpOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["retention-summary"] });
+      toast({ kind: "success", title: "Wallet top-up submitted", description: "Your balance updates after payment confirmation." });
+    },
+  });
 
   const me = useQuery({ queryKey: ["auth-me"], queryFn: currentUser, retry: false });
   const authenticated = Boolean(me.data?.user);
@@ -300,6 +318,7 @@ export function CustomerAccountPage() {
           </AccountSection>
 
           <AccountSection id="rewards" eyebrow="Benefits" title="Wallet and rewards">
+            <div className="mb-4 flex justify-end"><Button type="button" size="sm" onClick={() => setTopUpOpen(true)}><Plus className="size-4" aria-hidden="true" /> Add money</Button></div>
             {retention.isLoading ? (
               <div className="grid gap-3 sm:grid-cols-4"><Skeleton className="h-24" /><Skeleton className="h-24" /><Skeleton className="h-24" /><Skeleton className="h-24" /></div>
             ) : null}
@@ -318,6 +337,15 @@ export function CustomerAccountPage() {
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-warning/30 bg-warning/10 p-3"><div><p className="text-xs font-medium text-muted-foreground">Your referral code</p><p className="mt-1 font-semibold text-foreground">{retention.data.referralCode}</p></div><StatusPill label="Ready to share" tone="warning" /></div>
             ) : null}
           </AccountSection>
+
+          <Dialog open={topUpOpen} onOpenChange={setTopUpOpen}>
+            <DialogContent title="Add money to wallet" description="Choose an amount and complete secure online payment.">
+              <label className="block text-sm font-medium text-foreground" htmlFor="wallet-top-up">Amount</label>
+              <Input id="wallet-top-up" type="number" min="10" max="100000" step="1" value={topUpAmount} onChange={(event) => setTopUpAmount(event.target.value)} className="mt-2" />
+              {topUp.error ? <p className="mt-2 text-sm text-destructive" role="status">{topUp.error instanceof Error ? topUp.error.message : "Top-up failed"}</p> : null}
+              <div className="mt-4 flex justify-end gap-2"><Button variant="secondary" onClick={() => setTopUpOpen(false)}>Cancel</Button><Button disabled={topUp.isPending} onClick={() => topUp.mutate()}>{topUp.isPending ? "Opening payment" : "Continue"}</Button></div>
+            </DialogContent>
+          </Dialog>
 
           <AccountSection id="favorites" eyebrow="Saved" title="Favorites">
             {favorites.isLoading ? (

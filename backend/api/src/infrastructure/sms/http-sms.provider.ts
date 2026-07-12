@@ -43,7 +43,7 @@ export class HttpSmsProvider implements SmsProvider {
     url.searchParams.append("sms", input.message);
 
     try {
-      const responseText = await new Promise<string>((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         const request = url.protocol === 'https:' ? https.request : http.request;
         const req = request(url.toString(), { method: 'GET' }, (res: IncomingMessage) => {
           let data = '';
@@ -52,7 +52,7 @@ export class HttpSmsProvider implements SmsProvider {
             const statusCode = res.statusCode ?? 500;
 
             if (statusCode >= 200 && statusCode < 300) {
-              resolve(data);
+              resolve();
             } else {
               reject(new Error(`Status: ${statusCode}`));
             }
@@ -62,9 +62,9 @@ export class HttpSmsProvider implements SmsProvider {
         req.end();
       });
 
-      this.logger.debug(`Successfully sent SMS to ${receiver}. Provider response: ${responseText}`);
+      this.logger.debug("SMS gateway accepted a delivery request");
     } catch (error) {
-      this.logger.error(`Failed to send SMS to ${receiver}`, error);
+      this.logger.error("SMS gateway request failed", error);
       throw new ServiceUnavailableException("SMS gateway request failed");
     }
   }

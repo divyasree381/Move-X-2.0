@@ -1,16 +1,20 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { ArrowRight, Bike, Building2, CheckCircle2, ChevronRight, Clock3, Headphones, Home, IndianRupee, LocateFixed, MapPin, Package, Pill, ShoppingBasket, Sparkles, Star, Store, Truck, Utensils, type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui";
+import { listStores, publicPlatformConfig } from "@/lib/api";
 import { PublicHeaderActions } from "./public-header-actions";
 import { ServiceHeroCarousel } from "./service-hero-carousel";
 import { cn } from "@/lib/utils";
 import { dietaryLabels, resolveDietaryType, type DietaryType } from "@/lib/dietary";
 import { findPublicStore, isPublicStoreType, partnerTracks, publicHeroSlides,
   publicServices, publicStores,
-  storesByType, type PublicService, type PublicStore, type PublicStoreType,
+  storesByType, type PublicHeroSlide, type PublicService, type PublicStore, type PublicStoreType,
 } from "@/lib/public-site-data";
 
 const navItems = [
@@ -105,11 +109,30 @@ export function PublicSiteShell({ active, children,
 }
 
 export function PublicHomePage() {
-  const featuredStores = publicStores.slice(0, 4);
+  const [flags, setFlags] = useState<Record<string, boolean>>({});
+  const [homepage, setHomepage] = useState<Record<string, unknown>>({});
+  const [liveStores, setLiveStores] = useState<PublicStore[] | null>(null);
+  useEffect(() => {
+    let active = true;
+    void publicPlatformConfig().then((config) => { if (active) { setFlags(config.featureFlags); setHomepage(config.homepage); } }).catch(() => undefined);
+    void listStores({ limit: 4 }).then((response) => {
+      if (!active) return;
+      setLiveStores(response.items.map((store) => ({ id: store.id, type: store.type, name: store.name, area: "Nearby", city: "", description: store.description, imageUrl: store.imageUrl ?? publicStores.find((sample) => sample.type === store.type)?.imageUrl ?? "", rating: Number(store.ratingAverage), ratingCount: store.ratingCount, etaMinutes: store.etaMinutes, minOrder: Number(store.minOrder), distanceKm: store.distanceKm ?? 0, tags: [], isOpen: store.isOpen, menu: [] })));
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+  const visible = (id: string) => flags[`vertical.${id === "home" ? "home-service" : id}.enabled`] !== false;
+  const configuredSlides = Array.isArray(homepage.heroSlides)
+    ? homepage.heroSlides.filter(isHeroSlide)
+    : [];
+  const sourceSlides = configuredSlides.length > 0 ? configuredSlides : publicHeroSlides;
+  const visibleSlides = sourceSlides.filter((slide) => visible(slide.id));
+  const visibleServices = publicServices.filter((service) => visible(service.id));
+  const featuredStores = liveStores ?? publicStores.slice(0, 4);
 
   return (
     <PublicSiteShell active="home">
-      <ServiceHeroCarousel slides={publicHeroSlides} />
+      <ServiceHeroCarousel slides={visibleSlides.length > 0 ? visibleSlides : publicHeroSlides} />
 
       <main>
         <section className="relative z-10 mx-auto -mt-12 max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -139,7 +162,7 @@ export function PublicHomePage() {
         </section>
         <Section eyebrow="Services" title="What do you need today?" description="Explore food, groceries, medicines, rides, courier, and home services from one place.">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {publicServices.map((service) => (
+            {visibleServices.map((service) => (
               <ServiceCard key={service.id} service={service} />))}
           </div>
         </Section>
@@ -180,6 +203,12 @@ export function PublicHomePage() {
           </main>
     </PublicSiteShell>
   );
+}
+
+function isHeroSlide(value: unknown): value is PublicHeroSlide {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const slide = value as Record<string, unknown>;
+  return ["id", "label", "eyebrow", "title", "description", "promise", "ctaLabel", "href", "imageUrl", "imageAlt"].every((key) => typeof slide[key] === "string") && ["food", "grocery", "pharmacy", "rides", "courier", "home"].includes(String(slide.id));
 }
 
 export function PublicStoresPage({ selectedType }: { selectedType?: PublicStoreType }) {

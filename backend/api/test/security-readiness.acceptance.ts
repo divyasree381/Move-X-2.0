@@ -9,6 +9,7 @@ import { MfaService } from "../src/modules/identity/security/mfa.service";
 import { SensitiveDataService } from "../src/common/security/sensitive-data.service";
 import { MockStorageProvider } from "../src/infrastructure/storage/mock-storage.provider";
 import { RazorpayProvider } from "../src/modules/payments/razorpay.provider";
+import { hasPermission, PermissionAction, UserRole } from "@movex/shared";
 
 function withEnv<T>(env: NodeJS.ProcessEnv, run: () => T): T {
   const previous = { ...process.env };
@@ -136,6 +137,7 @@ async function main(): Promise<void> {
     assert(!serialized.includes(plaintext.aadhaarNumber));
     assert(!serialized.includes(plaintext.panNumber));
     assert(!serialized.includes(plaintext.accountNumber));
+    assert.deepEqual(service.decrypt(encrypted), plaintext);
     assert.equal(service.maskAadhaar(plaintext.aadhaarNumber), "XXXX XXXX 1234");
     assert.equal(service.maskAccount(plaintext.accountNumber), "********9012");
   });
@@ -156,6 +158,7 @@ async function main(): Promise<void> {
   const ordersSource = readFileSync("src/modules/orders/orders.service.ts", "utf8");
   const ridesSource = readFileSync("src/modules/rides/rides.service.ts", "utf8");
   const financeSource = readFileSync("src/modules/payments/finance.service.ts", "utf8");
+  const payoutSource = readFileSync("src/modules/finance/finance-surface.service.ts", "utf8");
   const opsSource = readFileSync("src/modules/ops/ops.service.ts", "utf8");
   const csrfSource = readFileSync("src/common/guards/csrf.guard.ts", "utf8");
   assert.match(ordersSource, /pickupOtpHash: this\.hashOtp/);
@@ -163,10 +166,14 @@ async function main(): Promise<void> {
   assert.match(ridesSource, /startOtpHash: this\.hashOtp/);
   assert.match(financeSource, /ledgerEntry\.create/);
   assert.match(financeSource, /walletBalanceCached/);
+  assert.doesNotMatch(payoutSource, /MoveX Sandbox Partner|MOCK0000001/);
   assert.match(opsSource, /createCipheriv/);
   assert.match(csrfSource, /origin/);
   assert.match(csrfSource, /referer/);
   assert.match(csrfSource, /x-csrf-token/);
+  assert.equal(hasPermission(UserRole.SUPER_ADMIN, PermissionAction.PartnersReview), true);
+  assert.equal(hasPermission(UserRole.ADMIN, PermissionAction.PartnersReview), false);
+  assert.equal(hasPermission(UserRole.ADMIN, PermissionAction.StoreReview), false);
 
   withEnv({ RAZORPAY_WEBHOOK_SECRET: "webhook-secret" }, () => {
     const provider = new RazorpayProvider();

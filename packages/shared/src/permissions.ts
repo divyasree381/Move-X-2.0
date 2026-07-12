@@ -29,6 +29,7 @@ export const PermissionAction = {
   PlatformSearchRebuildManage: "platform:search:rebuild",
   StoreManage: "marketplace:store:manage",
   StoreReview: "marketplace:store:review",
+  ReviewsModerate: "platform:reviews:moderate",
 } as const;
 
 export type PermissionAction = (typeof PermissionAction)[keyof typeof PermissionAction];
@@ -97,9 +98,7 @@ export const PERMISSION_MATRIX = {
     PermissionAction.UsersRead,
     PermissionAction.UsersBan,
     PermissionAction.PartnersReadPending,
-    PermissionAction.PartnersReview,
     PermissionAction.PartnerDocumentsRead,
-    PermissionAction.StoreReview,
     PermissionAction.CouponsManage,
     PermissionAction.SupportTicketsManage,
     PermissionAction.AuditRead,
@@ -118,6 +117,7 @@ export const PERMISSION_MATRIX = {
     PermissionAction.PartnerDocumentsRead,
     PermissionAction.PaymentRefundCreate,
     PermissionAction.StoreReview,
+    PermissionAction.ReviewsModerate,
     PermissionAction.CouponsManage,
     PermissionAction.SystemConfigManage,
     PermissionAction.SupportTicketsManage,

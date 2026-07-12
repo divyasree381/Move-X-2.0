@@ -40,6 +40,12 @@ export class SessionService {
     return { token, session, maxAgeSeconds };
   }
 
+  async rotateSession(session: SessionRecord, rawToken: string, metadata: RequestMetadata): Promise<CreatedSession> {
+    const next = await this.createSession({ userId: session.userId, ipAddress: metadata.ipAddress, userAgent: metadata.userAgent });
+    await this.revokeToken(rawToken);
+    return next;
+  }
+
   async resolveRequest(request: Request): Promise<SessionRecord | null> {
     const token = this.getSessionTokenFromRequest(request);
 

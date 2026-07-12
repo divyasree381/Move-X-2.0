@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Install, lint, typecheck, build
+    name: Install, migrate, lint, typecheck, test, build
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -61,10 +61,22 @@ jobs:
         run: pnpm install --no-frozen-lockfile
       - name: Generate Prisma client
         run: pnpm --filter @movex/api db:generate
+      - name: Apply database migrations
+        run: pnpm --filter @movex/api exec prisma migrate deploy
       - name: Lint
         run: pnpm lint
       - name: Typecheck
         run: pnpm typecheck
+      - name: Test
+        run: pnpm test
+      - name: Generate OpenAPI client
+        run: pnpm openapi:generate
+      - name: Verify generated contracts are committed
+        run: git diff --exit-code -- packages/shared/src/generated
       - name: Build
         run: pnpm build
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Browser acceptance tests
+        run: pnpm test:e2e
 

@@ -8,11 +8,12 @@ import { OutboxModule } from "../outbox/outbox.module";
 import { RealtimeModule } from "../realtime/realtime.module";
 import { OrdersController } from "./orders.controller";
 import { OrdersService } from "./orders.service";
+import { OrderMaintenanceScheduler } from "./order-maintenance.scheduler";
 
 @Module({
   imports: [PrismaModule, RedisStoreModule, StorageModule, MarketplaceModule, OutboxModule, RealtimeModule],
   controllers: [OrdersController],
-  providers: [OrdersService],
+  providers: [OrdersService, OrderMaintenanceScheduler],
   exports: [OrdersService],
 })
 export class OrdersModule {}

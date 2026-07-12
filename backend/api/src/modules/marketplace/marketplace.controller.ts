@@ -35,6 +35,12 @@ export class MarketplaceController {
   }
 
   @RequirePermission(PermissionAction.StoreManage)
+  @Get("partner/me")
+  getMyStore(@Req() request: RequestWithUser) {
+    return this.marketplaceService.getMyStore(this.getUser(request));
+  }
+
+  @RequirePermission(PermissionAction.StoreManage)
   @Post("partner")
   createStore(@Req() request: RequestWithUser, @Body() body: UpsertStoreDto) {
     return this.marketplaceService.createStore(this.getUser(request), body);

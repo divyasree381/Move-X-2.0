@@ -7,7 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import { LocateFixed, Power, RadioTower, type LucideIcon } from "lucide-react";
 
 import { PartnerOrderQueue } from "@/components/orders";
-import { PartnerOpsPanel } from "@/components/partner";
+import { PartnerOpsPanel, StoreManagementPanel } from "@/components/partner";
 import { RideDriverQueue } from "@/components/rides";
 import { setPartnerOnline, writePartnerLocation } from "@/lib/api";
 import { Button, StatusPill } from "@/components/ui";
@@ -104,6 +104,7 @@ export function PartnerShell({ children, role = UserRole.DELIVERY }: { children?
             </p>
           </section>
           <PartnerOpsPanel isOnline={isOnline} />
+          {role === UserRole.RESTAURANT ? <StoreManagementPanel /> : null}
           {typeof children === "function" ? children({ isOnline }) : children ?? (role === UserRole.DRIVER ? <RideDriverQueue isOnline={isOnline} /> : <PartnerOrderQueue role={role} isOnline={isOnline} />)}
         </main>
       </div>

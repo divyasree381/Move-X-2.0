@@ -13,6 +13,7 @@ import { CancellationPolicyCard, ServiceDisclaimer } from "@/components/trust";
 import { Button, EmptyState, ErrorState, Input, StatusPill } from "@/components/ui";
 import { ApiError, checkoutOrder, getCart, uploadCartPrescription, type CheckoutAddress, type CheckoutResponse,
 } from "@/lib/api";
+import { beginOnlinePayment } from "@/lib/payment-checkout";
 
 const SHOW_DEVELOPMENT_HANDOFF_CODES = process.env.NODE_ENV === "development";
 
@@ -33,6 +34,8 @@ export function CheckoutPage() {
   const [idempotencyKey, setIdempotencyKey] = useState(() => createIdempotencyKey());
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResponse | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentBusy, setPaymentBusy] = useState(false);
   const [prescriptionNote, setPrescriptionNote] = useState("");
   const [prescriptionError, setPrescriptionError] = useState<string | null>(null);
 
@@ -49,11 +52,23 @@ export function CheckoutPage() {
       });
     },
     onMutate: () => setCheckoutError(null),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       setCheckoutResult(result);
       setIdempotencyKey(createIdempotencyKey());
       queryClient.invalidateQueries({ queryKey: ["cart"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      if (paymentMethod === "ONLINE" && result.paymentRequired) {
+        setPaymentBusy(true);
+        setPaymentError(null);
+        try {
+          await beginOnlinePayment("ORDER", result.order.id);
+          queryClient.invalidateQueries({ queryKey: ["orders"] });
+        } catch (error) {
+          setPaymentError(error instanceof Error ? error.message : "Payment could not be completed");
+        } finally {
+          setPaymentBusy(false);
+        }
+      }
     },
     onError: (error) => setCheckoutError(error instanceof ApiError || error instanceof Error ? error.message : "Checkout failed",
       ),
@@ -92,8 +107,9 @@ export function CheckoutPage() {
             <StatusPill label="Order placed" tone="success" />
             <h2 className="mt-3 text-xl font-semibold text-foreground">Order {checkoutResult.order.id}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {checkoutResult.paymentRequired ? "Online payment is ready for the payment step." : "Your order has been confirmed."}
+              {paymentBusy ? "Opening secure payment..." : checkoutResult.paymentRequired ? "Complete payment to confirm this order." : "Your order has been confirmed."}
             </p>
+            {paymentError ? <p className="mt-3 text-sm text-destructive" role="status">{paymentError}</p> : null}
             {SHOW_DEVELOPMENT_HANDOFF_CODES && checkoutResult.devOtps ? (
               <div className="mt-4 rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
                 <p className="font-semibold">Handoff codes</p>
@@ -103,6 +119,7 @@ export function CheckoutPage() {
             ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
               <Button asChild><Link href={`/customer/orders/${checkoutResult.order.id}`}>View order</Link></Button>
+              {paymentError ? <Button type="button" onClick={() => void beginOnlinePayment("ORDER", checkoutResult.order.id).catch((error: unknown) => setPaymentError(error instanceof Error ? error.message : "Payment could not be completed"))}>Retry payment</Button> : null}
               <Button asChild variant="secondary"><Link href="/customer">Continue shopping</Link></Button>
             </div>
           </section>

@@ -28,7 +28,7 @@ export class ResendWorkerEmailProvider implements WorkerEmailProvider {
       return;
     }
 
-    await fetch("https://api.resend.com/emails", {
+    const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -37,13 +37,33 @@ export class ResendWorkerEmailProvider implements WorkerEmailProvider {
       },
       body: JSON.stringify({ from, to: input.to, subject: input.subject, text: input.text, html: input.html }),
     });
+    if (!response.ok) {
+      throw new Error(`Email provider request failed with status ${response.status}`);
+    }
   }
 }
 
 export class WorkerSmsProviderAdapter implements WorkerSmsProvider {
   async sendSms(input: { phoneE164: string; message: string; idempotencyKey?: string }): Promise<void> {
-    void input;
-    // Real SMS providers will plug in behind the shared SmsProvider adapter; worker keeps mock-safe behavior for MVP.
+    if (process.env.NODE_ENV !== "production" && process.env.SMS_PROVIDER === "mock") return;
+
+    const baseUrl = process.env.SMS_GATEWAY_URL;
+    const secret = process.env.SMS_GATEWAY_API_KEY ?? process.env.SMS_GATEWAY_SECRET;
+    if (!baseUrl || !secret) throw new Error("SMS gateway is not configured");
+
+    let receiver = input.phoneE164.replace(/^\+/, "");
+    if (receiver.startsWith("91") && receiver.length === 12) receiver = receiver.slice(2);
+    const url = new URL(baseUrl);
+    url.searchParams.set("secret", secret);
+    url.searchParams.set("sender", process.env.SMS_GATEWAY_SENDER ?? "NIGHAI");
+    url.searchParams.set("tempid", process.env.SMS_GATEWAY_TEMPID ?? "");
+    url.searchParams.set("receiver", receiver);
+    url.searchParams.set("route", "TA");
+    url.searchParams.set("msgtype", "1");
+    url.searchParams.set("sms", input.message);
+
+    const response = await fetch(url, { method: "GET", headers: input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : undefined });
+    if (!response.ok) throw new Error(`SMS provider request failed with status ${response.status}`);
   }
 }
 
