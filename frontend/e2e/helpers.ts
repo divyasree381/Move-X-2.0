@@ -37,22 +37,45 @@ const emptyCart = {
   couponCode: null,
   coupon: null,
   couponError: null,
-  pricing: { subtotal: "0.00", deliveryFee: "0.00", discount: "0.00", taxes: "0.00", total: "0.00", minimumRemaining: "0.00" },
+  pricing: {
+    subtotal: "0.00",
+    deliveryFee: "0.00",
+    discount: "0.00",
+    taxes: "0.00",
+    total: "0.00",
+    minimumRemaining: "0.00",
+  },
   updatedAt: new Date().toISOString(),
 };
 
 const filledCart = {
-  store: { id: store.id, name: store.name, etaMinutes: store.etaMinutes, minOrder: store.minOrder, isOpen: true, type: "FOOD" },
+  store: {
+    id: store.id,
+    name: store.name,
+    etaMinutes: store.etaMinutes,
+    minOrder: store.minOrder,
+    isOpen: true,
+    type: "FOOD",
+  },
   items: [{ ...menuItem, menuItemId: menuItem.id, quantity: 1, lineTotal: "199.00" }],
   couponCode: null,
   coupon: null,
   couponError: null,
-  pricing: { subtotal: "199.00", deliveryFee: "25.00", discount: "0.00", taxes: "9.00", total: "233.00", minimumRemaining: "0.00" },
+  pricing: {
+    subtotal: "199.00",
+    deliveryFee: "25.00",
+    discount: "0.00",
+    taxes: "9.00",
+    total: "233.00",
+    minimumRemaining: "0.00",
+  },
   updatedAt: new Date().toISOString(),
 };
 
 export async function installApiMocks(page: Page) {
-  await page.route("**/api/v1/**", async (route) => route.fulfill(jsonEnvelope(await responseFor(route))));
+  await page.route("**/api/v1/**", async (route) =>
+    route.fulfill(jsonEnvelope(await responseFor(route))),
+  );
 }
 
 export async function loginAs(page: Page, role: "CUSTOMER" | "DRIVER" | "RESTAURANT" = "CUSTOMER") {
@@ -67,25 +90,127 @@ async function responseFor(route: Route): Promise<unknown> {
   const url = new URL(request.url());
   const path = url.pathname.replace("/api/v1", "");
 
+  if (path === "/auth/me") {
+    const role =
+      request.headers()["cookie"]?.match(/(?:^|;\s*)movex_role=([^;]+)/)?.[1] ?? "CUSTOMER";
+    return {
+      user: {
+        id: `${role.toLowerCase()}_1`,
+        role,
+        name: role === "CUSTOMER" ? "Customer" : role === "DRIVER" ? "Driver" : "Store Partner",
+        phoneE164: "+919876543210",
+        isBanned: false,
+        isOnline: false,
+        partnerApproval: role === "CUSTOMER" ? "NONE" : "APPROVED",
+      },
+    };
+  }
   if (path === "/cart" && request.method() === "GET") return emptyCart;
   if (path === "/cart/items" && request.method() === "POST") return filledCart;
   if (path.startsWith("/stores/search") || path === "/stores") return { items: [store] };
-  if (path === `/stores/${store.id}`) return { ...store, ownerId: "restaurant_1", approval: "APPROVED", rejectionReason: null, openingHours: {} };
+  if (path === `/stores/${store.id}`)
+    return {
+      ...store,
+      ownerId: "restaurant_1",
+      approval: "APPROVED",
+      rejectionReason: null,
+      openingHours: {},
+    };
   if (path === `/stores/${store.id}/menu`) return [menuItem];
-  if (path === "/maps/geocode") return { address: "Indiranagar, Bengaluru", lat: 12.9784, lng: 77.6408, source: "typed" };
+  if (path === "/maps/geocode")
+    return { address: "Indiranagar, Bengaluru", lat: 12.9784, lng: 77.6408, source: "typed" };
   if (path === "/maps/reverse-geocode") return "Koramangala, Bengaluru";
-  if (path === "/rides/estimate") return { vehicleType: "BIKE", distanceMeters: 4200, durationSeconds: 900, distanceKm: "4.20", durationMinutes: 15, baseFare: "40.00", surgeMultiplier: "1.00", estimatedFare: "96.00", polyline: "encoded" };
-  if (path === "/rides" && request.method() === "POST") return { ride: { id: "ride_1", customerId: "customer_1", driverId: null, vehicleType: "BIKE", pickup: {}, drop: {}, status: "REQUESTED", estimatedFare: "96.00", finalFare: null, distanceKm: "4.20", durationMinutes: 15, surgeMultiplier: "1.00", paymentMethod: "CASH", paymentStatus: "PENDING", rated: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, offeredDrivers: 2, devStartOtp: "123456" };
-  if (path === "/rides/driver/queue") return { items: [{ id: "ride_1", customerId: "customer_1", driverId: null, vehicleType: "BIKE", pickup: { address: "Indiranagar" }, drop: { address: "MG Road" }, status: "REQUESTED", estimatedFare: "96.00", finalFare: null, distanceKm: 2.1, durationMinutes: 15, surgeMultiplier: "1.00", paymentMethod: "CASH", paymentStatus: "PENDING", rated: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }] };
+  if (path === "/rides/estimate")
+    return {
+      vehicleType: "BIKE",
+      distanceMeters: 4200,
+      durationSeconds: 900,
+      distanceKm: "4.20",
+      durationMinutes: 15,
+      baseFare: "40.00",
+      surgeMultiplier: "1.00",
+      estimatedFare: "96.00",
+      polyline: "encoded",
+    };
+  if (path === "/rides" && request.method() === "POST")
+    return {
+      ride: {
+        id: "ride_1",
+        customerId: "customer_1",
+        driverId: null,
+        vehicleType: "BIKE",
+        pickup: {},
+        drop: {},
+        status: "REQUESTED",
+        estimatedFare: "96.00",
+        finalFare: null,
+        distanceKm: "4.20",
+        durationMinutes: 15,
+        surgeMultiplier: "1.00",
+        paymentMethod: "CASH",
+        paymentStatus: "PENDING",
+        rated: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      offeredDrivers: 2,
+      devStartOtp: "123456",
+    };
+  if (path === "/rides/driver/queue")
+    return {
+      items: [
+        {
+          id: "ride_1",
+          customerId: "customer_1",
+          driverId: null,
+          vehicleType: "BIKE",
+          pickup: { address: "Indiranagar" },
+          drop: { address: "MG Road" },
+          status: "REQUESTED",
+          estimatedFare: "96.00",
+          finalFare: null,
+          distanceKm: 2.1,
+          durationMinutes: 15,
+          surgeMultiplier: "1.00",
+          paymentMethod: "CASH",
+          paymentStatus: "PENDING",
+          rated: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+    };
   if (path === "/users/me/online") return { ok: true };
-  if (path === "/users/me/partner-ops") return { selected: period(), daily: period(), weekly: period(), shifts: [], routePlan: { mode: "STUB", objective: "ETA", maxStops: 6, stops: [], notes: [] } };
-  if (path === "/trust/cancellation-policy") return { serviceType: "RIDE", disclosure: "Transparent cancellation rules", rules: [] };
+  if (path === "/users/me/partner-ops")
+    return {
+      selected: period(),
+      daily: period(),
+      weekly: period(),
+      shifts: [],
+      routePlan: { mode: "STUB", objective: "ETA", maxStops: 6, stops: [], notes: [] },
+    };
+  if (path === "/trust/cancellation-policy")
+    return { serviceType: "RIDE", disclosure: "Transparent cancellation rules", rules: [] };
 
   return {};
 }
 
 function period() {
-  return { period: { from: new Date().toISOString(), to: new Date().toISOString() }, ledger: { grossCredits: "0.00", debits: "0.00", net: "0.00", unsettled: "0.00", byType: {}, entryCount: 0, entryIds: [], formula: "credits - debits" }, payouts: { total: "0.00", byStatus: {}, items: [] }, online: { seconds: 0, sessions: [] } };
+  return {
+    period: { from: new Date().toISOString(), to: new Date().toISOString() },
+    ledger: {
+      grossCredits: "0.00",
+      debits: "0.00",
+      net: "0.00",
+      unsettled: "0.00",
+      byType: {},
+      entryCount: 0,
+      entryIds: [],
+      formula: "credits - debits",
+    },
+    payouts: { total: "0.00", byStatus: {}, items: [] },
+    online: { seconds: 0, sessions: [] },
+  };
 }
 
 function jsonEnvelope(data: unknown) {
