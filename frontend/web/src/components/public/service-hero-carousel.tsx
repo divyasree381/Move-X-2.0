@@ -5,15 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft,
   ArrowRight,
   Bike,
   Clock3,
   Home,
   Package,
-  Pause,
   Pill,
-  Play,
   ShoppingBasket,
   Sparkles,
   Utensils,
@@ -82,7 +79,7 @@ export function ServiceHeroCarousel({ slides }: { slides: PublicHeroSlide[] }) {
           initial={reducedMotion ? false : { opacity: 0, scale: 1.015 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={reducedMotion ? undefined : { opacity: 0 }}
-          transition={{ duration: reducedMotion ? 0 : 0.55, ease: "easeOut" }}
+          transition={{ duration: reducedMotion ? 0 : 0.6, ease: "easeInOut" }}
         >
           <Image
             src={activeSlide.imageUrl}
@@ -115,7 +112,7 @@ export function ServiceHeroCarousel({ slides }: { slides: PublicHeroSlide[] }) {
               initial={reducedMotion ? false : { opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reducedMotion ? undefined : { opacity: 0, y: -10 }}
-              transition={{ duration: reducedMotion ? 0 : 0.34, ease: "easeOut" }}
+              transition={{ duration: reducedMotion ? 0 : 0.5, ease: "easeOut" }}
             >
               <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/20 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-md">
                 <Icon className="size-4 text-accent" aria-hidden="true" />
@@ -136,49 +133,28 @@ export function ServiceHeroCarousel({ slides }: { slides: PublicHeroSlide[] }) {
         </div>
       </motion.div>
 
-      <div className="absolute inset-x-0 bottom-16 z-10">
-        <div className="mx-auto flex max-w-7xl items-end justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <div className="flex max-w-full gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Choose a MoveX service">
-            {slides.map((slide, index) => {
-              const SlideIcon = serviceIcons[slide.id];
-              const selected = index === activeIndex;
-              return (
-                <button
-                  key={slide.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  className={cn(
-                    "inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-medium backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
-                    selected ? "border-white bg-white text-foreground" : "border-white/20 bg-black/25 text-white/82 hover:bg-black/40",
-                  )}
-                  onClick={() => selectSlide(index)}
-                >
-                  <SlideIcon className="size-3.5" aria-hidden="true" />{slide.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="hidden shrink-0 items-center gap-2 sm:flex">
-            <IconButton label="Previous service" onClick={() => moveSlide(-1)}><ArrowLeft className="size-4" aria-hidden="true" /></IconButton>
-            <IconButton label={autoPlay ? "Pause slideshow" : "Resume slideshow"} onClick={() => { setAutoPlay((current) => !current); setHoverPaused(false); }}>{autoPlay ? <Pause className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}</IconButton>
-            <IconButton label="Next service" onClick={() => moveSlide(1)}><ArrowRight className="size-4" aria-hidden="true" /></IconButton>
-          </div>
-        </div>
-      </div>
-
-      <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 sm:hidden">
-        <IconButton label="Previous service" onClick={() => moveSlide(-1)}><ArrowLeft className="size-4" aria-hidden="true" /></IconButton>
-        <button type="button" className="grid size-9 place-items-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-md" aria-label={autoPlay ? "Pause slideshow" : "Resume slideshow"} onClick={() => { setAutoPlay((current) => !current); setHoverPaused(false); }}>{autoPlay ? <Pause className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}</button>
-        <IconButton label="Next service" onClick={() => moveSlide(1)}><ArrowRight className="size-4" aria-hidden="true" /></IconButton>
+      <div className="absolute bottom-16 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3" role="tablist" aria-label="Choose a MoveX service">
+        {slides.map((slide, index) => {
+          const selected = index === activeIndex;
+          return (
+            <button
+              key={slide.id}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              aria-label={`Go to slide ${index + 1}: ${slide.label}`}
+              className={cn(
+                "block h-2.5 rounded-full transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
+                selected ? "w-8 bg-primary" : "w-2.5 bg-white/50 hover:bg-white/80"
+              )}
+              onClick={() => selectSlide(index)}
+            />
+          );
+        })}
       </div>
 
       <div className="sr-only"><Sparkles aria-hidden="true" />Slide {activeIndex + 1} of {slides.length}: {activeSlide.label}</div>
     </section>
   );
 }
-
-function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
-  return <button type="button" title={label} aria-label={label} className="grid size-9 place-items-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-md transition hover:bg-black/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45" onClick={onClick}>{children}</button>;
-}
+
