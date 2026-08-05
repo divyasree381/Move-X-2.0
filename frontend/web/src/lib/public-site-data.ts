@@ -324,3 +324,8 @@ export function findPublicStore(storeId: string) {
 export function isPublicStoreType(value: unknown): value is PublicStoreType {
   return value === "FOOD" || value === "GROCERY" || value === "PHARMACY";
 }
+
+export function resolvePublicStoreType(value: unknown): PublicStoreType | undefined {
+  return isPublicStoreType(value) ? value : undefined;
+}
+

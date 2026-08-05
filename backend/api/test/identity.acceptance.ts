@@ -13,6 +13,7 @@ import { RedisStoreService } from "../src/infrastructure/redis/redis-store.servi
 import { SMS_PROVIDER, type SendOtpInput, type SendSmsInput, type SmsProvider } from "../src/infrastructure/sms/sms-provider";
 import { PasswordService } from "../src/modules/identity/security/password.service";
 import { TokenHashService } from "../src/modules/identity/security/token-hash.service";
+import { PrismaService } from "../src/infrastructure/prisma/prisma.service";
 import { setupApp } from "../src/setup-app";
 
 type MemoryRecord = {
@@ -539,6 +540,7 @@ type TestContext = {
   repository: InMemoryIdentityRepository;
   redisStore: TestRedisStoreService;
   smsProvider: TestSmsProvider;
+  prismaService: unknown;
 };
 
 async function createApp(): Promise<TestContext> {
@@ -554,6 +556,13 @@ async function createApp(): Promise<TestContext> {
   const repository = new InMemoryIdentityRepository();
   const redisStore = new TestRedisStoreService();
   const smsProvider = new TestSmsProvider();
+  const prismaService = {
+    $executeRaw: async () => 1,
+    partnerDocument: {
+      updateMany: async () => ({ count: 1 })
+    },
+    $disconnect: async () => {}
+  };
 
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
@@ -564,13 +573,15 @@ async function createApp(): Promise<TestContext> {
     .useValue(redisStore)
     .overrideProvider(SMS_PROVIDER)
     .useValue(smsProvider)
+    .overrideProvider(PrismaService)
+    .useValue(prismaService)
     .compile();
 
   const app = moduleRef.createNestApplication({ rawBody: true });
   setupApp(app);
   await app.init();
 
-  return { app, repository, redisStore, smsProvider };
+  return { app, repository, redisStore, smsProvider, prismaService };
 }
 
 function requestOtp(server: App, phone: string, role: OtpLoginRole = "CUSTOMER") {

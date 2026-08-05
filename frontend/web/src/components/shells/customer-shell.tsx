@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { UserRole } from "@movex/shared";
 import { ArrowLeft, CircleHelp, Search, UserRound } from "lucide-react";
 
-import { CartDrawer } from "@/components/orders";
+import { CartButton } from "@/components/orders";
 import { Button, EmptyState, StatusPill } from "@/components/ui";
 import { customerNav, navForRole } from "./shell-nav";
 
@@ -61,7 +61,7 @@ export function CustomerShell({ children, role = UserRole.CUSTOMER, mode = "defa
               </>
             ) : (
               <>
-                <CartDrawer />
+                <CartButton />
                 <Button asChild variant="secondary" size="icon"><Link href="/customer/profile" aria-label="Customer profile"><UserRound className="size-4" aria-hidden="true" /></Link></Button>
               </>
             )}

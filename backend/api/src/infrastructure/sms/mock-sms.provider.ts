@@ -1,15 +1,16 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 
-import type { SendSmsInput, SmsProvider } from "./sms-provider";
+import type { SendOtpInput, SendSmsInput, SmsProvider } from "./sms-provider";
 
 @Injectable()
 export class MockSmsProvider implements SmsProvider {
-  async sendOtp(): Promise<void> {
-    // Intentionally no-op. OTP delivery will be wired to a real provider behind this adapter.
+  private readonly logger = new Logger(MockSmsProvider.name);
+
+  async sendOtp(input: SendOtpInput): Promise<void> {
+    this.logger.log(`[MOCK SMS] OTP for ${input.phoneE164} is: ${input.code}`);
   }
 
   async sendSms(input: SendSmsInput): Promise<void> {
-    void input;
-    // Intentionally no-op. Transactional SMS delivery will be wired behind this adapter.
+    this.logger.log(`[MOCK SMS] SMS to ${input.phoneE164}: ${input.message}`);
   }
 }

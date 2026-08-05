@@ -12,7 +12,7 @@ import {
 import { ChevronDown, LayoutDashboard, LogOut, MapPin, UserRound } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
-import { CartDrawer } from "@/components/orders";
+import { CartButton } from "@/components/orders";
 import { Button, StatusPill } from "@/components/ui";
 import { currentUser, logout, routeForAuthenticatedUser, type AuthUser } from "@/lib/api";
 
@@ -127,7 +127,7 @@ function LoggedInHeaderActions({ user }: { user: AuthUser }) {
         <MapPin className="size-4 text-primary" aria-hidden="true" />
         Bengaluru
       </Link>
-      {user.role === "CUSTOMER" ? <CartDrawer /> : null}
+      {user.role === "CUSTOMER" ? <CartButton /> : null}
       <div ref={accountMenuRef} className="relative">
         <button
           ref={accountMenuButtonRef}

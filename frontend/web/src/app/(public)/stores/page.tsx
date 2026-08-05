@@ -1,4 +1,5 @@
-import { PublicStoresPage, resolvePublicStoreType } from "@/components/public/public-site";
+import { PublicStoresPage } from "@/components/public/public-site";
+import { resolvePublicStoreType } from "@/lib/public-site-data";
 
 type StoresSearchParams = {
   type?: string | string[];

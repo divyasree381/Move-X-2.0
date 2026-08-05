@@ -7,7 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Bike, Clock3, Heart, MapPin, ReceiptText, Search, Star, Truck, type LucideIcon,
 } from "lucide-react";
 
-import { CartDrawer } from "@/components/orders";
+import { CartButton } from "@/components/orders";
 import { ServiceDisclaimer } from "@/components/trust";
 import { QueryState } from "@/providers/query-state";
 import { Button, StatusPill } from "@/components/ui";
@@ -95,7 +95,7 @@ export function StoreDetailPage({ storeId }: { storeId: string }) {
                     <p className="text-sm font-medium text-primary">Your order</p>
                     <h2 className="mt-1 text-xl font-semibold text-foreground">Cart summary</h2>
                   </div>
-                  <CartDrawer />
+                  <CartButton />
                 </div>
                 <div className="mt-4 rounded-md border border-border bg-surface-muted p-3">
                   <p className="text-sm font-medium text-foreground">{itemCount > 0 ? `${itemCount} item${itemCount === 1 ? "" : "s"} added` : "Add items to start"}</p>

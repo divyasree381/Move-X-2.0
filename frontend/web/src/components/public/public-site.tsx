@@ -12,8 +12,8 @@ import { PublicHeaderActions } from "./public-header-actions";
 import { ServiceHeroCarousel } from "./service-hero-carousel";
 import { cn } from "@/lib/utils";
 import { dietaryLabels, resolveDietaryType, type DietaryType } from "@/lib/dietary";
-import { findPublicStore, isPublicStoreType, partnerTracks, publicHeroSlides,
-  publicServices, publicStores,
+import { findPublicStore, partnerTracks, publicHeroSlides,
+  publicServices, publicStores, resolvePublicStoreType,
   storesByType, type PublicHeroSlide, type PublicService, type PublicStore, type PublicStoreType,
 } from "@/lib/public-site-data";
 
@@ -700,6 +700,5 @@ function AboutMetric({ value, label, description,
   );
 }
 
-export function resolvePublicStoreType(value: unknown): PublicStoreType | undefined {
-  return isPublicStoreType(value) ? value : undefined;
-}
+export { resolvePublicStoreType };
+
