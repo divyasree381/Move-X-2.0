@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { ArrowRight, Bike, Building2, CheckCircle2, ChevronRight, Clock3, Headphones, Home, IndianRupee, LocateFixed, MapPin, Package, Pill, ShoppingBasket, Sparkles, Star, Store, Truck, Utensils, type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui";
+import { getProductImage } from "@/components/marketplace/store-menu";
 import { listStores, publicPlatformConfig } from "@/lib/api";
 import { PublicHeaderActions } from "./public-header-actions";
 import { ServiceHeroCarousel } from "./service-hero-carousel";
@@ -259,7 +261,7 @@ export function PublicStoreDetailPage({ storeId }: { storeId: string }) {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_20rem] lg:px-8">
+        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="space-y-6">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <Metric icon={Star} label="Rated by customers" value={`${store.rating.toFixed(1)} (${store.ratingCount})`} accent={store.rating > 3.0 ? "text-success" : "text-warning"} />
@@ -274,23 +276,27 @@ export function PublicStoreDetailPage({ storeId }: { storeId: string }) {
                 <h2 id={`${section}-menu`} className="text-2xl font-medium tracking-normal">{section}</h2>
                 <div className="mt-3 grid gap-3">
                   {store.menu.filter((item) => item.section === section).map((item) => (
-                    <article key={item.name} className="rounded-lg border border-border bg-surface p-4 shadow-sm">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-base font-medium">{item.name}</h3>
-                            <MenuDietaryBadge item={item} storeType={store.type} />
-                            {item.badge ? (
-                                <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">{item.badge}</span>
-                              ) : null}
-                          </div>
-                          <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                    <article key={item.name} className="group flex flex-col gap-4 rounded-lg border border-border bg-surface p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md sm:flex-row sm:items-start">
+                      <div className="relative h-40 w-full shrink-0 overflow-hidden rounded-lg bg-surface-muted sm:h-32 sm:w-32">
+                        <Image src={getProductImage(item.name, store.type)} alt={item.name} fill sizes="(max-width: 640px) 100vw, 128px" className="object-cover transition duration-300 group-hover:scale-105" unoptimized />
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-base font-semibold leading-6 text-foreground">{item.name}</h3>
+                          <MenuDietaryBadge item={item} storeType={store.type} />
+                          {item.badge ? (
+                            <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">{item.badge}</span>
+                          ) : null}
                         </div>
-                        <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-                          <p className="text-sm font-medium">{item.price === 0 ? "Review required" : `Rs ${item.price}`}</p>
-                          <Button asChild size="sm" variant="secondary">
-                            <Link href={`/customer/stores/${store.id}`}>Add to cart</Link>
-                          </Button>
+                        <p className="mt-1 text-sm leading-5 text-muted-foreground line-clamp-2">{item.description}</p>
+                        
+                        <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+                          <p className="text-base font-semibold text-foreground">{item.price === 0 ? "Review required" : `Rs ${item.price}`}</p>
+                          <div className="shrink-0">
+                            <Button asChild size="sm" variant="secondary" className="min-w-24 text-base font-semibold min-h-10">
+                              <Link href={`/customer/stores/${store.id}`}>Add to cart</Link>
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </article>
@@ -299,24 +305,6 @@ export function PublicStoreDetailPage({ storeId }: { storeId: string }) {
               </section>
             ))}
           </div>
-
-          <aside className="h-fit rounded-lg border border-border bg-surface p-4 shadow-[var(--shadow-shell)] lg:sticky lg:top-24">
-            <p className="text-sm font-medium text-primary">Live ordering</p>
-            <h2 className="mt-1 text-xl font-medium">Build your cart in the customer app</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Browse the menu, add items to your cart, and continue to secure checkout when you are
-              ready.</p>
-            <div className="mt-4 grid gap-2 rounded-md border border-border bg-surface-muted p-3 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-2"><Clock3 className="size-4 text-primary" aria-hidden="true" /> Arrives in {" "}
-                {store.etaMinutes}-{store.etaMinutes + 8} min</span>
-              <span className="inline-flex items-center gap-2"><IndianRupee className="size-4 text-primary" aria-hidden="true" /> Minimum order Rs {" "}
-                {store.minOrder}</span>
-              <span className="inline-flex items-center gap-2"><MapPin className="size-4 text-primary" aria-hidden="true" /> Delivering near selected location</span>
-            </div>
-            <div className="mt-4 grid gap-2">
-              <Button asChild><Link href={`/customer/stores/${store.id}`}>Start adding items</Link></Button>
-              <Button asChild variant="secondary"><Link href="/login/customer">Continue with customer login</Link></Button>
-            </div>
-          </aside>
         </section>
       </main>
     </PublicSiteShell>

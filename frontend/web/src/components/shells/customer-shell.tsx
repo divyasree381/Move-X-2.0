@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { UserRole } from "@movex/shared";
 import { ArrowLeft, CircleHelp, Search, UserRound } from "lucide-react";
 
-import { CartButton } from "@/components/orders";
+import { CartButton, FloatingCartBar } from "@/components/orders";
 import { Button, EmptyState, StatusPill } from "@/components/ui";
 import { customerNav, navForRole } from "./shell-nav";
 
@@ -87,6 +87,8 @@ export function CustomerShell({ children, role = UserRole.CUSTOMER, mode = "defa
           ))}
         </nav>
       ) : null}
+
+      {!focused ? <FloatingCartBar /> : null}
     </div>
   );
 }

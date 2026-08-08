@@ -9,7 +9,9 @@ import { Button, EmptyState, Input, Skeleton, StatusPill, useToast } from "@/com
 import {
   addCartItem,
   getCart,
+  listFavorites,
   removeCartItem,
+  removeFavorite,
   saveFavorite,
   updateCartItemQty,
   type CartResponse,
@@ -20,7 +22,7 @@ import { dietaryLabels, resolveDietaryType, type DietaryType } from "@/lib/dieta
 import { cn } from "@/lib/utils";
 import { CustomizationModal } from "./customization-modal";
 
-const ITEM_IMAGE_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='240' viewBox='0 0 320 240'%3E%3Crect width='320' height='240' fill='%23f8fafc'/%3E%3Ccircle cx='240' cy='60' r='70' fill='%23dcfce7'/%3E%3Crect x='52' y='82' width='216' height='92' rx='18' fill='%23ff6b00' opacity='.16'/%3E%3Cpath d='M90 146h140v18H90zM110 112h100v18H110z' fill='%2316a34a'/%3E%3C/svg%3E";
+
 const CART_QUERY_KEY = ["cart"] as const;
 
 type SortMode = "recommended" | "price-asc" | "price-desc" | "popular";
@@ -44,7 +46,29 @@ export function StoreMenu({ items, isLoading = false, storeType, storeRating, st
   const [bestsellerOnly, setBestsellerOnly] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const favoriteMutation = useMutation({ mutationFn: (targetId: string) => saveFavorite({ type: "MENU_ITEM", targetId }) });
+  const favoritesQuery = useQuery({ queryKey: ["favorites"], queryFn: () => listFavorites(), retry: false });
+  const favoriteIds = useMemo(() => new Set(favoritesQuery.data?.items.map((f) => f.targetId) ?? []), [favoritesQuery.data]);
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async (targetId: string) => {
+      if (favoriteIds.has(targetId)) {
+        await removeFavorite({ type: "MENU_ITEM", targetId });
+        return { targetId, action: "removed" as const };
+      } else {
+        await saveFavorite({ type: "MENU_ITEM", targetId });
+        return { targetId, action: "added" as const };
+      }
+    },
+    onSuccess: ({ action }) => {
+      queryClient.invalidateQueries({ queryKey: ["favorites"] });
+      toast({
+        title: action === "added" ? "Saved to favorites" : "Removed from favorites",
+        description: action === "added" ? "Item saved to your wishlist in profile." : "Item removed from your wishlist.",
+        kind: "info",
+      });
+    },
+    onError: (caught) => toast({ title: "Could not update favorites", description: caught instanceof Error ? caught.message : "Please try again.", kind: "error" }),
+  });
   const cartQuery = useQuery({ queryKey: CART_QUERY_KEY, queryFn: getCart, retry: false });
   const cartQuantities = useMemo(() => {
     const quantities = new Map<string, number>();
@@ -151,10 +175,11 @@ export function StoreMenu({ items, isLoading = false, storeType, storeRating, st
                 etaMinutes={storeEtaMinutes}
                 quantity={quantity}
                 disabled={outOfStock || addMutation.isPending || quantityMutation.isPending}
+                isSaved={favoriteIds.has(item.id)}
                 onAdd={() => addMutation.mutate(item)}
                 onDecrease={() => quantityMutation.mutate({ item, quantity: quantity - 1 })}
                 onIncrease={() => quantityMutation.mutate({ item, quantity: quantity + 1 })}
-                onSave={() => favoriteMutation.mutate(item.id)}
+                onSave={() => toggleFavoriteMutation.mutate(item.id)}
               />
             );
           })}
@@ -176,41 +201,46 @@ export function StoreMenu({ items, isLoading = false, storeType, storeRating, st
                 const ratingCount = itemRatingCount(item, storeRatingCount);
 
                 return (
-                  <article key={item.id} className="grid gap-4 rounded-lg border border-border bg-surface p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md sm:grid-cols-[minmax(0,1fr)_10rem]">
-                    <div className="min-w-0 py-1">
+                  <article key={item.id} className="group flex flex-col gap-4 rounded-lg border border-border bg-surface p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md sm:flex-row sm:items-start">
+                    <div className="relative h-40 w-full shrink-0 overflow-hidden rounded-lg bg-surface-muted sm:h-32 sm:w-32">
+                      <Image src={item.imageUrl || getProductImage(item.name, storeType)} alt={item.name} fill sizes="(max-width: 640px) 100vw, 128px" className="object-cover transition duration-300 group-hover:scale-105" unoptimized={!item.imageUrl} />
+                      {outOfStock ? <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px]" aria-hidden="true" /> : null}
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col">
                       <div className="flex flex-wrap items-center gap-2">
                         <DietaryBadge type={resolveDietaryType(item, storeType)} />
                         {isBestseller(item) ? <StatusPill label="Bestseller" tone="success" /> : null}
                         {lowStock ? <StatusPill label={`${item.stock} left`} tone="warning" /> : null}
                       </div>
-                      <h3 className="mt-3 text-base font-semibold leading-6 text-foreground">{item.name}</h3>
-                      <p className="mt-1 text-base font-semibold text-foreground">Rs {Number(item.price).toFixed(0)}</p>
-                      <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-success">
-                        <Star className="size-3.5 fill-current" aria-hidden="true" /> {rating.toFixed(1)} ({ratingCount})
-                      </p>
-                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
-                      <div className="mt-4 flex flex-wrap items-center gap-2">
-                        <Button type="button" variant="ghost" size="sm" aria-label={`Save ${item.name}`} disabled={favoriteMutation.isPending} onClick={() => favoriteMutation.mutate(item.id)}>
-                          <Heart className="size-4" aria-hidden="true" /> Save
-                        </Button>
-                        {hasCustomizations ? (
-                          <Button type="button" variant="secondary" size="sm" disabled={outOfStock} onClick={() => setSelectedItem(item)}>Customize</Button>
-                        ) : null}
-                        {outOfStock ? <StatusPill label="Unavailable" tone="danger" /> : null}
+                      <h3 className="mt-2 text-base font-semibold leading-6 text-foreground">{item.name}</h3>
+                      <div className="mt-1 flex flex-wrap items-center gap-3">
+                        <p className="text-base font-semibold text-foreground">Rs {Number(item.price).toFixed(0)}</p>
+                        <p className="inline-flex items-center gap-1 text-xs font-medium text-success">
+                          <Star className="size-3.5 fill-current" aria-hidden="true" /> {rating.toFixed(1)} ({ratingCount})
+                        </p>
                       </div>
-                    </div>
-                    <div className="relative min-h-40 overflow-hidden rounded-lg bg-surface-muted sm:min-h-36">
-                      <Image src={item.imageUrl || ITEM_IMAGE_FALLBACK} alt="" fill sizes="160px" className="object-cover" unoptimized={!item.imageUrl} />
-                      {outOfStock ? <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px]" aria-hidden="true" /> : null}
-                      <div className="absolute inset-x-3 bottom-3 flex justify-center">
-                        <MenuCartControl
-                          item={item}
-                          quantity={quantity}
-                          disabled={outOfStock || addMutation.isPending || quantityMutation.isPending}
-                          onAdd={() => addMutation.mutate(item)}
-                          onDecrease={() => quantityMutation.mutate({ item, quantity: quantity - 1 })}
-                          onIncrease={() => quantityMutation.mutate({ item, quantity: quantity + 1 })}
-                        />
+                      <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">{item.description}</p>
+                      
+                      <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button type="button" variant="ghost" size="sm" aria-label={`Save ${item.name}`} disabled={toggleFavoriteMutation.isPending} onClick={() => toggleFavoriteMutation.mutate(item.id)}>
+                            <Heart className={cn("size-4", favoriteIds.has(item.id) && "fill-destructive text-destructive")} aria-hidden="true" /> {favoriteIds.has(item.id) ? "Saved" : "Save"}
+                          </Button>
+                          {hasCustomizations ? (
+                            <Button type="button" variant="secondary" size="sm" disabled={outOfStock} onClick={() => setSelectedItem(item)}>Customize</Button>
+                          ) : null}
+                          {outOfStock ? <StatusPill label="Unavailable" tone="danger" /> : null}
+                        </div>
+                        <div className="shrink-0">
+                          <MenuCartControl
+                            item={item}
+                            quantity={quantity}
+                            disabled={outOfStock || addMutation.isPending || quantityMutation.isPending}
+                            onAdd={() => addMutation.mutate(item)}
+                            onDecrease={() => quantityMutation.mutate({ item, quantity: quantity - 1 })}
+                            onIncrease={() => quantityMutation.mutate({ item, quantity: quantity + 1 })}
+                          />
+                        </div>
                       </div>
                     </div>
                   </article>
@@ -225,7 +255,7 @@ export function StoreMenu({ items, isLoading = false, storeType, storeRating, st
   );
 }
 
-function ProductGridCard({ item, storeType, storeRating, storeRatingCount, etaMinutes, quantity, disabled, onAdd, onDecrease, onIncrease, onSave }: { item: MarketplaceMenuItem; storeType?: StoreListItem["type"]; storeRating?: string; storeRatingCount?: number; etaMinutes?: number; quantity: number; disabled: boolean; onAdd: () => void; onDecrease: () => void; onIncrease: () => void; onSave: () => void }) {
+function ProductGridCard({ item, storeType, storeRating, storeRatingCount, etaMinutes, quantity, disabled, isSaved, onAdd, onDecrease, onIncrease, onSave }: { item: MarketplaceMenuItem; storeType?: StoreListItem["type"]; storeRating?: string; storeRatingCount?: number; etaMinutes?: number; quantity: number; disabled: boolean; isSaved?: boolean; onAdd: () => void; onDecrease: () => void; onIncrease: () => void; onSave: () => void }) {
   const outOfStock = item.stock === 0 || !item.available;
   const price = Number(item.price);
   const mrp = Math.ceil(price * 1.14);
@@ -234,53 +264,57 @@ function ProductGridCard({ item, storeType, storeRating, storeRatingCount, etaMi
   const ratingCount = itemRatingCount(item, storeRatingCount);
 
   return (
-    <article className="group overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
-      <div className="relative aspect-[4/3] bg-surface-muted">
-        <Image src={item.imageUrl || ITEM_IMAGE_FALLBACK} alt="" fill sizes="(max-width: 768px) 50vw, 240px" className="object-cover transition duration-300 group-hover:scale-[1.03]" unoptimized={!item.imageUrl} />
+    <article className="group overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md flex flex-col">
+      <div className="relative aspect-[4/3] bg-surface-muted shrink-0">
+        <Image src={item.imageUrl || getProductImage(item.name, storeType)} alt="" fill sizes="(max-width: 768px) 50vw, 240px" className="object-cover transition duration-300 group-hover:scale-[1.03]" unoptimized={!item.imageUrl} />
         <button type="button" className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-surface/90 text-muted-foreground shadow-sm backdrop-blur transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" aria-label={`Save ${item.name}`} onClick={onSave}>
-          <Heart className="size-4" aria-hidden="true" />
+          <Heart className={cn("size-4", isSaved && "fill-destructive text-destructive")} aria-hidden="true" />
         </button>
-        <div className="absolute inset-x-3 bottom-3 flex justify-end">
-          <MenuCartControl item={item} quantity={quantity} disabled={disabled} onAdd={onAdd} onDecrease={onDecrease} onIncrease={onIncrease} />
-        </div>
         {outOfStock ? <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px]" aria-hidden="true" /> : null}
       </div>
-      <div className="p-4">
+      <div className="flex flex-1 flex-col p-4">
         <div className="flex flex-wrap items-center gap-2">
           <DietaryBadge type={resolveDietaryType(item, storeType)} />
           {isBestseller(item) ? <StatusPill label="Bestseller" tone="success" /> : null}
           {outOfStock ? <StatusPill label="Out of stock" tone="danger" /> : item.stock > 0 && item.stock <= 5 ? <StatusPill label={`${item.stock} left`} tone="warning" /> : null}
         </div>
         <p className="mt-3 text-xs font-semibold text-muted-foreground">{packSizeLabel(item)}</p>
-        <h3 className="mt-1 line-clamp-2 min-h-12 text-base font-semibold leading-6 text-foreground">{item.name}</h3>
+        <h3 className="mt-1 line-clamp-2 min-h-[3rem] text-base font-semibold leading-6 text-foreground">{item.name}</h3>
         <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{item.description}</p>
-        <div className="mt-3 flex items-end justify-between gap-3">
-          <div>
-            <p className="text-xl font-black text-foreground">Rs {price.toFixed(0)}</p>
-            <p className="text-xs text-muted-foreground"><span className="line-through">Rs {mrp}</span> <span className="font-semibold text-info">{discount}% off</span></p>
+        
+        <div className="mt-auto pt-4">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <p className="text-xl font-black text-foreground">Rs {price.toFixed(0)}</p>
+              <p className="text-xs text-muted-foreground"><span className="line-through">Rs {mrp}</span> <span className="font-semibold text-info">{discount}% off</span></p>
+            </div>
+            <p className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-1 text-xs font-semibold text-success"><Clock3 className="size-3.5" aria-hidden="true" /> {etaMinutes ?? 8} min</p>
           </div>
-          <p className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-1 text-xs font-semibold text-success"><Clock3 className="size-3.5" aria-hidden="true" /> {etaMinutes ?? 8} min</p>
-        </div>
-        <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1 text-success"><Star className="size-3.5 fill-current" aria-hidden="true" /> {rating.toFixed(1)} ({ratingCount})</span>
-          <span className="inline-flex items-center gap-1"><BadgePercent className="size-3.5" aria-hidden="true" /> Fresh price</span>
+          <div className="mb-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-success"><Star className="size-3.5 fill-current" aria-hidden="true" /> {rating.toFixed(1)} ({ratingCount})</span>
+            <span className="inline-flex items-center gap-1"><BadgePercent className="size-3.5" aria-hidden="true" /> Fresh price</span>
+          </div>
+          
+          <div className="w-full">
+            <MenuCartControl item={item} quantity={quantity} disabled={disabled} onAdd={onAdd} onDecrease={onDecrease} onIncrease={onIncrease} fullWidth />
+          </div>
         </div>
       </div>
     </article>
   );
 }
 
-function MenuCartControl({ item, quantity, disabled, onAdd, onDecrease, onIncrease }: { item: MarketplaceMenuItem; quantity: number; disabled: boolean; onAdd: () => void; onDecrease: () => void; onIncrease: () => void }) {
+function MenuCartControl({ item, quantity, disabled, onAdd, onDecrease, onIncrease, fullWidth }: { item: MarketplaceMenuItem; quantity: number; disabled: boolean; onAdd: () => void; onDecrease: () => void; onIncrease: () => void; fullWidth?: boolean }) {
   const maxed = item.stock !== -1 && quantity >= item.stock;
 
   if (quantity > 0) {
     return (
-      <div className="inline-flex min-h-10 items-center overflow-hidden rounded-md bg-primary text-primary-foreground shadow-md" aria-label={`${item.name} quantity ${quantity}`}>
-        <button type="button" className="grid size-10 place-items-center transition hover:bg-primary-hover disabled:opacity-50" onClick={onDecrease} disabled={disabled} aria-label={`Decrease ${item.name}`}>
+      <div className={cn("inline-flex min-h-10 items-center overflow-hidden rounded-md bg-primary text-primary-foreground shadow-md", fullWidth && "flex w-full justify-between")} aria-label={`${item.name} quantity ${quantity}`}>
+        <button type="button" className={cn("grid size-10 place-items-center transition hover:bg-primary-hover disabled:opacity-50", fullWidth && "w-1/3")} onClick={onDecrease} disabled={disabled} aria-label={`Decrease ${item.name}`}>
           <Minus className="size-4" aria-hidden="true" />
         </button>
-        <span className="min-w-10 px-2 text-center text-sm font-semibold" aria-live="polite">{quantity}</span>
-        <button type="button" className="grid size-10 place-items-center transition hover:bg-primary-hover disabled:opacity-50" onClick={onIncrease} disabled={disabled || maxed} aria-label={`Increase ${item.name}`}>
+        <span className={cn("min-w-10 px-2 text-center text-sm font-semibold", fullWidth && "flex-1")} aria-live="polite">{quantity}</span>
+        <button type="button" className={cn("grid size-10 place-items-center transition hover:bg-primary-hover disabled:opacity-50", fullWidth && "w-1/3")} onClick={onIncrease} disabled={disabled || maxed} aria-label={`Increase ${item.name}`}>
           <Plus className="size-4" aria-hidden="true" />
         </button>
       </div>
@@ -288,9 +322,9 @@ function MenuCartControl({ item, quantity, disabled, onAdd, onDecrease, onIncrea
   }
 
   return (
-    <Button type="button" size="sm" variant="secondary" className="min-w-24 border-primary/30 bg-surface text-primary shadow-md hover:bg-primary/10" disabled={disabled} onClick={onAdd}>
+    <Button type="button" size="sm" variant="secondary" className={cn("min-w-24 border-primary/30 bg-surface text-primary shadow-md hover:bg-primary/10", fullWidth && "w-full text-base font-semibold min-h-10")} disabled={disabled} onClick={onAdd}>
       {item.stock === 0 ? <PackageX className="size-4" aria-hidden="true" /> : <ShoppingBag className="size-4" aria-hidden="true" />}
-      Add
+      Add to Cart
     </Button>
   );
 }
@@ -440,4 +474,155 @@ function optimisticMenuQuantity(cart: CartResponse, item: MarketplaceMenuItem, q
       return { ...line, quantity, lineTotal: String(Number(line.price) * quantity) };
     }),
   };
+}
+
+export function getProductImage(name: string, storeType?: string) {
+  const lowerName = name.toLowerCase();
+  
+  const mappings: Array<[string, string]> = [
+    // Food — specific combos first
+    ["chicken 65", "https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?w=800&q=80"],
+    ["chicken biryani", "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&q=80"],
+    ["paneer tikka", "https://images.unsplash.com/photo-1599487405270-8159b1523c92?w=800&q=80"],
+    ["butter chicken", "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=800&q=80"],
+    ["ice cream", "https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=800&q=80"],
+    ["fried rice", "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=800&q=80"],
+    ["fish fry", "https://images.unsplash.com/photo-1534766555764-ce878a4e2da1?w=800&q=80"],
+
+    // Food — general
+    ["biryani", "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&q=80"],
+    ["paneer", "https://images.unsplash.com/photo-1599487405270-8159b1523c92?w=800&q=80"],
+    ["tikka", "https://images.unsplash.com/photo-1599487405270-8159b1523c92?w=800&q=80"],
+    ["tandoori", "https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?w=800&q=80"],
+    ["kebab", "https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=800&q=80"],
+    ["chicken", "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=800&q=80"],
+    ["mutton", "https://images.unsplash.com/photo-1545247181-516773cae754?w=800&q=80"],
+    ["fish", "https://images.unsplash.com/photo-1534766555764-ce878a4e2da1?w=800&q=80"],
+    ["prawn", "https://images.unsplash.com/photo-1565680018093-ebb6b9ab5460?w=800&q=80"],
+    ["burger", "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80"],
+    ["pizza", "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80"],
+    ["dosa", "https://images.unsplash.com/photo-1589301760014-d929f39ce9de?w=800&q=80"],
+    ["idli", "https://images.unsplash.com/photo-1589301773112-0058bc5b4725?w=800&q=80"],
+    ["momos", "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=800&q=80"],
+    ["samosa", "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=800&q=80"],
+    ["paratha", "https://images.unsplash.com/photo-1626200419199-391ae4be7a41?w=800&q=80"],
+    ["naan", "https://images.unsplash.com/photo-1626200419199-391ae4be7a41?w=800&q=80"],
+    ["roti", "https://images.unsplash.com/photo-1626200419199-391ae4be7a41?w=800&q=80"],
+    ["thali", "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&q=80"],
+    ["curry", "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=800&q=80"],
+    ["dal", "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&q=80"],
+    ["soup", "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800&q=80"],
+    ["salad", "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80"],
+    ["noodles", "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=800&q=80"],
+    ["pasta", "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?w=800&q=80"],
+    ["roll", "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80"],
+    ["wrap", "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80"],
+    ["fries", "https://images.unsplash.com/photo-1576107223126-a979201a0808?w=800&q=80"],
+    ["dessert", "https://images.unsplash.com/photo-1551024506-0bccd828d307?w=800&q=80"],
+    ["cake", "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=800&q=80"],
+    ["gulab jamun", "https://images.unsplash.com/photo-1666190077389-52c0b4321d2f?w=800&q=80"],
+    ["coffee", "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=800&q=80"],
+    ["tea", "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=800&q=80"],
+    ["milkshake", "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=800&q=80"],
+    ["juice", "https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?w=800&q=80"],
+    ["lassi", "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=800&q=80"],
+
+    // Grocery
+    ["rice", "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800&q=80"],
+    ["atta", "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=800&q=80"],
+    ["flour", "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=800&q=80"],
+    ["milk", "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=800&q=80"],
+    ["bread", "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&q=80"],
+    ["egg", "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=800&q=80"],
+    ["butter", "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=800&q=80"],
+    ["cheese", "https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=800&q=80"],
+    ["oil", "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=800&q=80"],
+    ["sugar", "https://images.unsplash.com/photo-1581268293-24ca21f1e3db?w=800&q=80"],
+    ["apple", "https://images.unsplash.com/photo-1560806887-1e4cd0b6fc6c?w=800&q=80"],
+    ["banana", "https://images.unsplash.com/photo-1528825871115-3581a5387919?w=800&q=80"],
+    ["mango", "https://images.unsplash.com/photo-1553279768-865429fa0078?w=800&q=80"],
+    ["tomato", "https://images.unsplash.com/photo-1546470427-e26264be0b0d?w=800&q=80"],
+    ["onion", "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=800&q=80"],
+    ["potato", "https://images.unsplash.com/photo-1518977676601-b53f82ber630?w=800&q=80"],
+    ["chips", "https://images.unsplash.com/photo-1566478989037-e924e7da00f7?w=800&q=80"],
+    ["biscuit", "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=800&q=80"],
+    ["chocolate", "https://images.unsplash.com/photo-1481391319762-47dff72954d9?w=800&q=80"],
+    ["spice", "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=800&q=80"],
+    ["masala", "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=800&q=80"],
+    ["pickle", "https://images.unsplash.com/photo-1589135716294-8b5c6f1f1e2e?w=800&q=80"],
+    ["jam", "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&q=80"],
+    ["cereal", "https://images.unsplash.com/photo-1521483451569-e33803c0330c?w=800&q=80"],
+    ["oats", "https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=800&q=80"],
+    ["water", "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=800&q=80"],
+    ["soap", "https://images.unsplash.com/photo-1600857062241-98e5dba7f214?w=800&q=80"],
+    ["detergent", "https://images.unsplash.com/photo-1584820927498-cafe3c0b1154?w=800&q=80"],
+
+    // Pharmacy
+    ["paracetamol", "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80"],
+    ["vitamin", "https://images.unsplash.com/photo-1550572017-edb1eb32c45e?w=800&q=80"],
+    ["tablet", "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=800&q=80"],
+    ["capsule", "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=800&q=80"],
+    ["syrup", "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=800&q=80"],
+    ["drops", "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=800&q=80"],
+    ["cream", "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=800&q=80"],
+    ["ointment", "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=800&q=80"],
+    ["bandage", "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=800&q=80"],
+    ["sanitizer", "https://images.unsplash.com/photo-1584744982491-665216d95f8b?w=800&q=80"],
+    ["mask", "https://images.unsplash.com/photo-1586942368453-62c2f6d0f507?w=800&q=80"],
+    ["thermometer", "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80"],
+    ["supplement", "https://images.unsplash.com/photo-1550572017-edb1eb32c45e?w=800&q=80"],
+    ["protein", "https://images.unsplash.com/photo-1550572017-edb1eb32c45e?w=800&q=80"],
+    ["inhaler", "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80"],
+    ["medicine", "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80"],
+  ];
+
+  for (const [key, url] of mappings) {
+    if (lowerName.includes(key)) {
+      return url;
+    }
+  }
+
+  if (storeType === "PHARMACY") {
+    return "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80";
+  }
+  if (storeType === "GROCERY") {
+    return "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80";
+  }
+
+  return "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80";
+}
+
+export function getStoreHeroImage(storeName: string, storeType?: string) {
+  const lowerName = storeName.toLowerCase();
+
+  const storeHeroMappings: Array<[string, string]> = [
+    ["biryani", "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?w=1200&q=80"],
+    ["pizza", "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1200&q=80"],
+    ["burger", "https://images.unsplash.com/photo-1550547660-d9450f859349?w=1200&q=80"],
+    ["chinese", "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=1200&q=80"],
+    ["south indian", "https://images.unsplash.com/photo-1589301760014-d929f39ce9de?w=1200&q=80"],
+    ["cafe", "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1200&q=80"],
+    ["bakery", "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=1200&q=80"],
+    ["sweet", "https://images.unsplash.com/photo-1551024506-0bccd828d307?w=1200&q=80"],
+    ["kebab", "https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=1200&q=80"],
+    ["grill", "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&q=80"],
+    ["dhaba", "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=1200&q=80"],
+    ["mughlai", "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=1200&q=80"],
+  ];
+
+  for (const [key, url] of storeHeroMappings) {
+    if (lowerName.includes(key)) {
+      return url;
+    }
+  }
+
+  if (storeType === "PHARMACY") {
+    return "https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=1200&q=80";
+  }
+  if (storeType === "GROCERY") {
+    return "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=1200&q=80";
+  }
+
+  // Default: a beautiful Indian restaurant interior
+  return "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80";
 }

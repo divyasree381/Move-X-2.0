@@ -3,29 +3,48 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Bike, Clock3, Heart, MapPin, ReceiptText, Search, Star, Truck, type LucideIcon,
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Clock3, Heart, MapPin, ReceiptText, Star, Truck, type LucideIcon,
 } from "lucide-react";
-
-import { CartButton } from "@/components/orders";
 import { ServiceDisclaimer } from "@/components/trust";
 import { QueryState } from "@/providers/query-state";
-import { Button, StatusPill } from "@/components/ui";
-import { getCart, getStore, getStoreMenu, saveFavorite } from "@/lib/api";
-import { StoreMenu } from "./store-menu";
+import { Button, StatusPill, useToast } from "@/components/ui";
+import { getStore, getStoreMenu, listFavorites, removeFavorite, saveFavorite } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { StoreMenu, getStoreHeroImage } from "./store-menu";
 
-const DETAIL_IMAGE_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='960' height='420' viewBox='0 0 960 420'%3E%3Crect width='960' height='420' fill='%23fff7ed'/%3E%3Ccircle cx='790' cy='80' r='170' fill='%23fed7aa'/%3E%3Crect x='100' y='110' width='650' height='210' rx='28' fill='%23ff6b00' opacity='.18'/%3E%3Cpath d='M180 260h500v34H180zM220 210h410v30H220zM260 160h330v30H260z' fill='%23ff6b00'/%3E%3C/svg%3E";
+
 
 export function StoreDetailPage({ storeId }: { storeId: string }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const storeQuery = useQuery({ queryKey: ["store", storeId], queryFn: () => getStore(storeId) });
-  const favoriteMutation = useMutation({ mutationFn: () => saveFavorite({ type: "STORE", targetId: storeId }),
+  const favoritesQuery = useQuery({ queryKey: ["favorites"], queryFn: () => listFavorites(), retry: false });
+  const isStoreSaved = useMemo(() => favoritesQuery.data?.items.some((f) => f.targetId === storeId) ?? false, [favoritesQuery.data, storeId]);
+
+  const favoriteMutation = useMutation({
+    mutationFn: async () => {
+      if (isStoreSaved) {
+        await removeFavorite({ type: "STORE", targetId: storeId });
+        return "removed" as const;
+      } else {
+        await saveFavorite({ type: "STORE", targetId: storeId });
+        return "added" as const;
+      }
+    },
+    onSuccess: (action) => {
+      queryClient.invalidateQueries({ queryKey: ["favorites"] });
+      toast({
+        title: action === "added" ? "Store saved" : "Store removed",
+        description: action === "added" ? "Store saved to your favorites in profile." : "Store removed from your favorites.",
+        kind: "info",
+      });
+    },
+    onError: (caught) => toast({ title: "Could not update store favorite", description: caught instanceof Error ? caught.message : "Please try again.", kind: "error" }),
   });
   const menuQuery = useQuery({ queryKey: ["store-menu", storeId], queryFn: () => getStoreMenu(storeId),
   });
-  const cartQuery = useQuery({ queryKey: ["cart"], queryFn: getCart, retry: false });
   const store = storeQuery.data;
-  const itemCount = useMemo(() => cartQuery.data?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0, [cartQuery.data],
-  );
   const arrivalWindow = store ? `${store.etaMinutes}-${store.etaMinutes + 8} min` : "--";
   const distanceLabel = store?.distanceKm ? `${store.distanceKm.toFixed(1)} km away` : `${Number(store?.deliveryRadiusKm ?? 0).toFixed(0)} km delivery radius`;
 
@@ -40,7 +59,7 @@ export function StoreDetailPage({ storeId }: { storeId: string }) {
           <>
             <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-shell)]">
               <div className="relative min-h-[21rem] bg-surface-muted sm:min-h-[24rem]">
-                <Image src={store.imageUrl || DETAIL_IMAGE_FALLBACK} alt="" fill sizes="(max-width: 768px) 100vw, 960px" className="object-cover" priority unoptimized={!store.imageUrl} />
+                <Image src={store.imageUrl || getStoreHeroImage(store.name, store.type)} alt="" fill sizes="(max-width: 768px) 100vw, 960px" className="object-cover" priority unoptimized={!store.imageUrl} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/36 to-black/12" aria-hidden="true" />
                 <div className="absolute inset-x-0 bottom-0 p-4 text-white sm:p-6">
                   <div className="flex flex-wrap items-end justify-between gap-4">
@@ -51,7 +70,7 @@ export function StoreDetailPage({ storeId }: { storeId: string }) {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" variant="secondary" size="sm" onClick={() => favoriteMutation.mutate()} disabled={favoriteMutation.isPending} className="bg-white/12 text-white hover:bg-white/18">
-                        <Heart className="size-4" aria-hidden="true" /> Save
+                        <Heart className={cn("size-4", isStoreSaved && "fill-destructive text-destructive")} aria-hidden="true" /> {isStoreSaved ? "Saved" : "Save"}
                       </Button>
                       <StatusPill label={store.isOpen ? "Open now" : "Closed"} tone={store.isOpen ? "success" : "warning"} />
                     </div>
@@ -68,7 +87,7 @@ export function StoreDetailPage({ storeId }: { storeId: string }) {
               </div>
             </section>
 
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_19rem]">
+            <div className="grid gap-5">
               <section className="rounded-lg border border-border bg-surface p-4 shadow-sm" aria-labelledby="menu-heading">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -88,34 +107,6 @@ export function StoreDetailPage({ storeId }: { storeId: string }) {
                   <ServiceDisclaimer serviceType={store.type} />
                 </div>
               </section>
-
-              <aside className="h-fit rounded-lg border border-border bg-surface p-4 shadow-[var(--shadow-shell)] xl:sticky xl:top-28">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-primary">Your order</p>
-                    <h2 className="mt-1 text-xl font-semibold text-foreground">Cart summary</h2>
-                  </div>
-                  <CartButton />
-                </div>
-                <div className="mt-4 rounded-md border border-border bg-surface-muted p-3">
-                  <p className="text-sm font-medium text-foreground">{itemCount > 0 ? `${itemCount} item${itemCount === 1 ? "" : "s"} added` : "Add items to start"}</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">Browse first, adjust quantities anytime, then continue to checkout when ready.</p>
-                </div>
-                <div className="mt-4 grid gap-2 text-sm">
-                  <span className="inline-flex items-center gap-2 text-muted-foreground"><Bike className="size-4 text-primary" aria-hidden="true" /> Delivery partner assigned after checkout</span>
-                  <span className="inline-flex items-center gap-2 text-muted-foreground"><Search className="size-4 text-primary" aria-hidden="true" /> Coupons and prescription requirements are checked at checkout
-                  </span>
-                </div>
-                {itemCount > 0 ? (
-                  <Button asChild className="mt-4 w-full">
-                    <Link href="/customer/checkout">Go to checkout</Link>
-                  </Button>
-                ) : (
-                  <Button type="button" className="mt-4 w-full" disabled>
-                    Go to checkout
-                  </Button>
-                )}
-              </aside>
             </div>
           </>
         ) : null}

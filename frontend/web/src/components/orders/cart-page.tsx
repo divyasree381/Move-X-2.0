@@ -134,9 +134,7 @@ export function CartPage() {
           </div>
         ) : (
           /* Main Cart Content Grid */
-          <div className="grid gap-6 lg:grid-cols-[1fr_22rem] xl:grid-cols-[1fr_24rem] pb-24 md:pb-8">
-            {/* Left Column: Items, Add-ons, Coupons */}
-            <div className="space-y-6">
+          <div className="mx-auto max-w-3xl space-y-6 pb-24 md:pb-8">
               {/* Delivery ETA banner */}
               <div className="rounded-lg border border-primary/15 bg-primary/10 p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -255,10 +253,8 @@ export function CartPage() {
                 ) : null}
                 {couponError || cart.couponError ? <p id="cart-coupon-error" className="mt-2 text-xs text-destructive font-medium">{couponError ?? cart.couponError}</p> : null}
               </form>
-            </div>
 
-            {/* Right Column: Sticky Summary & Sticky bottom Proceed button for desktop */}
-            <div className="space-y-4 lg:sticky lg:top-24 h-fit">
+              {/* Bill details */}
               <div className="space-y-4 rounded-lg border border-border bg-surface p-5 text-sm shadow-sm">
                 <p className="flex items-center gap-2 text-base font-semibold text-foreground border-b border-border pb-3">
                   <ReceiptText className="size-4 text-primary" aria-hidden="true" /> Bill details
@@ -299,7 +295,6 @@ export function CartPage() {
                   </Button>
                 </div>
               </div>
-            </div>
           </div>
         )}
       </QueryState>
